@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.0.0</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.1.3</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -100,21 +100,34 @@ button{cursor:pointer;color:inherit}
 .title-card .meta{font-size:12px;color:var(--silver);display:block;margin-top:5px;text-shadow:0 0 8px #ffffff12}
 .order{font-size:12px;color:var(--silver);min-width:30px;text-align:center}
 .back{display:inline-flex;align-items:center;gap:7px;margin-bottom:13px;font-size:12px;color:var(--silver)}
-.production-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:13px}
+.production-head{
+  position:relative;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:13px
+}
 .production-head h2{font-size:25px;margin:0;line-height:1.06;color:var(--white)}
 .production-head p{font-size:11px;color:var(--silver);margin:6px 0 0}
+.edit-project-btn{
+  flex:0 0 auto;width:32px;height:32px;border:1px solid color-mix(in srgb,var(--project1,#56606f) 36%,#30353f);
+  border-radius:50%;background:#0c0e12aa;color:#d9dde5b8;font-size:15px;line-height:1;padding:0;
+  opacity:.62;backdrop-filter:blur(8px);transition:.18s opacity,.18s transform,.18s border-color
+}
+.edit-project-btn:active{opacity:1;transform:scale(.93)}
+#production .production-head h2{
+  text-shadow:0 0 18px color-mix(in srgb,var(--project1,#7c1119) 22%,transparent)
+}
 
 .project-backdrop{
-  width:100%;aspect-ratio:16/9;min-height:0;border:1px solid var(--line);border-radius:18px;margin-bottom:14px;
+  width:100%;aspect-ratio:16/9;min-height:0;border:0;border-radius:16px;margin:0 0 10px;
   overflow:hidden;position:relative;
-  background:
-    linear-gradient(180deg,#0000000a,#08090bdc),
-    linear-gradient(135deg,#351014,#15171b 60%,#090a0d);
-  background-repeat:no-repeat;background-position:50% 50%;background-size:cover
+  background:linear-gradient(135deg,#351014,#15171b 60%,#090a0d);
+  background-repeat:no-repeat;background-position:50% 50%;background-size:cover;
+  box-shadow:
+    0 20px 34px -30px color-mix(in srgb,var(--project1,#7c1119) 75%,transparent),
+    0 24px 40px -34px color-mix(in srgb,var(--project2,#dce7ff) 62%,transparent);
+  -webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 91%,transparent 100%);
+  mask-image:linear-gradient(to bottom,#000 0%,#000 91%,transparent 100%)
 }
-.project-backdrop:after{
-  content:"";position:absolute;inset:0;background:linear-gradient(180deg,#0002,#08090bdd)
-}
+.project-backdrop:after{content:none}
+
 
 
 .cover-crop-editor{
@@ -151,9 +164,7 @@ button{cursor:pointer;color:inherit}
   font-size:10px;letter-spacing:.7px
 }
 .add-cast-card strong{font-size:22px;display:block;color:var(--white);margin-bottom:5px}
-.project-roster-note{
-  font-size:10px;color:var(--silver);line-height:1.45;margin:-2px 0 12px;
-}
+.project-roster-note{display:none}
 
 
 .project-add-character{
@@ -162,17 +173,116 @@ button{cursor:pointer;color:inherit}
 .project-add-character .btn{min-width:min(90%,320px)}
 .faction-note{font-size:9px;color:var(--silver);margin:-5px 0 8px;line-height:1.4}
 
-.cast-group{margin-top:16px}
-.cast-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 7px}
-.char-tile{min-width:0}
+
+.global-progress{
+  margin-top:16px;padding:12px 13px;border:1px solid #3a404b;border-radius:15px;
+  background:#0d0f13cc;backdrop-filter:blur(6px)
+}
+.global-progress-top{display:flex;justify-content:space-between;align-items:end;gap:10px}
+.global-progress strong{font-size:25px;line-height:1;color:var(--white)}
+.global-progress span{font-size:10px;color:var(--silver);letter-spacing:.8px}
+.progress-track{height:6px;border-radius:999px;background:#282d35;overflow:hidden;margin:9px 0 7px}
+.progress-fill{display:block;height:100%;width:0;background:linear-gradient(90deg,#7c1119,#e6e8ec);border-radius:inherit;transition:width .35s ease}
+.project-progress{
+  display:inline-flex;align-items:center;gap:7px;margin-top:8px;padding:6px 9px;
+  border:1px solid color-mix(in srgb,var(--project1,#56606f) 42%,#30353f);
+  border-radius:999px;
+  background:
+    linear-gradient(90deg,
+      color-mix(in srgb,var(--project1,#7c1119) 14%,#101217),
+      color-mix(in srgb,var(--project2,#dce7ff) 6%,#101217));
+  color:var(--silver);font-size:9px;letter-spacing:.7px;
+  box-shadow:0 0 16px color-mix(in srgb,var(--project1,#7c1119) 14%,transparent)
+}
+.project-progress strong{font-size:12px;color:var(--white)}
+#production .cast-group>.section-title,
+#production .section-title.node-section{
+  position:relative;padding-left:10px
+}
+#production .cast-group>.section-title:before,
+#production .section-title.node-section:before{
+  content:"";position:absolute;left:0;top:2px;bottom:3px;width:2px;border-radius:99px;
+  background:linear-gradient(var(--project1,#b3263e),var(--project2,#dce7ff));
+  box-shadow:0 0 8px color-mix(in srgb,var(--project1,#b3263e) 50%,transparent)
+}
+.char-card.has-portrait{
+  overflow:visible;background:transparent!important;border:0!important;border-radius:0!important;
+  box-shadow:none!important;filter:drop-shadow(0 11px 10px #0008)
+}
+.char-card.has-portrait:before{
+  content:"";position:absolute;z-index:0;left:-18%;right:-18%;top:-12%;bottom:-16%;
+  border-radius:48%;
+  background:
+    radial-gradient(ellipse at 37% 43%,var(--halo1) 0%,color-mix(in srgb,var(--halo1) 76%,transparent) 24%,transparent 61%),
+    radial-gradient(ellipse at 66% 58%,var(--halo2) 0%,color-mix(in srgb,var(--halo2) 76%,transparent) 26%,transparent 64%);
+  filter:blur(20px) saturate(1.75) brightness(1.28);opacity:1;transform:scale(1.10);
+  mix-blend-mode:screen;pointer-events:none
+}
+.char-card.has-portrait:after{
+  content:"";position:absolute;z-index:0;left:-5%;right:-5%;top:2%;bottom:-4%;border-radius:44%;
+  background:
+    radial-gradient(ellipse at 44% 45%,color-mix(in srgb,var(--halo1) 86%,transparent) 0%,transparent 48%),
+    radial-gradient(ellipse at 60% 57%,color-mix(in srgb,var(--halo2) 84%,transparent) 0%,transparent 52%);
+  filter:blur(9px) saturate(1.55) brightness(1.18);opacity:.82;pointer-events:none
+}
+.char-card.has-portrait .portrait{
+  overflow:visible;background:transparent;border-radius:0;z-index:1
+}
+.char-card.has-portrait .portrait img{
+  position:relative;z-index:2;
+  filter:
+    drop-shadow(0 0 5px color-mix(in srgb,var(--halo1) 92%,white 8%))
+    drop-shadow(0 0 13px color-mix(in srgb,var(--halo2) 88%,white 12%))
+    drop-shadow(0 10px 10px #000c)
+}
+
+#production.halo-ignite .char-card.has-portrait:before{
+  animation:haloIgnite .62s cubic-bezier(.17,.8,.26,1) both;
+  animation-delay:var(--ignite-delay,0ms)
+}
+#production.halo-ignite .char-card.has-portrait:after{
+  animation:haloIgniteInner .55s ease-out both;
+  animation-delay:calc(var(--ignite-delay,0ms) + 40ms)
+}
+@keyframes haloIgnite{
+  0%{opacity:0;transform:scale(.68);filter:blur(28px) saturate(.7) brightness(.7)}
+  55%{opacity:1;transform:scale(1.18);filter:blur(19px) saturate(2) brightness(1.42)}
+  100%{opacity:1;transform:scale(1.10);filter:blur(20px) saturate(1.75) brightness(1.28)}
+}
+@keyframes haloIgniteInner{
+  0%{opacity:0;transform:scale(.72)}
+  70%{opacity:.95;transform:scale(1.07)}
+  100%{opacity:.82;transform:scale(1)}
+}
+
+.cast-group{margin-top:18px}
+.cast-row{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(92px,118px));
+  justify-content:center;align-items:start;
+  gap:20px 14px;padding:2px 4px 7px
+}
+.char-tile{
+  min-width:0;position:relative;isolation:isolate;width:100%;max-width:118px;justify-self:center
+}
 .char-card{
-  position:relative;width:100%;aspect-ratio:1/1;overflow:hidden;border:0;border-radius:16px;
+  position:relative;z-index:1;width:100%;aspect-ratio:1/1;overflow:hidden;border:0;border-radius:16px;
   background:radial-gradient(circle at 50% 45%,#ffffff10,transparent 64%),#101217;
   transition:.18s transform;color:var(--white);padding:0;text-align:left;min-width:0
 }
-.char-label{padding:6px 3px 2px;text-align:center;min-height:35px}
-.char-label strong{font-size:10px;line-height:1.15;color:var(--white);display:block}
-.char-label span{font-size:9px;line-height:1.15;color:var(--silver);display:block;margin-top:3px}
+.char-label{
+  position:relative;z-index:8;margin-top:-2px;padding:8px 4px 4px;text-align:center;min-height:39px;
+  background:linear-gradient(180deg,transparent 0%,#08090b55 34%,#08090bc9 74%,#08090bf0 100%);
+  border-radius:0 0 12px 12px
+}
+.char-label strong{
+  position:relative;z-index:9;font-size:10px;line-height:1.15;color:var(--white);display:block;
+  text-shadow:0 1px 2px #000,0 0 7px #000,0 0 12px #000
+}
+.char-label span{
+  position:relative;z-index:9;font-size:9px;line-height:1.15;color:#e7eaf0;display:block;margin-top:3px;
+  text-shadow:0 1px 2px #000,0 0 7px #000
+}
 .char-empty{
   position:absolute;inset:0;display:grid;place-items:center;text-align:center;
   color:var(--silver);font-size:10px;letter-spacing:.8px;padding:12px
@@ -399,6 +509,11 @@ button{cursor:pointer;color:inherit}
   .form-grid{grid-template-columns:repeat(3,1fr)}
   .hero{min-height:390px}.hero h2{font-size:46px}
 }
+@media(max-width:520px){
+  #production .production-head{padding-right:2px}
+  .edit-project-btn{width:30px;height:30px;font-size:14px}
+  .cast-row{grid-template-columns:repeat(auto-fit,minmax(88px,112px));gap:18px 12px}
+}
 </style>
 
 <meta name="theme-color" content="#090b10">
@@ -443,6 +558,11 @@ button{cursor:pointer;color:inherit}
       <div class="eyebrow">MAPA PRINCIPAL</div>
       <h2>ÁRBOL MULTIVERSAL</h2>
       <p>CADA RAMA REPRESENTA UNA TIERRA. ENTRA A UNA TIERRA PARA RECORRER SUS PELÍCULAS Y TEMPORADAS.</p>
+      <div class="global-progress" id="globalProgress">
+        <div class="global-progress-top"><span>ÁLBUM COMPLETADO</span><strong id="globalProgressPercent">0%</strong></div>
+        <div class="progress-track"><span class="progress-fill" id="globalProgressFill"></span></div>
+        <span id="globalProgressCount">0 / 0 PERSONAJES</span>
+      </div>
     </div>
   </div>
   <div class="section-title">TIERRAS</div>
@@ -470,8 +590,8 @@ button{cursor:pointer;color:inherit}
   <button class="btn back" id="backFromProduction">← VOLVER A LA CRONOLOGÍA</button>
   <div class="project-backdrop" id="projectBackdrop"></div>
   <div class="production-head">
-    <div><h2 id="productionTitle"></h2><p id="productionMeta"></p></div>
-    <button class="btn" id="editProjectBtn">EDITAR</button>
+    <div><h2 id="productionTitle"></h2><p id="productionMeta"></p><div class="project-progress" id="productionProgress"><strong>0 / 0</strong><span>FIGURAS</span></div></div>
+    <button class="edit-project-btn" id="editProjectBtn" type="button" aria-label="EDITAR PROYECTO" title="EDITAR PROYECTO">✎</button>
   </div>
   <div class="project-roster-note">REPARTO PRECARGADO POR PROYECTO. TOCA UN PERSONAJE PARA VER SU FICHA O USA ＋ PARA AÑADIR UNO QUE FALTE.</div>
   <div id="castRoot"></div>
@@ -1321,6 +1441,7 @@ function renderScreen(id){
   const target=$("#"+id)||$("#home");
   target.classList.add("active");
   const actual=target.id;
+  if(actual==="home")renderGlobalProgress();
   $$(".nav-btn").forEach(x=>x.classList.toggle("active",x.dataset.nav===actual));
   scrollTo({top:0,behavior:"smooth"});
 }
@@ -1471,13 +1592,41 @@ function playWhoosh(reverse=false){
     transitionFallback.play().catch(()=>{});
   }catch(e){}
 }
+
+function playCharacterTap(){
+  if(!soundEnabled)return;
+  try{
+    prepareTransitionAudio();
+    if(!transitionCtx||transitionCtx.state!=="running")return;
+    const now=transitionCtx.currentTime;
+    const gain=transitionCtx.createGain();
+    gain.gain.setValueAtTime(.0001,now);
+    gain.gain.exponentialRampToValueAtTime(.105,now+.008);
+    gain.gain.exponentialRampToValueAtTime(.0001,now+.115);
+    gain.connect(transitionCtx.destination);
+    const low=transitionCtx.createOscillator();
+    low.type="triangle";
+    low.frequency.setValueAtTime(330,now);
+    low.frequency.exponentialRampToValueAtTime(620,now+.09);
+    low.connect(gain);low.start(now);low.stop(now+.12);
+    const high=transitionCtx.createOscillator(),highGain=transitionCtx.createGain();
+    high.type="sine";
+    high.frequency.setValueAtTime(980,now+.012);
+    high.frequency.exponentialRampToValueAtTime(720,now+.08);
+    highGain.gain.setValueAtTime(.035,now+.012);
+    highGain.gain.exponentialRampToValueAtTime(.0001,now+.095);
+    high.connect(highGain);highGain.connect(transitionCtx.destination);
+    high.start(now+.012);high.stop(now+.10);
+  }catch(e){}
+}
+
 function cinematicOpen(project,callback,reverse=false){
   const ov=$("#transitionOverlay"),card=$("#zoomCard");
   card.style.backgroundImage="";
   ov.classList.remove("show","reverse");
   void ov.offsetWidth;
 
-  const key=project?.horizontalKey||project?.coverKey;
+  const key=project?.coverKey||project?.horizontalKey;
   if(key){
     getMediaURL(key).then(url=>{if(url)card.style.backgroundImage=`url("${url}")`}).catch(()=>{});
   }
@@ -1544,6 +1693,120 @@ async function openProduction(id){
   await cinematicOpen(p,()=>{renderProduction();go("production")},false);
 }
 
+const PROJECT_THEME_COLORS={"ca1":["#0e2f57","#b5202e"],"oneshot_agentcarter":["#8d1622","#173754"],"cm":["#1b5b9b","#f2c14e"],"im1":["#9d1821","#e5ad35"],"im2":["#ad1725","#bbc2cc"],"hulk":["#4c7b2b","#4b5157"],"oneshot_funny":["#66717d","#d4a84d"],"thor1":["#315da8","#d8b35a"],"oneshot_consultant":["#21344f","#c5cbd3"],"av1":["#205a9d","#b31d2b"],"oneshot_item47":["#264b70","#8f9aa6"],"thor2":["#2c234e","#7e1b2e"],"im3":["#8c1420","#e96e2a"],"oneshot_allhail":["#8c1523","#caa347"],"ca2":["#37536f","#a9222c"],"gotg1":["#6d3aa8","#2fa4c7"],"gotg2":["#d76b2e","#2d9c9e"],"dd1":["#d3162b","#ff6a38"],"jj1":["#553078","#1a2442"],"aou":["#a61d28","#71879d"],"ant1":["#9f1d27","#25272b"],"dd2":["#df172d","#f05b3e"],"lc1":["#d4ad36","#151515"],"if1":["#27824d","#c0a445"],"def1":["#7b1820","#18191c"],"cw":["#225a98","#a6242c"],"bw":["#b51620","#17181b"],"bp":["#5a2d91","#17151c"],"homecoming":["#c91f2b","#235c9b"],"pun1":["#e8edf5","#d51c2e"],"drs":["#d56b2d","#2e6795"],"jj2":["#6f3a8c","#b34d82"],"lc2":["#d3b237","#1f2124"],"if2":["#2e8b58","#d6d7d9"],"dd3":["#c91628","#f0e3d0"],"ragnarok":["#d23f9d","#31c5d8"],"pun2":["#e8edf5","#d51c2e"],"jj3":["#66419a","#273252"],"ant2":["#b1222c","#2d9eb5"],"iw":["#5c3f8f","#d59a3a"],"endgame":["#375c93","#65478d"],"wandavision":["#c32736","#4e8ca4"],"shangchi":["#b31d27","#d7a73d"],"fatws":["#b3232f","#233b61"],"farfromhome":["#c6202d","#2aa0bc"],"eternals":["#c9a45f","#417f82"],"nowayhome":["#be2531","#d58a31"],"ds2":["#a8232d","#315c8a"],"hawkeye1":["#8e5cff","#d08cff"],"moon1":["#eaf7ff","#5ab7ff"],"bp2":["#237e86","#6b3a99"],"echo1":["#992329","#d7d7d2"],"shehulk1":["#5f9b42","#77509b"],"msm1":["#d64191","#3079b7"],"thor4":["#e7559f","#45c7d7"],"ironheart1":["#a11e28","#d7a33f"],"werewolf":["#e6e6e6","#d92038"],"gotgholiday":["#aa2830","#36704a"],"ant3":["#b92536","#75479b"],"gotg3":["#3674b5","#d27834"],"secretinv":["#46c46f","#9b4de0"],"marvels":["#be2638","#376cad"],"agatha1":["#6c318e","#559040"],"ddba1":["#e0182d","#ff693e"],"bravenewworld":["#253c67","#b5232d"],"thunderbolts":["#f5dc3f","#eaf2ff"],"wonderman1":["#b62a32","#d18a3f"],"ddba2":["#e0182d","#d9e1ea"],"punisher_special":["#f1f4f8","#d51c2e"],"brandnewday":["#c51f2c","#275f9d"],"visionquest":["#55aeba","#d5b85d"],"doomsday":["#42cc70","#dce5ef"],"ddba3":["#d7182b","#f0c3a4"],"wonderman2":["#a82b35","#d29a48"],"secretwars":["#8f5cff","#ffc64d"],"loki1":["#377a4a","#c39a40"],"loki2":["#447a4b","#d47d35"],"deadpoolwolverine":["#ba1f2b","#d9b83c"],"ff_firststeps":["#3ba7ff","#ff934d"],"aos1":["#2e5c7d","#919ba5"],"aos2":["#315d7d","#8c2f3b"],"aos3":["#3a6382","#6b4d8e"],"aos4":["#27495f","#d16a31"],"aos5":["#293c59","#7c498b"],"aos6":["#2b6172","#c76b43"],"aos7":["#325b7b","#c8a052"],"slingshot":["#2b5a75","#bd3342"],"ac1":["#972432","#33455f"],"ac2":["#a42b3a","#4b6480"],"inh1":["#433d73","#b29a56"],"run1":["#6b3d8b","#d34e86"],"run2":["#5b428b","#df6e3e"],"run3":["#4c4d8f","#bd4c7f"],"cd1":["#273c6f","#e1c44b"],"cd2":["#304979","#e6d15c"],"hel1":["#df3348","#ff964d"],"leg1":["#d2643c","#37548a"],"leg2":["#b74062","#355e8f"],"leg3":["#d58b38","#704188"],"gift1":["#42b6ff","#d64f96"],"gift2":["#39b9e8","#c94b8f"]};
+
+const SAGA_THEME_COLORS=[
+  [/CAPITÁN AMÉRICA|FALCON Y EL SOLDADO|AGENTE CARTER/i,["#1664c0","#f02b3c"]],
+  [/IRON MAN|IRONHEART/i,["#ef233c","#ffc43d"]],
+  [/THOR/i,["#2d8cff","#ffd45a"]],
+  [/AVENGERS|VENGADORES/i,["#2b7cff","#e53945"]],
+  [/GUARDIANES/i,["#a84cff","#21d4e8"]],
+  [/DAREDEVIL/i,["#ff1f32","#ff7a3d"]],
+  [/JESSICA JONES/i,["#a65cff","#596cff"]],
+  [/LUKE CAGE/i,["#ffd633","#ff9d1f"]],
+  [/IRON FIST/i,["#20d875","#ffd84d"]],
+  [/PUNISHER/i,["#ff2440","#e8edf5"]],
+  [/SPIDER-MAN/i,["#f2253c","#258cff"]],
+  [/PANTERA NEGRA|BLACK PANTHER|WAKANDA/i,["#8a4dff","#22d3d8"]],
+  [/DOCTOR STRANGE/i,["#ff7138","#3a8cff"]],
+  [/ANT-MAN/i,["#f22f49","#25c9e8"]],
+  [/LOKI/i,["#34d06f","#f2c94c"]],
+  [/WANDAVISION/i,["#ff355e","#63c7ff"]],
+  [/AGATHA/i,["#b54cff","#62d06f"]],
+  [/VISIONQUEST/i,["#3fd7ff","#ffd75a"]],
+  [/MOON KNIGHT/i,["#eaf7ff","#55b8ff"]],
+  [/MS\. MARVEL/i,["#ff4ca3","#3a8dff"]],
+  [/SHE-HULK/i,["#7ee14f","#b45cff"]],
+  [/SHANG-CHI/i,["#ef3340","#ffd24a"]],
+  [/ETERNALS/i,["#ffd16a","#55d7e5"]],
+  [/THUNDERBOLTS|NUEVOS VENGADORES/i,["#ffe347","#f4f7ff"]],
+  [/FANTÁSTICOS|FANTASTIC FOUR/i,["#3bb7ff","#ff9147"]],
+  [/DEADPOOL/i,["#ff293d","#ffd84d"]],
+  [/SECRET INVASION|INVASIÓN SECRETA/i,["#48c774","#b64cff"]],
+  [/THE MARVELS|CAPITANA MARVEL/i,["#ff3d78","#3d91ff"]],
+  [/HAWKEYE/i,["#9b5cff","#d68cff"]],
+  [/WEREWOLF/i,["#e6e6e6","#ff3d4d"]],
+  [/ECHO/i,["#e53945","#f0d6b5"]],
+  [/DOOMSDAY/i,["#36c66a","#d9e1ec"]],
+  [/SECRET WARS/i,["#9b5cff","#ffc857"]],
+  [/AGENTES DE S\.H\.I\.E\.L\.D\.|S\.H\.I\.E\.L\.D\./i,["#3a8fcc","#9edcff"]],
+  [/INHUMANOS/i,["#7f5cff","#e0bd58"]],
+  [/RUNAWAYS/i,["#9d4edd","#ff4d9d"]],
+  [/CLOAK.*DAGGER/i,["#2b59ff","#ffe45c"]],
+  [/HELSTROM/i,["#df3348","#ff9d4d"]],
+  [/LEGION/i,["#ff7849","#7d5cff"]],
+  [/THE GIFTED/i,["#3abff8","#d14d91"]]
+];
+function hexToHsl(hex){
+  const m=(hex||"").replace("#","").match(/^([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);if(!m)return null;
+  let r=parseInt(m[1],16)/255,g=parseInt(m[2],16)/255,b=parseInt(m[3],16)/255;
+  const max=Math.max(r,g,b),min=Math.min(r,g,b),d=max-min,l=(max+min)/2;let h=0,sat=0;
+  if(d){sat=d/(1-Math.abs(2*l-1));if(max===r)h=60*(((g-b)/d)%6);else if(max===g)h=60*((b-r)/d+2);else h=60*((r-g)/d+4);if(h<0)h+=360}
+  return [h,sat*100,l*100];
+}
+function vividHaloColor(hex){
+  const hsl=hexToHsl(hex);if(!hsl)return hex||"#d9e2ff";
+  let [h,sat,l]=hsl;
+  if(sat<18){sat=12;l=Math.max(l,76)}
+  else {sat=Math.max(sat,72);l=Math.max(48,Math.min(68,l<38?54:l))}
+  return `hsl(${Math.round(h)} ${Math.round(sat)}% ${Math.round(l)}%)`;
+}
+function projectTheme(p){
+  let base=null;
+  if(p?.themeColors?.length>=2)base=p.themeColors.slice(0,2);
+  else if(PROJECT_THEME_COLORS[p?.id])base=PROJECT_THEME_COLORS[p.id];
+  else {
+    const identity=`${p?.title||""} ${p?.saga||""}`;
+    base=SAGA_THEME_COLORS.find(([re])=>re.test(identity))?.[1]||["#b3263e","#dce7ff"];
+  }
+  return base.map(vividHaloColor);
+}
+function figureProgressForProject(pid){
+  const ids=projectAllCastIds(pid);
+  const done=ids.filter(id=>DATA.characters.find(c=>c.id===id)?.masterMediaKey).length;
+  return {done,total:ids.length,percent:ids.length?Math.round(done*100/ids.length):0};
+}
+function globalFigureProgress(){
+  const ids=[...new Set(DATA.productions.flatMap(p=>projectAllCastIds(p.id)))];
+  const done=ids.filter(id=>DATA.characters.find(c=>c.id===id)?.masterMediaKey).length;
+  return {done,total:ids.length,percent:ids.length?Math.round(done*100/ids.length):0};
+}
+function renderGlobalProgress(){
+  const x=globalFigureProgress();
+  if($("#globalProgressPercent"))$("#globalProgressPercent").textContent=`${x.percent}%`;
+  if($("#globalProgressFill"))$("#globalProgressFill").style.width=`${x.percent}%`;
+  if($("#globalProgressCount"))$("#globalProgressCount").textContent=`${x.done} / ${x.total} PERSONAJES`;
+}
+function renderProjectProgress(pid){
+  const x=figureProgressForProject(pid),el=$("#productionProgress");
+  if(el)el.innerHTML=`<strong>${x.done} / ${x.total}</strong><span>FIGURAS · ${x.percent}%</span>`;
+}
+function colorDistance(a,b){
+  const pa=a.match(/[0-9a-f]{2}/ig)?.map(x=>parseInt(x,16))||[0,0,0],pb=b.match(/[0-9a-f]{2}/ig)?.map(x=>parseInt(x,16))||[0,0,0];
+  return Math.hypot(pa[0]-pb[0],pa[1]-pb[1],pa[2]-pb[2]);
+}
+function rgbHex(r,g,b){return "#"+[r,g,b].map(v=>Math.max(0,Math.min(255,v)).toString(16).padStart(2,"0")).join("")}
+async function deriveThemeColorsFromMedia(key){
+  if(!key)return null;
+  try{
+    const url=await getMediaURL(key);if(!url)return null;
+    const img=new Image();await new Promise((res,rej)=>{img.onload=res;img.onerror=rej;img.src=url});
+    const cv=document.createElement("canvas");cv.width=28;cv.height=16;
+    const cx=cv.getContext("2d",{willReadFrequently:true});cx.drawImage(img,0,0,28,16);
+    const data=cx.getImageData(0,0,28,16).data,bins=new Map();
+    for(let i=0;i<data.length;i+=4){
+      const r=data[i],g=data[i+1],b=data[i+2],mx=Math.max(r,g,b),mn=Math.min(r,g,b),sum=r+g+b;
+      if(sum<105||sum>705||mx-mn<32)continue;
+      const qr=Math.round(r/40)*40,qg=Math.round(g/40)*40,qb=Math.round(b/40)*40;
+      const hex=rgbHex(qr,qg,qb);bins.set(hex,(bins.get(hex)||0)+1+(mx-mn)/255);
+    }
+    const ranked=[...bins.entries()].sort((a,b)=>b[1]-a[1]).map(x=>x[0]);
+    if(!ranked.length)return null;
+    const first=ranked[0],second=ranked.find(c=>colorDistance(first,c)>90)||ranked[1]||"#d7dbe2";
+    return [first,second];
+  }catch(e){return null}
+}
+
 const PROJECT_FACTIONS={
   cw:{
     note:"ESTE PROYECTO SE ORGANIZA POR FACCIONES DEL CONFLICTO, NO POR BUENOS Y MALOS.",
@@ -1606,10 +1869,15 @@ function projectDisplayGroups(p){
 async function renderProduction(){
   const p=DATA.productions.find(x=>x.id===currentProduction);if(!p)return;
   currentEarth=p.earth;
+  const projectThemeColors=projectTheme(p);
+  const productionScreen=$("#production");
+  productionScreen.style.setProperty("--project1",projectThemeColors[0]);
+  productionScreen.style.setProperty("--project2",projectThemeColors[1]);
   $("#productionTitle").textContent=p.title;
   const projectEarth=DATA.universes.find(u=>u.id===p.earth);
   $("#productionMeta").innerHTML=`${projectTypeLabel(p)} · <button class="node-link" id="productionEarthNode">${projectEarth?.name||""}</button> · ${p.year||""}${projectStatusText(p)}`;
   $("#productionEarthNode").onclick=()=>openEarth(p.earth);
+  renderProjectProgress(p.id);
   const backdrop=$("#projectBackdrop");
   backdrop.style.backgroundImage="linear-gradient(135deg,#301015,#17191e 58%,#090a0d)";
   backdrop.style.backgroundPosition="center";
@@ -1617,7 +1885,7 @@ async function renderProduction(){
   backdrop.style.backgroundRepeat="no-repeat";
   if(p.horizontalKey){
     const url=await getMediaURL(p.horizontalKey);
-    if(url)backdrop.style.backgroundImage=`linear-gradient(180deg,#00000008,#08090b66),url("${url}")`;
+    if(url)backdrop.style.backgroundImage=`url("${url}")`;
   }
   const layout=projectDisplayGroups(p);
   const visibleGroups=layout.groups.filter(([,ids])=>ids.length);
@@ -1628,7 +1896,7 @@ async function renderProduction(){
         ${PROJECT_FACTIONS[p.id]
           ? `<button class="section-title node-section" data-project-faction="${label}">${label} · ${ids.length}</button>`
           : `<div class="section-title">${label} · ${ids.length}</div>`}
-        <div class="cast-row">${ids.map(id=>charCard(id,p.id)).join("")}</div>
+        <div class="cast-row">${ids.map((id,i)=>charCard(id,p.id,i)).join("")}</div>
       </div>`).join("")+
     `<div class="project-add-character"><button class="btn primary" data-add-project="${p.id}">＋ AGREGAR PERSONAJE</button></div>`;
   $$("#castRoot [data-character]").forEach(b=>b.onclick=()=>openCharacter(b.dataset.character));
@@ -1645,6 +1913,11 @@ async function renderProduction(){
     setTimeout(()=>{$("#characterSearch").focus();$("#characterSearch").scrollIntoView({behavior:"smooth",block:"center"})},120);
   });
   await hydrateCharacterCards();
+
+  productionScreen.classList.remove("halo-ignite");
+  void productionScreen.offsetWidth;
+  productionScreen.classList.add("halo-ignite");
+  setTimeout(()=>productionScreen.classList.remove("halo-ignite"),1050);
 
   const related=DATA.productions.filter(x=>x.earth===p.earth&&x.saga===p.saga).sort((a,b)=>(a.order||0)-(b.order||0));
   $("#sagaStrip").innerHTML=related.map(x=>`<button class="saga-item ${x.id===p.id?"active":""}" data-saga-project="${x.id}">
@@ -1663,13 +1936,14 @@ function statusClass(status){
   if(status==="DESAPARECIDO")return "missing";
   return "unknown";
 }
-function charCard(id,projectId){
+function charCard(id,projectId,index=0){
   const c=DATA.characters.find(x=>x.id===id);if(!c)return pendingCard();
   const appearance=appearanceFor(id,projectId)||{};
   const mediaKey=c.masterMediaKey||"";
   const shownAlias=appearance.alias||c.alias;
+  const theme=projectTheme(DATA.productions.find(x=>x.id===projectId));
   return `<div class="char-tile">
-    <button class="char-card" ${mediaKey?`data-character="${id}"`:`data-add-image-character="${id}"`} data-project-context="${projectId}">
+    <button class="char-card ${mediaKey?"has-portrait":""}" style="--halo1:${theme[0]};--halo2:${theme[1]};--ignite-delay:${Math.min(index,8)*55}ms" ${mediaKey?`data-character="${id}"`:`data-add-image-character="${id}"`} data-project-context="${projectId}">
       <span class="status-light ${statusClass(c.status)}" title="${c.status}"></span>
       <span class="portrait ${mediaKey?"has-image":""}" data-character-media="${mediaKey}">
         ${mediaKey?`<img class="hidden" alt="${c.real}">`:`<span class="char-empty"><span><b>＋</b>CARGAR FOTO</span></span>`}
@@ -1694,7 +1968,7 @@ async function hydrateCharacterCards(){
   }));
 }
 
-function openCharacter(id){currentCharacter=id;renderCharacter();go("character")}
+function openCharacter(id){playCharacterTap();currentCharacter=id;renderCharacter();go("character")}
 async function renderCharacter(){
   const c=DATA.characters.find(x=>x.id===currentCharacter);if(!c)return;
   const currentApp=appearanceFor(c.id,currentProduction)||{};
@@ -2242,7 +2516,7 @@ async function registerImage(){
   DATA.appearances[key]=appearance;
   DATA.images[key]={...appearance}; // keep old reader compatibility, without duplicate media
 
-  saveData();rebuildLibraryCatalog();clearDraft(IMAGE_DRAFT_KEY);
+  saveData();rebuildLibraryCatalog();renderGlobalProgress();if(pid===currentProduction)renderProjectProgress(pid);clearDraft(IMAGE_DRAFT_KEY);
   toast(previous?"APARICIÓN ACTUALIZADA":"PERSONAJE VINCULADO AL PROYECTO");
   clearImageForm();
 }
@@ -2345,6 +2619,10 @@ async function saveProject(){
       if(hfile)await putMedia(horizontalKey,hfile);
       else if(await cloneMediaKey(DRAFT_HORIZONTAL_MEDIA,horizontalKey))p.horizontalKey=horizontalKey;
       if(hfile)p.horizontalKey=horizontalKey;
+      if(p.horizontalKey&&!PROJECT_THEME_COLORS[p.id]){
+        const derived=await deriveThemeColorsFromMedia(p.horizontalKey);
+        if(derived)p.themeColors=derived;
+      }
     }catch(e){toast("PROYECTO GUARDADO SIN IMAGEN HORIZONTAL")}
   }
   currentProduction=id;currentEarth=earth;saveData();clearDraft(PROJECT_DRAFT_KEY);renderEarths();renderTimeline();toast("PROYECTO GUARDADO");go("earth");
@@ -2423,7 +2701,7 @@ try{
   }
 }catch(e){}
 
-seedAllProjectRosters();renderEarths();rebuildLibraryCatalog();renderLibraryResults();
+seedAllProjectRosters();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();renderLibraryResults();
 setTimeout(()=>loadMarvelLibrary().then(()=>renderLibraryResults()),350);
 prepareImageForm();
 history.replaceState({screen:"home",earth:currentEarth,production:currentProduction,character:currentCharacter},"","#home");
