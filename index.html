@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.2.2</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.2.3</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -1359,6 +1359,16 @@ function libraryDisplayAlias(e){
   return (e.aliases&&e.aliases[0]) || e.canonical;
 }
 
+// CACHÉS DE RENDIMIENTO: deben existir antes de cualquier guardado/migración.
+let runtimeIndexesDirty=true;
+let runtimeCharacterById=new Map();
+let runtimeProjectById=new Map();
+let runtimeUniverseById=new Map();
+let runtimeCharacterByEarthName=new Map();
+let runtimeAffiliationsById=new Map();
+let runtimeProjectProgressCache=new Map();
+let runtimeGlobalProgressCache=null;
+
 const STORAGE_KEY="multiversalArchiveDataV03";
 let DATA = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null") || structuredClone(DEFAULT_DATA);
 DATA.mediaFallback = DATA.mediaFallback || {};
@@ -1511,18 +1521,9 @@ async function copyPromptText(value,label){
   toast(label+" COPIADO");
 }
 
-let runtimeIndexesDirty=true;
-let runtimeCharacterById=new Map();
-let runtimeProjectById=new Map();
-let runtimeUniverseById=new Map();
-let runtimeCharacterByEarthName=new Map();
-let runtimeAffiliationsById=new Map();
-let runtimeProjectProgressCache=new Map();
-let runtimeGlobalProgressCache=null;
-
 function invalidateRuntimeIndexes(){
   runtimeIndexesDirty=true;
-  runtimeProjectProgressCache.clear();
+  try{runtimeProjectProgressCache?.clear()}catch(e){}
   runtimeGlobalProgressCache=null;
 }
 function ensureRuntimeIndexes(){
@@ -1544,7 +1545,10 @@ function fastCharacter(id){ensureRuntimeIndexes();return runtimeCharacterById.ge
 function fastProject(id){ensureRuntimeIndexes();return runtimeProjectById.get(id)||null}
 function fastUniverse(id){ensureRuntimeIndexes();return runtimeUniverseById.get(id)||null}
 function fastCharacterByEarthName(earth,name){ensureRuntimeIndexes();return runtimeCharacterByEarthName.get(`${earth}|${norm(name)}`)||null}
-function saveData(){invalidateRuntimeIndexes();localStorage.setItem(STORAGE_KEY,JSON.stringify(DATA))}
+function saveData(){
+  try{invalidateRuntimeIndexes()}catch(e){}
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(DATA));
+}
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1800)}
 let historyReady=false;
 let characterParentScrollY=0;
