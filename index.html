@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.1.3</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.2.0</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -80,19 +80,32 @@ button{cursor:pointer;color:inherit}
 .toolbar{display:flex;gap:7px;overflow:auto;padding-bottom:4px}
 .timeline{display:grid;gap:10px;margin-top:13px}
 .title-card{
-  display:grid;grid-template-columns:66px 1fr auto;gap:12px;align-items:center;padding:9px;
-  border:1px solid var(--line);border-radius:16px;background:#111318;
+  display:grid;grid-template-columns:92px 1fr auto;gap:13px;align-items:center;padding:10px;
+  border:1px solid var(--line);border-radius:17px;background:#111318;
   transition:.18s transform,.18s border-color;color:var(--white);text-align:left
 }
 .title-card:active{transform:scale(.985)}
 .title-card:hover{border-color:#59606c}
 .poster{
-  width:66px;height:96px;border-radius:10px;border:1px solid #3b404b;overflow:hidden;position:relative;
+  width:92px;height:136px;border-radius:12px;border:1px solid #3b404b;overflow:hidden;position:relative;
   background:
     radial-gradient(circle at 58% 24%,#ffffff20,transparent 26%),
     linear-gradient(145deg,#6f1118,#24272d 58%,#0b0c0f);
-  background-size:cover;background-position:center
+  background-size:cover;background-position:center;
+  transition:.35s filter,.35s opacity,.35s box-shadow
 }
+.poster.incomplete{filter:grayscale(1) saturate(.05) contrast(1.05) brightness(.72);opacity:.86}
+.poster.complete{filter:none;opacity:1;box-shadow:0 0 18px #ffffff0c}
+.timeline-figure-progress{
+  display:inline-flex;align-items:center;gap:5px;margin-top:7px;padding:5px 7px;
+  border:1px solid #333944;border-radius:999px;background:#0c0e12;color:var(--silver);
+  font-size:9px;letter-spacing:.55px
+}
+.timeline-figure-progress strong{font-size:10px;color:var(--white)}
+.timeline-figure-progress.complete{
+  border-color:#4b6956;background:#102018;color:#dff5e6;box-shadow:0 0 12px #54d77a16
+}
+
 .poster.has-cover:after{
   content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 64%,#05060866)
 }
@@ -387,6 +400,36 @@ button{cursor:pointer;color:inherit}
 }
 .migration-banner strong{display:block;color:var(--white);font-size:12px;margin-bottom:4px}
 
+
+.prompt-copy-row{display:flex;justify-content:center;margin:-3px 0 14px}
+.prompt-copy-btn{
+  min-height:36px;border:1px solid #39404b;border-radius:999px;background:#11151b;color:var(--silver);
+  padding:0 12px;font-size:9px;letter-spacing:.75px
+}
+.prompt-copy-btn:active{transform:scale(.97);color:var(--white)}
+.relation-title-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.relation-title-row .section-title{margin-bottom:10px}
+.relation-add-btn{
+  width:31px;height:31px;border:1px solid #343a45;border-radius:50%;background:#11151a;
+  color:var(--silver);font-size:18px;line-height:1;padding:0
+}
+.relation-detail{font-size:8px;color:#dce2eb;margin-top:4px;line-height:1.2;text-align:center}
+.relation-search-results{display:grid;gap:6px;margin:8px 0 11px;max-height:250px;overflow:auto}
+.relation-target{
+  width:100%;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;
+  border:1px solid #303641;border-radius:11px;background:#12151a;color:var(--white);
+  padding:9px;text-align:left
+}
+.relation-target.selected{border-color:#8c98a8;background:#1a1e25}
+.relation-target strong{font-size:11px;display:block}
+.relation-target span{font-size:9px;color:var(--silver);display:block;margin-top:3px}
+.figure-menu-btn{
+  position:absolute;z-index:14;top:5px;left:5px;width:27px;height:27px;border:1px solid #ffffff22;
+  border-radius:50%;background:#080a0db8;color:#eef1f6cc;font-size:17px;line-height:1;padding:0;
+  backdrop-filter:blur(7px);opacity:.68
+}
+.figure-menu-btn:active{opacity:1;transform:scale(.93)}
+
 .form-card,.modal-card{
   border:1px solid var(--line);border-radius:21px;background:#0f1115;padding:15px;box-shadow:var(--shadow)
 }
@@ -513,6 +556,9 @@ button{cursor:pointer;color:inherit}
   #production .production-head{padding-right:2px}
   .edit-project-btn{width:30px;height:30px;font-size:14px}
   .cast-row{grid-template-columns:repeat(auto-fit,minmax(88px,112px));gap:18px 12px}
+  .title-card{grid-template-columns:84px 1fr auto;gap:11px}
+  .poster{width:84px;height:124px}
+  .title-card strong{font-size:14px}
 }
 </style>
 
@@ -613,7 +659,10 @@ button{cursor:pointer;color:inherit}
     <div class="chips" id="charChips"></div>
     <div class="section-title">AFILIACIONES</div>
     <div class="relation-grid" id="affiliations"></div>
-    <div class="section-title">RELACIONES</div>
+    <div class="relation-title-row">
+      <div class="section-title">RELACIONES</div>
+      <button class="relation-add-btn" id="addRelationBtn" type="button" title="AÑADIR RELACIÓN">＋</button>
+    </div>
     <div class="relation-grid" id="relations"></div>
     <div class="section-title">APARICIONES · ORDEN CRONOLÓGICO</div>
     <div class="appearance-row" id="appearances"></div>
@@ -650,6 +699,9 @@ button{cursor:pointer;color:inherit}
       <img id="previewImg" class="hidden" alt="">
       <span id="uploadText">CARGAR IMAGEN CUADRADA 1:1 DEL PERSONAJE</span>
     </label>
+    <div class="prompt-copy-row">
+      <button class="prompt-copy-btn" id="copyCharacterPrompt" type="button">COPIAR PROMPT 1:1</button>
+    </div>
     <div class="form-grid">
       <div class="known-character-lock" id="knownCharacterLock">
         <strong id="knownCharacterAlias">PERSONAJE</strong>
@@ -702,15 +754,6 @@ button{cursor:pointer;color:inherit}
         <select id="imageStatus"><option>VIVO</option><option>MUERTO</option><option>DESAPARECIDO</option><option>DESCONOCIDO</option></select>
       </div>
       <div class="field full"><label>AGRUPACIONES</label><input id="imageAffiliations" placeholder="SE COMPLETA AL ELEGIR PERSONAJE"></div>
-      <div class="field full">
-        <label>RELACIONES A REGISTRAR</label>
-        <div class="check-grid">
-          <label class="check-pill"><input type="checkbox" name="imageRelation" value="AMIGO/A"> AMIGO/A</label>
-          <label class="check-pill"><input type="checkbox" name="imageRelation" value="PAREJA"> PAREJA</label>
-          <label class="check-pill"><input type="checkbox" name="imageRelation" value="FAMILIA"> FAMILIA</label>
-          <label class="check-pill"><input type="checkbox" name="imageRelation" value="ENEMIGO/A"> ENEMIGO/A</label>
-        </div>
-      </div>
       <div class="field full"><label>NOTAS</label><textarea id="imageNotes" placeholder="OPCIONAL"></textarea></div>
     </div>
     <div class="action-row">
@@ -738,6 +781,9 @@ button{cursor:pointer;color:inherit}
       <img id="projectHorizontalPreview" class="hidden" alt="">
       <span id="horizontalUploadText">CARGAR IMAGEN HORIZONTAL 16:9</span>
     </label>
+    <div class="prompt-copy-row">
+      <button class="prompt-copy-btn" id="copyBannerPrompt" type="button">COPIAR PROMPT 16:9</button>
+    </div>
 
     <div class="cover-crop-editor" id="coverCropEditor">
       <h3>ENCUADRE HORIZONTAL 16:9</h3>
@@ -1302,6 +1348,7 @@ DATA.mediaFallback = DATA.mediaFallback || {};
 DATA.characters=(DATA.characters||[]).map(c=>{
   c.nature=c.nature||"POR DEFINIR";
   c.aff=(c.aff||[]).map(translateGroup);
+  c.relations=[]; // legacy category-only tags are replaced by DATA.relationships graph
   return c;
 });
 DATA.projectCast = DATA.projectCast || {};
@@ -1433,6 +1480,19 @@ function saveProjectDraft(){saveDraft(PROJECT_DRAFT_KEY,projectDraftFromForm())}
 const $=s=>document.querySelector(s);
 const $$=s=>[...document.querySelectorAll(s)];
 
+const CHARACTER_IMAGE_PROMPT="USA LA IMAGEN QUE ADJUNTARE CUANDO ME CONFIRMES \"RECIBIDO\" COMO REFERENCIA DIRECTA Y OBLIGATORIA DEL PERSONAJE.\nTRANSFORMA AL MISMO PERSONAJE EN UN RETRATO DE ALTA CALIDAD CON ESTÉTICA VISUAL INSPIRADA EN LOS RETRATOS PROMOCIONALES Y DE SELECCIÓN DE PERSONAJES DE MARVEL FUTURE FIGHT.\nCONSERVA ESTRICTAMENTE LA IDENTIDAD VISUAL DEL PERSONAJE ORIGINAL. NO LO REDISEÑES NI LO SUSTITUYAS POR OTRO. MANTÉN SU ROSTRO O CABEZA, PEINADO, MÁSCARA, CASCO, TRAJE, ARMADURA, COLORES, ACCESORIOS, TEXTURAS Y ELEMENTOS DISTINTIVOS VISIBLES EN LA REFERENCIA.\nEL OBJETIVO ES MEJORAR Y REINTERPRETAR LA IMAGEN CON ACABADO PREMIUM DE VIDEOJUEGO DE SUPERHÉROES, COMO SI FUERA EL RETRATO OFICIAL DEL PERSONAJE DENTRO DE MARVEL FUTURE FIGHT.\nESTILO VISUAL:\n• REALISMO CINEMATOGRÁFICO DE VIDEOJUEGO AAA\n• ACABADO DIGITAL MUY PULIDO\n• DETALLE ALTO EN PIEL, METAL, TELA, CABELLO Y MATERIALES\n• ILUMINACIÓN DRAMÁTICA DE ESTUDIO\n• LUZ PRINCIPAL CINEMATOGRÁFICA SOBRE EL ROSTRO\n• RIM LIGHT SUTIL EN LOS BORDES DEL PERSONAJE\n• CONTRASTE FUERTE PERO NATURAL\n• SOMBRAS PROFUNDAS Y BIEN DEFINIDAS\n• REFLEJOS Y BRILLOS CONTROLADOS EN ARMADURAS O SUPERFICIES METÁLICAS\n• COLORES INTENSOS SIN SATURACIÓN EXCESIVA\n• VOLUMEN TRIDIMENSIONAL\n• ASPECTO DE ARTE PROMOCIONAL PREMIUM, NO DE DIBUJO PLANO\n• MEZCLA DE REALISMO FOTOGRÁFICO, ILUSTRACIÓN DIGITAL CINEMATOGRÁFICA Y ACABADO DE PERSONAJE DE VIDEOJUEGO\nENCUADRE OBLIGATORIO:\n• RELACIÓN 1:1, IMAGEN CUADRADA\n• HEAD-AND-SHOULDERS\n• MOSTRAR ÚNICAMENTE CABEZA, CUELLO, HOMBROS Y PARTE SUPERIOR DEL PECHO\n• PERSONAJE CENTRADO\n• CABEZA COMPLETA, SIN CORTAR CABELLO, CASCO, OREJAS, CUERNOS, ANTENAS U OTROS ELEMENTOS PROPIOS DEL PERSONAJE\n• HOMBROS VISIBLES\n• ROSTRO O PARTE FRONTAL DE LA CABEZA CLARAMENTE VISIBLE\n• COMPOSICIÓN SIMILAR A UN RETRATO OFICIAL DE SELECCIÓN DE PERSONAJE DE VIDEOJUEGO\nFONDO:\n• COMPLETAMENTE TRANSPARENTE\n• SIN ESCENARIO\n• SIN PAISAJE\n• SIN HUMO DECORATIVO\n• SIN MARCOS\n• SIN INTERFAZ DE VIDEOJUEGO\nREGLA PRINCIPAL:\nLA IMAGEN ADJUNTA DEFINE AL PERSONAJE. EL ESTILO MARVEL FUTURE FIGHT SOLO DEBE CAMBIAR LA CALIDAD DE RENDERIZADO, ILUMINACIÓN, PROFUNDIDAD, TEXTURAS Y PRESENTACIÓN. NO DEBE CAMBIAR LA IDENTIDAD, EL DISEÑO DEL TRAJE NI LOS ELEMENTOS CARACTERÍSTICOS.\nSI LA REFERENCIA ORIGINAL ES UNA ILUSTRACIÓN, CÓMIC, CAPTURA DE VIDEOJUEGO, ANIMACIÓN O IMAGEN DE BAJA RESOLUCIÓN, INTERPRETA SUS FORMAS Y MATERIALES DE MANERA MÁS REALISTA Y CINEMATOGRÁFICA, PERO SIN INVENTAR UN PERSONAJE DIFERENTE.\nNO AGREGAR:\n• TEXTO\n• NOMBRE DEL PERSONAJE\n• LOGOTIPOS\n• MARCA DE AGUA\n• MARCO\n• OTROS PERSONAJES\n• OBJETOS QUE NO EXISTAN EN LA REFERENCIA\n• CAMBIOS INNECESARIOS DE VESTUARIO\n• FONDO DECORATIVO\nRESULTADO FINAL: RETRATO CUADRADO 1:1, HEAD-AND-SHOULDERS, FONDO TRANSPARENTE, ALTA DEFINICIÓN, PERSONAJE FIEL A LA REFERENCIA Y PRESENTADO CON EL ACABADO CINEMATOGRÁFICO PREMIUM DE UN RETRATO DE MARVEL FUTURE FIGHT.";
+const BANNER_IMAGE_PROMPT="USA LA IMAGEN QUE ADJUNTARE COMO REFERENCIA DIRECTA DEL LOGO/TÍTULO.\n\nRecrea y mejora únicamente el título principal de la imagen, conservando su identidad visual, composición general, tipografía característica, proporciones, distribución de las palabras y elementos gráficos distintivos.\n\nELIMINA cualquier logotipo de MARVEL, MARVEL STUDIOS, marca de agua, texto editorial o elemento ajeno al título principal.\n\nFORMATO OBLIGATORIO:\n• Imagen horizontal 16:9.\n• Fondo completamente transparente.\n• PNG con transparencia real.\n• Alta resolución.\n• El título debe quedar centrado y ocupar una parte amplia del lienzo.\n• Ninguna letra, símbolo o efecto puede tocar ni quedar cortado por los bordes.\n• Dejar margen transparente alrededor.\n\nACABADO:\n• Mejorar considerablemente resolución, definición, bordes, iluminación, materiales y profundidad.\n• Acabado cinematográfico premium.\n• Letras tridimensionales realistas.\n• Conservar metal, cristal, piedra, pintura, desgaste u otras texturas propias del diseño original.\n• Reflejos y luces físicamente creíbles.\n• Detalles muy nítidos.\n• Contraste controlado.\n• Mantener los colores principales del logo original salvo que se indique expresamente otro color.\n• NO agregar colores nuevos innecesarios.\n\nEFECTOS:\nSi la referencia contiene humo, niebla, energía, electricidad, fuego, polvo, destellos, luz, partículas o resplandor, conservar ese concepto y mejorarlo.\n\nLos efectos pueden rodear o aparecer detrás del título, pero NO deben convertirse en un fondo sólido.\n\nTodo efecto debe desvanecerse progresivamente hasta quedar completamente transparente ANTES de alcanzar los límites del lienzo 16:9.\n\nNo dejar bordes rectangulares, manchas opacas ni ningún color de fondo visible.\n\nSi se pide ENERGÍA:\n• Debe parecer energía luminosa real.\n• No convertirla en humo.\n• Puede producir halos, destellos, rayos, pulsos o resplandor según la referencia.\n\nSi se pide HUMO o NIEBLA:\n• Debe conservar textura volumétrica y semitransparente.\n• Debe disiparse naturalmente hacia la transparencia.\n\nSi existe un DESTELLO:\n• Integrarlo detrás o alrededor del título.\n• No dificultar la lectura.\n• No sobreexponer las letras.\n\nCONSERVAR:\n• El texto correcto del título.\n• La disposición original de las palabras.\n• Símbolos integrados en las letras.\n• Formas especiales de las letras.\n• Relación entre letras y emblemas.\n• Color y carácter general del diseño original.\n• Elementos distintivos que permitan reconocer inmediatamente el título.\n\nNO HACER:\n• No agregar personajes.\n• No agregar escenarios.\n• No agregar MARVEL.\n• No agregar MARVEL STUDIOS.\n• No agregar palabras nuevas.\n• No cambiar el título.\n• No sustituir símbolos característicos.\n• No crear fondo negro.\n• No crear fondo de color.\n• No crear degradado de fondo.\n• No cortar letras.\n• No deformar el texto.\n• No convertirlo en póster.\n• No exagerar los efectos hasta ocultar el logo.\n\nRESULTADO FINAL:\nCrear un recurso gráfico coleccionable limpio, cinematográfico y de alta resolución, preparado para colocarse directamente sobre banners, fichas, interfaces o composiciones gráficas.\n\nDebe entregarse en formato horizontal 16:9, con fondo realmente transparente y con todos los efectos perfectamente integrados y desvanecidos antes de llegar a los bordes.";
+async function copyPromptText(value,label){
+  try{
+    if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(value);
+    else throw new Error("CLIPBOARD");
+  }catch(e){
+    const ta=document.createElement("textarea");ta.value=value;ta.style.position="fixed";ta.style.opacity="0";
+    document.body.appendChild(ta);ta.select();document.execCommand("copy");ta.remove();
+  }
+  toast(label+" COPIADO");
+}
+
 function saveData(){localStorage.setItem(STORAGE_KEY,JSON.stringify(DATA))}
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1800)}
 let historyReady=false;
@@ -1527,6 +1587,22 @@ async function cloneMediaKey(sourceKey,destKey){
   const fallback=DATA.mediaFallback?.[sourceKey];
   if(fallback){DATA.mediaFallback[destKey]=fallback;return true}
   return false;
+}
+async function deleteMediaKey(key){
+  if(!key)return;
+  try{
+    const db=await mediaDB();
+    await new Promise((resolve,reject)=>{
+      const tx=db.transaction("media","readwrite");
+      tx.objectStore("media").delete(key);
+      tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
+    });
+    db.close();
+  }catch(e){}
+  if(DATA.mediaFallback)delete DATA.mediaFallback[key];
+  const cached=mediaUrlCache.get(key);
+  if(cached&&String(cached).startsWith("blob:"))try{URL.revokeObjectURL(cached)}catch(e){}
+  mediaUrlCache.delete(key);
 }
 async function setMediaBackground(el,key){
   if(!el||!key)return;
@@ -1678,12 +1754,21 @@ function renderTimeline(){
   arr.sort(currentSort==="release"
     ? (a,b)=>(a.releaseOrder??9999)-(b.releaseOrder??9999) || (a.year||9999)-(b.year||9999)
     : (a,b)=>(a.order??9999)-(b.order??9999));
-  $("#timeline").innerHTML=arr.length?arr.map((p,i)=>`
-    <button class="title-card" data-production="${p.id}">
-      <span class="poster" data-cover="${p.coverKey||""}"></span>
-      <span><strong>${p.title}</strong><span class="meta">${projectTypeLabel(p)} · ${p.year||"FECHA PENDIENTE"}${projectStatusText(p)}</span></span>
+  $("#timeline").innerHTML=arr.length?arr.map((p,i)=>{
+    const prog=figureProgressForProject(p.id);
+    const complete=prog.total>0&&prog.done===prog.total;
+    return `<button class="title-card" data-production="${p.id}">
+      <span class="poster ${complete?"complete":"incomplete"}" data-cover="${p.coverKey||""}"></span>
+      <span>
+        <strong>${p.title}</strong>
+        <span class="meta">${projectTypeLabel(p)} · ${p.year||"FECHA PENDIENTE"}${projectStatusText(p)}</span>
+        <span class="timeline-figure-progress ${complete?"complete":""}">
+          <strong>${prog.done} / ${prog.total}</strong> FIGURAS · ${prog.percent}%
+        </span>
+      </span>
       <span class="order">${String(i+1).padStart(2,"0")}</span>
-    </button>`).join(""):`<div class="relation">NO HAY TÍTULOS EN ESTE FILTRO.</div>`;
+    </button>`;
+  }).join(""):`<div class="relation">NO HAY TÍTULOS EN ESTE FILTRO.</div>`;
   $$("#timeline [data-production]").forEach(b=>b.onclick=()=>openProduction(b.dataset.production));
   $$("#timeline [data-cover]").forEach(el=>{if(el.dataset.cover)setMediaBackground(el,el.dataset.cover)});
 }
@@ -1900,6 +1985,7 @@ async function renderProduction(){
       </div>`).join("")+
     `<div class="project-add-character"><button class="btn primary" data-add-project="${p.id}">＋ AGREGAR PERSONAJE</button></div>`;
   $$("#castRoot [data-character]").forEach(b=>b.onclick=()=>openCharacter(b.dataset.character));
+  $$("#castRoot [data-photo-menu]").forEach(b=>b.onclick=e=>{e.stopPropagation();openCharacterPhotoMenu(b.dataset.photoMenu,b.dataset.projectContext)});
   $$("#castRoot [data-project-faction]").forEach(b=>b.onclick=()=>showProjectFaction(p.id,b.dataset.projectFaction));
   $$("#castRoot [data-add-image-character]").forEach(b=>b.onclick=()=>openKnownCharacterImageForm(b.dataset.addImageCharacter,b.dataset.projectContext));
   $$("#castRoot [data-add-project]").forEach(b=>b.onclick=async()=>{
@@ -1941,14 +2027,15 @@ function charCard(id,projectId,index=0){
   const appearance=appearanceFor(id,projectId)||{};
   const mediaKey=c.masterMediaKey||"";
   const shownAlias=appearance.alias||c.alias;
-  const theme=projectTheme(DATA.productions.find(x=>x.id===projectId));
+  const theme=projectTheme(DATA.productions.find(p=>p.id===projectId));
   return `<div class="char-tile">
-    <button class="char-card ${mediaKey?"has-portrait":""}" style="--halo1:${theme[0]};--halo2:${theme[1]};--ignite-delay:${Math.min(index,8)*55}ms" ${mediaKey?`data-character="${id}"`:`data-add-image-character="${id}"`} data-project-context="${projectId}">
+    <button class="char-card ${mediaKey?"has-portrait":""}" ${mediaKey?`data-character="${id}"`:`data-add-image-character="${id}"`} data-project-context="${projectId}" style="--halo1:${theme[0]};--halo2:${theme[1]};--ignite-delay:${Math.min(index,8)*55}ms">
       <span class="status-light ${statusClass(c.status)}" title="${c.status}"></span>
       <span class="portrait ${mediaKey?"has-image":""}" data-character-media="${mediaKey}">
         ${mediaKey?`<img class="hidden" alt="${c.real}">`:`<span class="char-empty"><span><b>＋</b>CARGAR FOTO</span></span>`}
       </span>
     </button>
+    ${mediaKey?`<button class="figure-menu-btn" type="button" data-photo-menu="${id}" data-project-context="${projectId}" title="OPCIONES DE FOTO">⋯</button>`:""}
     <div class="char-label"><strong>${c.real}</strong><span>${shownAlias}</span></div>
   </div>`;
 }
@@ -1991,14 +2078,22 @@ async function renderCharacter(){
   $("#charChips [data-char-earth]")?.addEventListener("click",e=>openEarth(e.currentTarget.dataset.charEarth));
   $("#charChips [data-char-nature]")?.addEventListener("click",e=>showNatureGallery(e.currentTarget.dataset.charNature));
   $("#charChips [data-char-first-project]")?.addEventListener("click",e=>openProduction(e.currentTarget.dataset.charFirstProject));
-  $("#affiliations").innerHTML=(c.aff?.length?c.aff:["SIN AFILIACIONES REGISTRADAS"]).map(x=>`<button class="relation" data-aff="${x}">${translateGroup(x)}</button>`).join("");
+
+  c.aff=uniqueTranslatedList(c.aff||[]);
+  $("#affiliations").innerHTML=c.aff.length
+    ? c.aff.map(x=>`<button class="relation" data-aff="${x}">${x}</button>`).join("")
+    : `<span class="relation">SIN AFILIACIONES REGISTRADAS</span>`;
   $$("#affiliations [data-aff]").forEach(b=>b.onclick=()=>showAffiliation(b.dataset.aff));
-  $("#relations").innerHTML=(c.relations?.length?c.relations:["SIN RELACIONES REGISTRADAS"]).map(x=>
-    x==="SIN RELACIONES REGISTRADAS"
-      ? `<span class="relation">${x}</span>`
-      : `<button class="relation" data-rel-type="${x}">${x}</button>`
-  ).join("");
+
+  const relationTypes=relationshipTypesFor(c);
+  $("#relations").innerHTML=relationTypes.length
+    ? relationTypes.map(type=>{
+        const count=relationshipEntriesFor(c,type).length;
+        return `<button class="relation" data-rel-type="${type}">${type} · ${count}</button>`;
+      }).join("")
+    : `<span class="relation">SIN RELACIONES REGISTRADAS</span>`;
   $$("#relations [data-rel-type]").forEach(b=>b.onclick=()=>showRelation(c.id,b.dataset.relType));
+  $("#addRelationBtn").onclick=()=>openRelationEditor(c.id);
 
   const apps=(c.projects||[]).map(pid=>DATA.productions.find(p=>p.id===pid)).filter(Boolean).sort((a,b)=>(a.order||0)-(b.order||0));
   $("#appearances").innerHTML=`<div class="project-node-grid">${apps.map(p=>{
@@ -2013,22 +2108,9 @@ async function renderCharacter(){
     const key=el.dataset.appHorizontal;if(!key)return;
     const url=await getMediaURL(key);if(url)el.style.backgroundImage=`url("${url}")`;
   }));
-  $("#outfits").innerHTML=(c.outfits?.length?c.outfits:["SIN TRAJES REGISTRADOS"]).map(x=>`<span class="appearance">${x}</span>`).join("");
+  $("#outfits").innerHTML="";
 }
 
-function nodeCharacterCard(c,contextProjectId=null){
-  if(!c)return "";
-  const app=contextProjectId?appearanceFor(c.id,contextProjectId):null;
-  const alias=app?.alias||c.alias||"SIN ALIAS";
-  return `<div class="node-person">
-    <button type="button" data-node-character="${c.id}">
-      ${c.masterMediaKey
-        ? `<img class="hidden" data-node-media="${c.masterMediaKey}" alt="${c.real}">`
-        : `<span class="missing-photo">FOTO<br>PENDIENTE</span>`}
-    </button>
-    <div class="node-label"><strong>${c.real}</strong><span>${alias}</span></div>
-  </div>`;
-}
 async function hydrateNodeGallery(root=document){
   const imgs=[...root.querySelectorAll("[data-node-media]")];
   await Promise.all(imgs.map(async img=>{
@@ -2160,6 +2242,331 @@ function showAffiliation(name){
   showCharacterGallery(translateGroup(name),members,"INTEGRANTES REGISTRADOS");
 }
 
+
+function identityKeyForCharacter(c){
+  return `${c?.earth||""}|${norm(c?.real||"")}`;
+}
+function uniqueTranslatedList(values){
+  const map=new Map();
+  (values||[]).forEach(v=>{
+    const clean=translateGroup(String(v||"").trim());
+    if(clean&&!map.has(norm(clean)))map.set(norm(clean),clean);
+  });
+  return [...map.values()];
+}
+function dedupeRelationshipEdges(){
+  const out=[],seen=new Set();
+  (DATA.relationships||[]).forEach(r=>{
+    if(!r?.a||!r?.b||r.a===r.b)return;
+    const direct=`${r.a}|${r.b}|${norm(r.type)}|${norm(r.aLabel)}|${norm(r.bLabel)}`;
+    const reverse=`${r.b}|${r.a}|${norm(r.type)}|${norm(r.bLabel)}|${norm(r.aLabel)}`;
+    if(seen.has(direct)||seen.has(reverse))return;
+    seen.add(direct);out.push(r);
+  });
+  DATA.relationships=out;
+}
+function mergeDuplicateCharactersGlobal(){
+  const groups=new Map();
+  (DATA.characters||[]).forEach(c=>{
+    const key=identityKeyForCharacter(c);
+    if(!groups.has(key))groups.set(key,[]);
+    groups.get(key).push(c);
+  });
+  groups.forEach(group=>{
+    if(group.length<2)return;
+    const score=c=>(c.masterMediaKey?10000:0)+((c.projects||[]).length*100)+((c.aff||[]).length*10)+(String(c.id||"").startsWith("seed-")?0:20);
+    group.sort((a,b)=>score(b)-score(a));
+    const target=group[0];
+    group.slice(1).forEach(old=>{
+      if(!target.masterMediaKey&&old.masterMediaKey)target.masterMediaKey=old.masterMediaKey;
+      target.aliases=[...new Set([...(target.aliases||[target.alias]),...(old.aliases||[old.alias])].filter(Boolean))];
+      target.aff=uniqueTranslatedList([...(target.aff||[]),...(old.aff||[])]);
+      target.projects=[...new Set([...(target.projects||[]),...(old.projects||[])])];
+      target.outfits=[...new Set([...(target.outfits||[]),...(old.outfits||[])])];
+      if((!target.nature||target.nature==="POR DEFINIR")&&old.nature)target.nature=old.nature;
+      if((!target.status||target.status==="DESCONOCIDO")&&old.status)target.status=old.status;
+      replaceCharacterIdEverywhere(old.id,target.id);
+      (DATA.relationships||[]).forEach(r=>{
+        if(r.a===old.id)r.a=target.id;
+        if(r.b===old.id)r.b=target.id;
+      });
+      DATA.characters=DATA.characters.filter(c=>c.id!==old.id);
+    });
+  });
+  Object.values(DATA.projectCast||{}).forEach(cast=>{
+    ["heroes","villains","anti","allies"].forEach(k=>cast[k]=[...new Set(cast[k]||[])]);
+  });
+  dedupeRelationshipEdges();
+}
+function addRelationshipEdge(a,b,type,aLabel,bLabel,source="USER"){
+  if(!a||!b||a===b)return false;
+  DATA.relationships=DATA.relationships||[];
+  const candidate={a,b,type,aLabel,bLabel,source};
+  const exists=DATA.relationships.some(r=>
+    (r.a===a&&r.b===b&&norm(r.type)===norm(type)&&norm(r.aLabel)===norm(aLabel)&&norm(r.bLabel)===norm(bLabel)) ||
+    (r.a===b&&r.b===a&&norm(r.type)===norm(type)&&norm(r.aLabel)===norm(bLabel)&&norm(r.bLabel)===norm(aLabel))
+  );
+  if(exists)return false;
+  DATA.relationships.push(candidate);return true;
+}
+function findRelationCharacter(name,earth){
+  return DATA.characters.find(c=>c.earth===earth&&norm(c.real)===norm(name))||null;
+}
+const KNOWN_RELATION_SEEDS=[
+  ["616","STEVE ROGERS","JAMES BUCHANAN BARNES","AMISTAD","AMIGO","AMIGO"],
+  ["616","STEVE ROGERS","PEGGY CARTER","PAREJA","PAREJA","PAREJA"],
+  ["616","STEVE ROGERS","SAM WILSON","AMISTAD","AMIGO","AMIGO"],
+  ["616","TONY STARK","VIRGINIA POTTS","PAREJA","PAREJA","PAREJA"],
+  ["616","TONY STARK","HOWARD STARK","FAMILIA","PADRE","HIJO"],
+  ["616","TONY STARK","JAMES RHODES","AMISTAD","AMIGO","AMIGO"],
+  ["616","WANDA MAXIMOFF","PIETRO MAXIMOFF","FAMILIA","HERMANO","HERMANA"],
+  ["616","WANDA MAXIMOFF","VISION","PAREJA","PAREJA","PAREJA"],
+  ["616","CLINT BARTON","WANDA MAXIMOFF","MENTORÍA","PROTEGIDA","MENTOR"],
+  ["616","NATASHA ROMANOFF","YELENA BELOVA","FAMILIA","HERMANA","HERMANA"],
+  ["616","THOR ODINSON","LOKI LAUFEYSON","FAMILIA","HERMANO","HERMANO"],
+  ["616","THOR ODINSON","ODIN BORSON","FAMILIA","PADRE","HIJO"],
+  ["616","LOKI LAUFEYSON","ODIN BORSON","FAMILIA","PADRE ADOPTIVO","HIJO ADOPTIVO"],
+  ["616","THOR ODINSON","FRIGGA","FAMILIA","MADRE","HIJO"],
+  ["616","LOKI LAUFEYSON","FRIGGA","FAMILIA","MADRE ADOPTIVA","HIJO ADOPTIVO"],
+  ["616","T'CHALLA","SHURI","FAMILIA","HERMANA","HERMANO"],
+  ["616","T'CHALLA","RAMONDA","FAMILIA","MADRE","HIJO"],
+  ["616","SHURI","RAMONDA","FAMILIA","MADRE","HIJA"],
+  ["616","GAMORA","NEBULA","FAMILIA","HERMANA","HERMANA"],
+  ["616","GAMORA","THANOS","FAMILIA","PADRE ADOPTIVO","HIJA ADOPTIVA"],
+  ["616","NEBULA","THANOS","FAMILIA","PADRE ADOPTIVO","HIJA ADOPTIVA"],
+  ["616","PETER PARKER","MAY PARKER","FAMILIA","TÍA","SOBRINO"],
+  ["616","BRUCE BANNER","ELIZABETH ROSS","PAREJA","PAREJA","PAREJA"],
+  ["616","ELIZABETH ROSS","THADDEUS ROSS","FAMILIA","PADRE","HIJA"],
+  ["616","SCOTT LANG","CASSANDRA LANG","FAMILIA","HIJA","PADRE"],
+  ["616","HENRY PYM","HOPE VAN DYNE","FAMILIA","HIJA","PADRE"],
+  ["616","HENRY PYM","JANET VAN DYNE","PAREJA","PAREJA","PAREJA"],
+  ["616","JANET VAN DYNE","HOPE VAN DYNE","FAMILIA","HIJA","MADRE"],
+  ["616","SHANG-CHI","WENWU","FAMILIA","PADRE","HIJO"],
+  ["616","MATT MURDOCK","FRANKLIN NELSON","AMISTAD","AMIGO","AMIGO"],
+  ["616","MATT MURDOCK","KAREN PAGE","AMISTAD","AMIGA","AMIGO"],
+  ["616","JESSICA JONES","LUKE CAGE","PAREJA","EXPAREJA","EXPAREJA"],
+  ["616","DANNY RAND","COLLEEN WING","PAREJA","PAREJA","PAREJA"],
+  ["616","STEVE ROGERS","JOHANN SCHMIDT","ENEMIGO","ENEMIGO","ENEMIGO"],
+  ["616","TONY STARK","IVAN VANKO","ENEMIGO","ENEMIGO","ENEMIGO"],
+  ["616","T'CHALLA","ERIK STEVENS","ENEMIGO","ENEMIGO","ENEMIGO"],
+  ["616","PETER PARKER","ADRIAN TOOMES","ENEMIGO","ENEMIGO","ENEMIGO"],
+  ["616","PETER PARKER","QUENTIN BECK","ENEMIGO","ENEMIGO","ENEMIGO"],
+  ["616","MATT MURDOCK","WILSON FISK","ENEMIGO","ENEMIGO","ENEMIGO"],
+  ["616","JESSICA JONES","KEVIN THOMPSON","ENEMIGO","ENEMIGO","ENEMIGO"],
+  ["616","DANNY RAND","DAVOS","ENEMIGO","ENEMIGO","ENEMIGO"],
+  ["616","WANDA MAXIMOFF","ULTRON","ENEMIGO","ENEMIGO","ENEMIGO"],
+  ["828","REED RICHARDS","SUSAN STORM","PAREJA","PAREJA","PAREJA"],
+  ["828","SUSAN STORM","JOHNNY STORM","FAMILIA","HERMANO","HERMANA"],
+  ["828","REED RICHARDS","GALACTUS","ENEMIGO","ENEMIGO","ENEMIGO"],
+  ["96283","PETER PARKER","MARY JANE WATSON","PAREJA","PAREJA","PAREJA"],
+  ["120703","PETER PARKER","GWEN STACY","PAREJA","PAREJA","PAREJA"],
+  ["10005","WADE WILSON","VANESSA CARLYSLE","PAREJA","PAREJA","PAREJA"],
+  ["tv-inhumans","BLACKAGAR BOLTAGON","MEDUSALITH AMAQUELIN","PAREJA","PAREJA","PAREJA"],
+  ["tv-inhumans","BLACKAGAR BOLTAGON","MAXIMUS BOLTAGON","FAMILIA","HERMANO","HERMANO"],
+  ["tv-inhumans","MEDUSALITH AMAQUELIN","CRYSTALIA AMAQUELIN","FAMILIA","HERMANA","HERMANA"],
+  ["tv-young","NICO MINORU","KAROLINA DEAN","PAREJA","PAREJA","PAREJA"],
+  ["tv-young","TYRONE JOHNSON","TANDY BOWEN","AMISTAD","AMIGO/A","AMIGO/A"]
+];
+function seedKnownRelationships(){
+  KNOWN_RELATION_SEEDS.forEach(([earth,aName,bName,type,aLabel,bLabel])=>{
+    const a=findRelationCharacter(aName,earth),b=findRelationCharacter(bName,earth);
+    if(a&&b)addRelationshipEdge(a.id,b.id,type,aLabel,bLabel,"SEED");
+  });
+  dedupeRelationshipEdges();
+}
+function ensureIdentityGraph(){
+  DATA.relationships=Array.isArray(DATA.relationships)?DATA.relationships:[];
+  DATA.characters=(DATA.characters||[]).map(c=>({...c,aff:uniqueTranslatedList(c.aff||[])}));
+  mergeDuplicateCharactersGlobal();
+  seedKnownRelationships();
+  DATA.identityGraphVersion=2;
+  saveData();
+}
+function sharedTeamLabel(a,b){
+  const aa=uniqueTranslatedList(a.aff||[]),bb=new Set(uniqueTranslatedList(b.aff||[]).map(norm));
+  return aa.find(x=>bb.has(norm(x)))||"EQUIPO";
+}
+function inferredTeamEntries(c){
+  const out=[];
+  DATA.characters.forEach(other=>{
+    if(other.id===c.id||other.earth!==c.earth)return;
+    const label=sharedTeamLabel(c,other);
+    if(label!=="EQUIPO")out.push({character:other,label});
+  });
+  return out;
+}
+function relationshipEntriesFor(c,type){
+  const t=norm(type),out=[];
+  (DATA.relationships||[]).forEach(r=>{
+    if(norm(r.type)!==t)return;
+    if(r.a===c.id){
+      const other=DATA.characters.find(x=>x.id===r.b);if(other)out.push({character:other,label:r.aLabel||r.type});
+    }else if(r.b===c.id){
+      const other=DATA.characters.find(x=>x.id===r.a);if(other)out.push({character:other,label:r.bLabel||r.type});
+    }
+  });
+  if(t===norm("EQUIPO"))out.push(...inferredTeamEntries(c));
+  const map=new Map();
+  out.forEach(entry=>{
+    const key=identityKeyForCharacter(entry.character);
+    if(!map.has(key))map.set(key,entry);
+  });
+  return [...map.values()];
+}
+const RELATION_TYPE_ORDER=["FAMILIA","PAREJA","AMISTAD","MENTORÍA","EQUIPO","RIVAL","ENEMIGO"];
+function relationshipTypesFor(c){
+  const types=new Set();
+  (DATA.relationships||[]).forEach(r=>{if(r.a===c.id||r.b===c.id)types.add(r.type)});
+  if(inferredTeamEntries(c).length)types.add("EQUIPO");
+  return RELATION_TYPE_ORDER.filter(t=>types.has(t));
+}
+function nodeCharacterCard(c,contextProjectId=null,detail=""){
+  if(!c)return "";
+  const app=contextProjectId?appearanceFor(c.id,contextProjectId):null;
+  const alias=app?.alias||c.alias||"SIN ALIAS";
+  return `<div class="node-person">
+    <button type="button" data-node-character="${c.id}">
+      ${c.masterMediaKey
+        ? `<img class="hidden" data-node-media="${c.masterMediaKey}" alt="${c.real}">`
+        : `<span class="missing-photo">FOTO<br>PENDIENTE</span>`}
+    </button>
+    <div class="node-label"><strong>${c.real}</strong><span>${alias}</span>${detail?`<div class="relation-detail">${detail}</div>`:""}</div>
+  </div>`;
+}
+async function showRelation(charId,type){
+  const c=DATA.characters.find(x=>x.id===charId);if(!c)return;
+  const entries=relationshipEntriesFor(c,type);
+  $("#addModal .modal-card").innerHTML=`
+    <h2>${type} · ${c.real}</h2>
+    <p>${entries.length} PERSONAJES VINCULADOS</p>
+    <div class="node-gallery">${entries.length?entries.map(x=>nodeCharacterCard(x.character,null,x.label)).join(""):`<div class="relation">SIN VÍNCULOS REGISTRADOS.</div>`}</div>
+    <div class="action-row"><button class="btn" id="closeNodeModal">CERRAR</button></div>`;
+  $("#addModal").classList.add("show");
+  await hydrateNodeGallery($("#addModal .modal-card"));
+  $$("#addModal [data-node-character]").forEach(b=>b.onclick=()=>{
+    const id=b.dataset.nodeCharacter;
+    restoreAddModal();$("#addModal").classList.remove("show");openCharacter(id);
+  });
+  $("#closeNodeModal").onclick=()=>{restoreAddModal();$("#addModal").classList.remove("show")};
+}
+function showAffiliation(name){
+  const target=norm(translateGroup(name)),map=new Map();
+  DATA.characters.forEach(c=>{
+    if((c.aff||[]).some(a=>norm(translateGroup(a))===target)){
+      const key=identityKeyForCharacter(c);
+      const previous=map.get(key);
+      if(!previous || (!previous.masterMediaKey&&c.masterMediaKey))map.set(key,c);
+    }
+  });
+  showCharacterGallery(translateGroup(name),[...map.values()],"INTEGRANTES REGISTRADOS");
+}
+
+const RELATION_EDITOR_OPTIONS=[
+  {key:"SIBLING",label:"HERMANO/A DE",type:"FAMILIA",aLabel:"HERMANO/A",bLabel:"HERMANO/A"},
+  {key:"PARENT",label:"ESTE PERSONAJE ES PADRE/MADRE DE",type:"FAMILIA",aLabel:"HIJO/A",bLabel:"PADRE/MADRE"},
+  {key:"CHILD",label:"ESTE PERSONAJE ES HIJO/A DE",type:"FAMILIA",aLabel:"PADRE/MADRE",bLabel:"HIJO/A"},
+  {key:"AUNT",label:"ESTE PERSONAJE ES TÍO/A DE",type:"FAMILIA",aLabel:"SOBRINO/A",bLabel:"TÍO/A"},
+  {key:"NEPHEW",label:"ESTE PERSONAJE ES SOBRINO/A DE",type:"FAMILIA",aLabel:"TÍO/A",bLabel:"SOBRINO/A"},
+  {key:"PARTNER",label:"PAREJA DE",type:"PAREJA",aLabel:"PAREJA",bLabel:"PAREJA"},
+  {key:"EXPARTNER",label:"EXPAREJA DE",type:"PAREJA",aLabel:"EXPAREJA",bLabel:"EXPAREJA"},
+  {key:"FRIEND",label:"AMIGO/A DE",type:"AMISTAD",aLabel:"AMIGO/A",bLabel:"AMIGO/A"},
+  {key:"TEAM",label:"COMPAÑERO/A DE EQUIPO",type:"EQUIPO",aLabel:"COMPAÑERO/A",bLabel:"COMPAÑERO/A"},
+  {key:"MENTOR",label:"ESTE PERSONAJE ES MENTOR DE",type:"MENTORÍA",aLabel:"PROTEGIDO/A",bLabel:"MENTOR"},
+  {key:"PROTEGE",label:"ESTE PERSONAJE ES PROTEGIDO/A DE",type:"MENTORÍA",aLabel:"MENTOR",bLabel:"PROTEGIDO/A"},
+  {key:"RIVAL",label:"RIVAL DE",type:"RIVAL",aLabel:"RIVAL",bLabel:"RIVAL"},
+  {key:"ENEMY",label:"ENEMIGO/A DE",type:"ENEMIGO",aLabel:"ENEMIGO/A",bLabel:"ENEMIGO/A"}
+];
+let relationEditorCharacterId=null,relationEditorTargetId=null;
+function openRelationEditor(charId){
+  const c=DATA.characters.find(x=>x.id===charId);if(!c)return;
+  relationEditorCharacterId=charId;relationEditorTargetId=null;
+  $("#addModal .modal-card").innerHTML=`
+    <h2>AÑADIR RELACIÓN</h2>
+    <p>${c.real} · SELECCIONA OTRO PERSONAJE Y EL VÍNCULO.</p>
+    <div class="field"><label>BUSCAR PERSONAJE</label><input id="relationSearchInput" type="search" placeholder="NOMBRE O ALIAS"></div>
+    <div class="relation-search-results" id="relationSearchResults"></div>
+    <div class="field"><label>VÍNCULO</label><select id="relationEditorKind">
+      ${RELATION_EDITOR_OPTIONS.map(x=>`<option value="${x.key}">${x.label}</option>`).join("")}
+    </select></div>
+    <div class="action-row"><button class="btn" id="cancelRelationEditor">CANCELAR</button><button class="btn primary" id="saveRelationEditor">GUARDAR</button></div>`;
+  $("#addModal").classList.add("show");
+  $("#relationSearchInput").addEventListener("input",e=>renderRelationEditorResults(e.target.value));
+  $("#cancelRelationEditor").onclick=()=>{restoreAddModal();$("#addModal").classList.remove("show")};
+  $("#saveRelationEditor").onclick=saveRelationEditor;
+  renderRelationEditorResults("");
+}
+function renderRelationEditorResults(query){
+  const current=DATA.characters.find(x=>x.id===relationEditorCharacterId);
+  const q=norm(query);
+  const list=DATA.characters.filter(c=>c.id!==relationEditorCharacterId)
+    .filter(c=>!q || norm([c.real,c.alias,...(c.aliases||[])].join(" ")).includes(q))
+    .sort((a,b)=>(a.earth===current?.earth?0:1)-(b.earth===current?.earth?0:1)||a.real.localeCompare(b.real,"es"))
+    .slice(0,14);
+  const root=$("#relationSearchResults");if(!root)return;
+  root.innerHTML=list.map(c=>{
+    const earth=DATA.universes.find(u=>u.id===c.earth)?.name||c.earth;
+    return `<button class="relation-target ${relationEditorTargetId===c.id?"selected":""}" type="button" data-relation-target="${c.id}">
+      <span><strong>${c.real}</strong><span>${c.alias||"SIN ALIAS"}</span></span><span>${earth}</span>
+    </button>`;
+  }).join("")||`<div class="relation">SIN COINCIDENCIAS.</div>`;
+  root.querySelectorAll("[data-relation-target]").forEach(b=>b.onclick=()=>{
+    relationEditorTargetId=b.dataset.relationTarget;
+    renderRelationEditorResults($("#relationSearchInput").value);
+  });
+}
+function saveRelationEditor(){
+  if(!relationEditorCharacterId||!relationEditorTargetId){toast("SELECCIONA EL PERSONAJE");return}
+  const def=RELATION_EDITOR_OPTIONS.find(x=>x.key===$("#relationEditorKind").value);if(!def)return;
+  addRelationshipEdge(relationEditorCharacterId,relationEditorTargetId,def.type,def.aLabel,def.bLabel,"USER");
+  dedupeRelationshipEdges();saveData();
+  restoreAddModal();$("#addModal").classList.remove("show");
+  renderCharacter();toast("RELACIÓN GUARDADA");
+}
+
+async function openCharacterPhotoMenu(charId,projectId){
+  const c=DATA.characters.find(x=>x.id===charId);if(!c)return;
+  $("#addModal .modal-card").innerHTML=`
+    <h2>FOTO · ${c.real}</h2>
+    <p>ESTA ES LA IMAGEN MAESTRA Y SE REUTILIZA EN TODAS SUS APARICIONES.</p>
+    <div class="choice-grid">
+      <button class="choice" id="replaceCharacterPhoto" type="button">CAMBIAR FOTO</button>
+      <button class="choice" id="deleteCharacterPhoto" type="button">ELIMINAR FOTO</button>
+    </div>
+    <div class="action-row"><button class="btn" id="closePhotoMenu">CERRAR</button></div>`;
+  $("#addModal").classList.add("show");
+  $("#closePhotoMenu").onclick=()=>{restoreAddModal();$("#addModal").classList.remove("show")};
+  $("#replaceCharacterPhoto").onclick=()=>{
+    restoreAddModal();$("#addModal").classList.remove("show");
+    const input=document.createElement("input");input.type="file";input.accept="image/*";
+    input.onchange=async()=>{const file=input.files?.[0];if(file)await replaceCharacterMasterPhoto(charId,file,projectId)};
+    input.click();
+  };
+  $("#deleteCharacterPhoto").onclick=async()=>{
+    if(!confirm(`ELIMINAR LA FOTO DE ${c.real}? ESTA FOTO SE USA EN TODAS SUS APARICIONES.`))return;
+    restoreAddModal();$("#addModal").classList.remove("show");
+    await removeCharacterMasterPhoto(charId,projectId);
+  };
+}
+async function replaceCharacterMasterPhoto(charId,file,projectId){
+  const c=DATA.characters.find(x=>x.id===charId);if(!c||!file)return;
+  const oldKey=c.masterMediaKey||"";
+  const newKey=`character-master:${charId}:${Date.now()}`;
+  try{
+    await putMedia(newKey,file);c.masterMediaKey=newKey;saveData();
+    if(oldKey)await deleteMediaKey(oldKey);
+    renderGlobalProgress();renderTimeline();
+    if(projectId===currentProduction)await renderProduction();
+    toast("FOTO ACTUALIZADA");
+  }catch(e){toast("NO SE PUDO CAMBIAR LA FOTO")}
+}
+async function removeCharacterMasterPhoto(charId,projectId){
+  const c=DATA.characters.find(x=>x.id===charId);if(!c?.masterMediaKey)return;
+  const oldKey=c.masterMediaKey;delete c.masterMediaKey;saveData();
+  await deleteMediaKey(oldKey);
+  renderGlobalProgress();renderTimeline();
+  if(projectId===currentProduction)await renderProduction();
+  toast("FOTO ELIMINADA");
+}
 function restoreAddModal(){
   $("#addModal .modal-card").innerHTML=`
     <h2>AGREGAR</h2><p>SELECCIONA QUÉ QUIERES REGISTRAR.</p>
@@ -2454,7 +2861,7 @@ async function registerImage(){
   let c=selectedLibraryEntry.existingId?DATA.characters.find(x=>x.id===selectedLibraryEntry.existingId):null;
   const aliases=[...new Set([...(selectedLibraryEntry.aliases||[]),$("#imageAlias").value].filter(Boolean))];
   const affiliations=$("#imageAffiliations").value.split(",").map(x=>x.trim()).filter(Boolean).map(translateGroup);
-  const rels=[...document.querySelectorAll('input[name="imageRelation"]:checked')].map(x=>x.value);
+  const rels=[];
 
   if(!c){
     charId=slugId(selectedLibraryEntry.canonical);
@@ -2516,7 +2923,7 @@ async function registerImage(){
   DATA.appearances[key]=appearance;
   DATA.images[key]={...appearance}; // keep old reader compatibility, without duplicate media
 
-  saveData();rebuildLibraryCatalog();renderGlobalProgress();if(pid===currentProduction)renderProjectProgress(pid);clearDraft(IMAGE_DRAFT_KEY);
+  seedKnownRelationships();saveData();rebuildLibraryCatalog();renderGlobalProgress();renderTimeline();if(pid===currentProduction)renderProjectProgress(pid);clearDraft(IMAGE_DRAFT_KEY);
   toast(previous?"APARICIÓN ACTUALIZADA":"PERSONAJE VINCULADO AL PROYECTO");
   clearImageForm();
 }
@@ -2701,7 +3108,7 @@ try{
   }
 }catch(e){}
 
-seedAllProjectRosters();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();renderLibraryResults();
+seedAllProjectRosters();ensureIdentityGraph();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();renderLibraryResults();
 setTimeout(()=>loadMarvelLibrary().then(()=>renderLibraryResults()),350);
 prepareImageForm();
 history.replaceState({screen:"home",earth:currentEarth,production:currentProduction,character:currentCharacter},"","#home");
@@ -2769,6 +3176,8 @@ $("#imageFile").onchange=async()=>{
 };
 $("#clearImageForm").onclick=clearImageForm;
 $("#registerImage").onclick=registerImage;
+$("#copyCharacterPrompt").onclick=()=>copyPromptText(CHARACTER_IMAGE_PROMPT,"PROMPT 1:1");
+$("#copyBannerPrompt").onclick=()=>copyPromptText(BANNER_IMAGE_PROMPT,"PROMPT 16:9");
 
 $("#projectCover").onchange=async()=>{
   const f=$("#projectCover").files[0];if(!f)return;
