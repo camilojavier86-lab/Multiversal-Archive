@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.2.3</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.3.0</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -368,8 +368,28 @@ body.character-layer-open{overflow:hidden;touch-action:none}
 .profile-photo img{width:100%;height:100%;object-fit:contain;background:transparent;filter:drop-shadow(0 10px 12px #0008)}
 .profile-photo.dead{filter:grayscale(1)}
 .profile-photo.unknown{filter:sepia(.85) saturate(.7)}
+.profile-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:9px}
+.profile-title-row h2{min-width:0}
+.profile-edit-actions{display:flex;gap:6px;flex:0 0 auto}
+.profile-edit-btn,.profile-undo-btn{
+  width:31px;height:31px;border:1px solid #ffffff24;border-radius:50%;
+  background:#0d1015c7;color:#e8ecf3c9;font-size:15px;line-height:1;padding:0;
+  backdrop-filter:blur(7px);opacity:.72
+}
+.profile-edit-btn:active,.profile-undo-btn:active{opacity:1;transform:scale(.93)}
+.profile-undo-btn{font-size:17px}
 .profile-top h2{font-size:27px;margin:0 0 5px;color:var(--white)}
 .real{font-size:12px;color:var(--silver);margin-bottom:8px}
+.relation-node-wrap{position:relative}
+.relation-node-edit{
+  position:absolute;right:3px;top:3px;z-index:6;width:27px;height:27px;border:1px solid #ffffff26;
+  border-radius:50%;background:#080a0dc9;color:#edf1f7d9;font-size:13px;line-height:1;padding:0;
+  backdrop-filter:blur(7px);opacity:.72
+}
+.relation-node-edit:active{opacity:1;transform:scale(.93)}
+.edit-note{font-size:9px;color:var(--silver);line-height:1.45;margin:-4px 0 10px}
+.danger-btn{border-color:#6f2730!important;color:#ffd9dd!important;background:#241014!important}
+
 .status{display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:7px 9px;border:1px solid var(--line);border-radius:999px;color:var(--silver)}
 .status i{width:8px;height:8px;border-radius:50%;background:#5b6069}
 .status i.alive{background:#54d77a;box-shadow:0 0 8px #54d77aaa}
@@ -666,7 +686,13 @@ body.character-layer-open{overflow:hidden;touch-action:none}
         <button class="profile-photo-menu hidden" id="profilePhotoMenu" type="button" title="OPCIONES DE FOTO">⋯</button>
       </div>
       <div>
-        <h2 id="charAlias"></h2>
+        <div class="profile-title-row">
+          <h2 id="charAlias"></h2>
+          <div class="profile-edit-actions">
+            <button class="profile-edit-btn" id="editCharacterBtn" type="button" title="EDITAR PERSONAJE">✎</button>
+            <button class="profile-undo-btn hidden" id="undoCharacterBtn" type="button" title="DESHACER ÚLTIMO CAMBIO">↶</button>
+          </div>
+        </div>
         <div class="real" id="charReal"></div>
         <div class="status"><i></i><span id="charStatus">VIVO</span></div>
       </div>
@@ -1549,6 +1575,36 @@ function saveData(){
   try{invalidateRuntimeIndexes()}catch(e){}
   localStorage.setItem(STORAGE_KEY,JSON.stringify(DATA));
 }
+
+let lastUndoAction=null;
+function updateUndoButton(){
+  const b=$("#undoCharacterBtn");if(!b)return;
+  const visible=!!lastUndoAction && (!lastUndoAction.characterId || lastUndoAction.characterId===currentCharacter);
+  b.classList.toggle("hidden",!visible);
+  if(visible)b.title=`DESHACER · ${lastUndoAction.label}`;
+}
+function setUndoAction(action){
+  const previous=lastUndoAction;
+  lastUndoAction=action||null;
+  if(previous?.cleanup){
+    Promise.resolve(previous.cleanup()).catch(()=>{});
+  }
+  updateUndoButton();
+}
+async function performLastUndo(){
+  const action=lastUndoAction;if(!action)return;
+  lastUndoAction=null;updateUndoButton();
+  try{
+    await action.undo();
+    rebuildLibraryCatalog();
+    renderGlobalProgress();
+    if(document.querySelector(".screen.active")?.id==="earth")renderTimeline();
+    if(currentCharacter)await renderCharacter();
+    toast("CAMBIO DESHECHO");
+  }catch(e){
+    toast("NO SE PUDO DESHACER");
+  }
+}
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1800)}
 let historyReady=false;
 let characterParentScrollY=0;
@@ -2150,6 +2206,9 @@ function openCharacter(id){
 }
 async function renderCharacter(){
   const c=fastCharacter(currentCharacter);if(!c)return;
+  updateUndoButton();
+  const editBtn=$("#editCharacterBtn");if(editBtn)editBtn.onclick=()=>openCharacterEditor(c.id);
+  const undoBtn=$("#undoCharacterBtn");if(undoBtn)undoBtn.onclick=performLastUndo;
   const currentApp=appearanceFor(c.id,currentProduction)||{};
   $("#charAlias").textContent=c.real;$("#charReal").textContent=currentApp.alias||c.alias||"SIN ALIAS";$("#charStatus").textContent=c.status;
   const statusDot=document.querySelector(".status i"); if(statusDot) statusDot.className=statusClass(c.status);
@@ -2371,10 +2430,18 @@ const KNOWN_RELATION_SEEDS=[
   ["tv-young","NICO MINORU","KAROLINA DEAN","PAREJA","PAREJA","PAREJA"],
   ["tv-young","TYRONE JOHNSON","TANDY BOWEN","AMISTAD","AMIGO/A","AMIGO/A"]
 ];
+function relationshipPairKey(a,b){return [a,b].sort().join("|")}
+function blockSeedRelationshipPair(a,b){
+  DATA.relationshipSeedBlocks=Array.isArray(DATA.relationshipSeedBlocks)?DATA.relationshipSeedBlocks:[];
+  const key=relationshipPairKey(a,b);
+  if(!DATA.relationshipSeedBlocks.includes(key))DATA.relationshipSeedBlocks.push(key);
+}
 function seedKnownRelationships(){
+  DATA.relationshipSeedBlocks=Array.isArray(DATA.relationshipSeedBlocks)?DATA.relationshipSeedBlocks:[];
+  const blocked=new Set(DATA.relationshipSeedBlocks);
   KNOWN_RELATION_SEEDS.forEach(([earth,aName,bName,type,aLabel,bLabel])=>{
     const a=findRelationCharacter(aName,earth),b=findRelationCharacter(bName,earth);
-    if(a&&b)addRelationshipEdge(a.id,b.id,type,aLabel,bLabel,"SEED");
+    if(a&&b&&!blocked.has(relationshipPairKey(a.id,b.id)))addRelationshipEdge(a.id,b.id,type,aLabel,bLabel,"SEED");
   });
   dedupeRelationshipEdges();
 }
@@ -2414,19 +2481,19 @@ function inferredTeamEntries(c){
 }
 function relationshipEntriesFor(c,type){
   const t=norm(type),out=[];
-  (DATA.relationships||[]).forEach(r=>{
+  (DATA.relationships||[]).forEach((r,edgeIndex)=>{
     if(norm(r.type)!==t)return;
     if(r.a===c.id){
-      const other=fastCharacter(r.b);if(other)out.push({character:other,label:r.aLabel||r.type});
+      const other=fastCharacter(r.b);if(other)out.push({character:other,label:r.aLabel||r.type,edgeIndex,edge:r});
     }else if(r.b===c.id){
-      const other=fastCharacter(r.a);if(other)out.push({character:other,label:r.bLabel||r.type});
+      const other=fastCharacter(r.a);if(other)out.push({character:other,label:r.bLabel||r.type,edgeIndex,edge:r});
     }
   });
-  if(t===norm("EQUIPO"))out.push(...inferredTeamEntries(c));
+  if(t===norm("EQUIPO"))out.push(...inferredTeamEntries(c).map(x=>({...x,edgeIndex:null,edge:null,inferred:true})));
   const map=new Map();
   out.forEach(entry=>{
     const key=identityKeyForCharacter(entry.character);
-    if(!map.has(key))map.set(key,entry);
+    if(!map.has(key) || (map.get(key).inferred && !entry.inferred))map.set(key,entry);
   });
   return [...map.values()];
 }
@@ -2437,29 +2504,34 @@ function relationshipTypesFor(c){
   if(inferredTeamEntries(c).length)types.add("EQUIPO");
   return RELATION_TYPE_ORDER.filter(t=>types.has(t));
 }
-function nodeCharacterCard(c,contextProjectId=null,detail=""){
+function nodeCharacterCard(c,contextProjectId=null,detail="",edgeIndex=null){
   if(!c)return "";
   const app=contextProjectId?appearanceFor(c.id,contextProjectId):null;
   const alias=app?.alias||c.alias||"SIN ALIAS";
-  return `<div class="node-person">
+  return `<div class="node-person relation-node-wrap">
     <button type="button" data-node-character="${c.id}">
       ${c.masterMediaKey
         ? `<img class="hidden" data-node-media="${c.masterMediaKey}" alt="${c.real}">`
         : `<span class="missing-photo">FOTO<br>PENDIENTE</span>`}
     </button>
+    ${Number.isInteger(edgeIndex)?`<button class="relation-node-edit" type="button" data-relation-edit="${edgeIndex}" title="EDITAR RELACIÓN">✎</button>`:""}
     <div class="node-label"><strong>${c.real}</strong><span>${alias}</span>${detail?`<div class="relation-detail">${detail}</div>`:""}</div>
   </div>`;
 }
 async function showRelation(charId,type){
-  const c=DATA.characters.find(x=>x.id===charId);if(!c)return;
+  const c=fastCharacter(charId);if(!c)return;
   const entries=relationshipEntriesFor(c,type);
   $("#addModal .modal-card").innerHTML=`
     <h2>${type} · ${c.real}</h2>
-    <p>${entries.length} PERSONAJES VINCULADOS</p>
-    <div class="node-gallery">${entries.length?entries.map(x=>nodeCharacterCard(x.character,null,x.label)).join(""):`<div class="relation">SIN VÍNCULOS REGISTRADOS.</div>`}</div>
+    <p>${entries.length} PERSONAJES VINCULADOS · TOCA ✎ PARA CORREGIR UN VÍNCULO.</p>
+    <div class="node-gallery">${entries.length?entries.map(x=>nodeCharacterCard(x.character,null,x.label,x.edgeIndex)).join(""):`<div class="relation">SIN VÍNCULOS REGISTRADOS.</div>`}</div>
     <div class="action-row"><button class="btn" id="closeNodeModal">CERRAR</button></div>`;
   $("#addModal").classList.add("show");
   await hydrateNodeGallery($("#addModal .modal-card"));
+  $$("#addModal [data-relation-edit]").forEach(b=>b.onclick=e=>{
+    e.stopPropagation();
+    openRelationEditor(c.id,Number(b.dataset.relationEdit));
+  });
   $$("#addModal [data-node-character]").forEach(b=>b.onclick=()=>{
     const id=b.dataset.nodeCharacter;
     restoreAddModal();$("#addModal").classList.remove("show");openCharacter(id);
@@ -2493,35 +2565,59 @@ const RELATION_EDITOR_OPTIONS=[
   {key:"RIVAL",label:"RIVAL DE",type:"RIVAL",aLabel:"RIVAL",bLabel:"RIVAL"},
   {key:"ENEMY",label:"ENEMIGO/A DE",type:"ENEMIGO",aLabel:"ENEMIGO/A",bLabel:"ENEMIGO/A"}
 ];
-let relationEditorCharacterId=null,relationEditorTargetId=null;
-function openRelationEditor(charId){
-  const c=DATA.characters.find(x=>x.id===charId);if(!c)return;
-  relationEditorCharacterId=charId;relationEditorTargetId=null;
+let relationEditorCharacterId=null,relationEditorTargetId=null,relationEditorEdgeIndex=null;
+
+function relationOptionForEdge(edge,charId){
+  if(!edge)return RELATION_EDITOR_OPTIONS[0];
+  const fromA=edge.a===charId;
+  const aLabel=fromA?edge.aLabel:edge.bLabel;
+  const bLabel=fromA?edge.bLabel:edge.aLabel;
+  return RELATION_EDITOR_OPTIONS.find(x=>
+    norm(x.type)===norm(edge.type)&&norm(x.aLabel)===norm(aLabel)&&norm(x.bLabel)===norm(bLabel)
+  ) || RELATION_EDITOR_OPTIONS.find(x=>norm(x.type)===norm(edge.type)) || RELATION_EDITOR_OPTIONS[0];
+}
+function openRelationEditor(charId,edgeIndex=null){
+  const c=fastCharacter(charId);if(!c)return;
+  relationEditorCharacterId=charId;
+  relationEditorEdgeIndex=Number.isInteger(edgeIndex)?edgeIndex:null;
+  const edge=relationEditorEdgeIndex!==null?DATA.relationships?.[relationEditorEdgeIndex]:null;
+  relationEditorTargetId=edge?(edge.a===charId?edge.b:edge.a):null;
+  const selected=relationOptionForEdge(edge,charId);
   $("#addModal .modal-card").innerHTML=`
-    <h2>AÑADIR RELACIÓN</h2>
-    <p>${c.real} · SELECCIONA OTRO PERSONAJE Y EL VÍNCULO.</p>
+    <h2>${edge?"EDITAR":"AÑADIR"} RELACIÓN</h2>
+    <p>${c.real} · ${edge?"PUEDES CAMBIAR EL VÍNCULO O ELIMINARLO.":"SELECCIONA OTRO PERSONAJE Y EL VÍNCULO."}</p>
     <div class="field"><label>BUSCAR PERSONAJE</label><input id="relationSearchInput" type="search" placeholder="NOMBRE O ALIAS"></div>
     <div class="relation-search-results" id="relationSearchResults"></div>
     <div class="field"><label>VÍNCULO</label><select id="relationEditorKind">
-      ${RELATION_EDITOR_OPTIONS.map(x=>`<option value="${x.key}">${x.label}</option>`).join("")}
+      ${RELATION_EDITOR_OPTIONS.map(x=>`<option value="${x.key}" ${x.key===selected.key?"selected":""}>${x.label}</option>`).join("")}
     </select></div>
-    <div class="action-row"><button class="btn" id="cancelRelationEditor">CANCELAR</button><button class="btn primary" id="saveRelationEditor">GUARDAR</button></div>`;
+    <div class="action-row">
+      ${edge?`<button class="btn danger-btn" id="deleteRelationEditor" type="button">ELIMINAR</button>`:""}
+      <button class="btn" id="cancelRelationEditor">CANCELAR</button>
+      <button class="btn primary" id="saveRelationEditor">GUARDAR</button>
+    </div>`;
   $("#addModal").classList.add("show");
+  const target=edge?fastCharacter(relationEditorTargetId):null;
+  $("#relationSearchInput").value=target?.real||"";
   $("#relationSearchInput").addEventListener("input",e=>renderRelationEditorResults(e.target.value));
   $("#cancelRelationEditor").onclick=()=>{restoreAddModal();$("#addModal").classList.remove("show")};
   $("#saveRelationEditor").onclick=saveRelationEditor;
-  renderRelationEditorResults("");
+  if(edge)$("#deleteRelationEditor").onclick=deleteRelationEditor;
+  renderRelationEditorResults($("#relationSearchInput").value);
 }
 function renderRelationEditorResults(query){
-  const current=DATA.characters.find(x=>x.id===relationEditorCharacterId);
+  const current=fastCharacter(relationEditorCharacterId);
   const q=norm(query);
   const list=DATA.characters.filter(c=>c.id!==relationEditorCharacterId)
     .filter(c=>!q || norm([c.real,c.alias,...(c.aliases||[])].join(" ")).includes(q))
-    .sort((a,b)=>(a.earth===current?.earth?0:1)-(b.earth===current?.earth?0:1)||a.real.localeCompare(b.real,"es"))
-    .slice(0,14);
+    .sort((a,b)=>
+      (a.id===relationEditorTargetId?-2:0)-(b.id===relationEditorTargetId?-2:0) ||
+      (a.earth===current?.earth?0:1)-(b.earth===current?.earth?0:1) ||
+      a.real.localeCompare(b.real,"es")
+    ).slice(0,14);
   const root=$("#relationSearchResults");if(!root)return;
   root.innerHTML=list.map(c=>{
-    const earth=DATA.universes.find(u=>u.id===c.earth)?.name||c.earth;
+    const earth=fastUniverse(c.earth)?.name||c.earth;
     return `<button class="relation-target ${relationEditorTargetId===c.id?"selected":""}" type="button" data-relation-target="${c.id}">
       <span><strong>${c.real}</strong><span>${c.alias||"SIN ALIAS"}</span></span><span>${earth}</span>
     </button>`;
@@ -2534,10 +2630,122 @@ function renderRelationEditorResults(query){
 function saveRelationEditor(){
   if(!relationEditorCharacterId||!relationEditorTargetId){toast("SELECCIONA EL PERSONAJE");return}
   const def=RELATION_EDITOR_OPTIONS.find(x=>x.key===$("#relationEditorKind").value);if(!def)return;
+  const before=structuredClone(DATA.relationships||[]);
+  const beforeBlocks=structuredClone(DATA.relationshipSeedBlocks||[]);
+  const oldEdge=relationEditorEdgeIndex!==null?DATA.relationships?.[relationEditorEdgeIndex]:null;
+  if(oldEdge){
+    blockSeedRelationshipPair(oldEdge.a,oldEdge.b);
+    DATA.relationships.splice(relationEditorEdgeIndex,1);
+  }
+  blockSeedRelationshipPair(relationEditorCharacterId,relationEditorTargetId);
   addRelationshipEdge(relationEditorCharacterId,relationEditorTargetId,def.type,def.aLabel,def.bLabel,"USER");
   dedupeRelationshipEdges();saveData();
+  const charId=relationEditorCharacterId;
+  setUndoAction({
+    label:"RELACIÓN",
+    characterId:charId,
+    undo:async()=>{
+      DATA.relationships=before;
+      DATA.relationshipSeedBlocks=beforeBlocks;
+      saveData();
+    }
+  });
   restoreAddModal();$("#addModal").classList.remove("show");
-  renderCharacter();toast("RELACIÓN GUARDADA");
+  renderCharacter();toast(oldEdge?"RELACIÓN ACTUALIZADA":"RELACIÓN GUARDADA");
+}
+function deleteRelationEditor(){
+  if(relationEditorEdgeIndex===null)return;
+  const edge=DATA.relationships?.[relationEditorEdgeIndex];if(!edge)return;
+  if(!confirm("¿ELIMINAR ESTA RELACIÓN?"))return;
+  const before=structuredClone(DATA.relationships||[]);
+  const beforeBlocks=structuredClone(DATA.relationshipSeedBlocks||[]);
+  blockSeedRelationshipPair(edge.a,edge.b);
+  DATA.relationships.splice(relationEditorEdgeIndex,1);
+  saveData();
+  const charId=relationEditorCharacterId;
+  setUndoAction({
+    label:"ELIMINAR RELACIÓN",
+    characterId:charId,
+    undo:async()=>{
+      DATA.relationships=before;
+      DATA.relationshipSeedBlocks=beforeBlocks;
+      saveData();
+    }
+  });
+  restoreAddModal();$("#addModal").classList.remove("show");
+  renderCharacter();toast("RELACIÓN ELIMINADA");
+}
+
+
+const CHARACTER_NATURE_OPTIONS=["HUMANO","HUMANO MEJORADO","MUTANTE","INHUMANO","EXTRATERRESTRE","DIOS / SER DIVINO","SER MÍSTICO","SINTÉTICO / ANDROIDE","OTRO","POR DEFINIR"];
+function openCharacterEditor(charId){
+  const c=fastCharacter(charId);if(!c)return;
+  const otherAliases=(c.aliases||[]).filter(a=>a&&norm(a)!==norm(c.alias||""));
+  $("#addModal .modal-card").innerHTML=`
+    <h2>EDITAR PERSONAJE</h2>
+    <p class="edit-note">EL ID INTERNO NO CAMBIA. LAS CORRECCIONES SE REFLEJAN EN TODAS SUS APARICIONES.</p>
+    <div class="form-grid">
+      <div class="field full"><label>NOMBRE CANÓNICO</label><input id="editCharReal" value="${escapeHTMLAttr(c.real||"")}"></div>
+      <div class="field"><label>ALIAS PRINCIPAL</label><input id="editCharAlias" value="${escapeHTMLAttr(c.alias||"")}"></div>
+      <div class="field"><label>TIERRA DE ORIGEN</label><select id="editCharEarth">
+        ${DATA.universes.map(u=>`<option value="${u.id}" ${u.id===c.earth?"selected":""}>${u.name}</option>`).join("")}
+      </select></div>
+      <div class="field"><label>ESTADO</label><select id="editCharStatus">
+        ${["VIVO","MUERTO","DESAPARECIDO","DESCONOCIDO"].map(x=>`<option ${x===c.status?"selected":""}>${x}</option>`).join("")}
+      </select></div>
+      <div class="field"><label>TIPO / NATURALEZA</label><select id="editCharNature">
+        ${CHARACTER_NATURE_OPTIONS.map(x=>`<option ${x===c.nature?"selected":""}>${x}</option>`).join("")}
+      </select></div>
+      <div class="field full"><label>OTROS ALIAS</label><input id="editCharAliases" value="${escapeHTMLAttr(otherAliases.join(", "))}" placeholder="SEPARADOS POR COMA"></div>
+      <div class="field full"><label>AFILIACIONES</label><input id="editCharAff" value="${escapeHTMLAttr((c.aff||[]).join(", "))}" placeholder="EJ. VENGADORES, S.H.I.E.L.D."></div>
+    </div>
+    <div class="action-row">
+      <button class="btn" id="cancelCharacterEditor">CANCELAR</button>
+      <button class="btn primary" id="saveCharacterEditor">GUARDAR CAMBIOS</button>
+    </div>`;
+  $("#addModal").classList.add("show");
+  $("#cancelCharacterEditor").onclick=()=>{restoreAddModal();$("#addModal").classList.remove("show")};
+  $("#saveCharacterEditor").onclick=()=>saveCharacterEditor(charId);
+}
+function escapeHTMLAttr(value){
+  return String(value??"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+async function saveCharacterEditor(charId){
+  const c=fastCharacter(charId);if(!c)return;
+  const real=$("#editCharReal").value.trim().toUpperCase();
+  const alias=$("#editCharAlias").value.trim().toUpperCase()||real;
+  const earth=$("#editCharEarth").value;
+  const duplicate=DATA.characters.find(x=>x.id!==charId&&x.earth===earth&&norm(x.real)===norm(real));
+  if(!real){toast("EL NOMBRE NO PUEDE QUEDAR VACÍO");return}
+  if(duplicate){
+    alert(`YA EXISTE ${duplicate.real} EN ${fastUniverse(earth)?.name||earth}. NO SE FUSIONÓ NADA. REVISA ANTES DE CONTINUAR.`);
+    return;
+  }
+  const before=structuredClone(c);
+  const otherAliases=$("#editCharAliases").value.split(",").map(x=>x.trim().toUpperCase()).filter(Boolean);
+  c.real=real;
+  c.alias=alias;
+  c.aliases=[...new Set([alias,...otherAliases].filter(Boolean))];
+  c.earth=earth;
+  c.status=$("#editCharStatus").value;
+  c.nature=$("#editCharNature").value;
+  c.aff=uniqueTranslatedList($("#editCharAff").value.split(",").map(x=>x.trim()).filter(Boolean));
+  Object.values(DATA.appearances||{}).forEach(app=>{if(app.characterId===charId)app.characterEarth=earth});
+  seedKnownRelationships();
+  saveData();rebuildLibraryCatalog();
+  setUndoAction({
+    label:"EDITAR PERSONAJE",
+    characterId:charId,
+    undo:async()=>{
+      const target=DATA.characters.find(x=>x.id===charId);if(!target)return;
+      Object.keys(target).forEach(k=>delete target[k]);
+      Object.assign(target,structuredClone(before));
+      Object.values(DATA.appearances||{}).forEach(app=>{if(app.characterId===charId)app.characterEarth=before.earth});
+      saveData();
+    }
+  });
+  restoreAddModal();$("#addModal").classList.remove("show");
+  await renderCharacter();toast("PERSONAJE ACTUALIZADO");
 }
 
 async function openCharacterPhotoMenu(charId,projectId){
@@ -2565,12 +2773,21 @@ async function openCharacterPhotoMenu(charId,projectId){
   };
 }
 async function replaceCharacterMasterPhoto(charId,file,projectId){
-  const c=DATA.characters.find(x=>x.id===charId);if(!c||!file)return;
+  const c=fastCharacter(charId);if(!c||!file)return;
   const oldKey=c.masterMediaKey||"";
   const newKey=`character-master:${charId}:${Date.now()}`;
   try{
     await putMedia(newKey,file);c.masterMediaKey=newKey;saveData();
-    if(oldKey)await deleteMediaKey(oldKey);
+    setUndoAction({
+      label:"CAMBIAR FOTO",
+      characterId:charId,
+      cleanup:oldKey?()=>deleteMediaKey(oldKey):null,
+      undo:async()=>{
+        const target=DATA.characters.find(x=>x.id===charId);if(!target)return;
+        if(oldKey)target.masterMediaKey=oldKey;else delete target.masterMediaKey;
+        saveData();await deleteMediaKey(newKey);
+      }
+    });
     renderGlobalProgress();renderTimeline();
     if(projectId===currentProduction && !document.body.classList.contains("character-layer-open"))await renderProduction();
     if(currentCharacter===charId && document.body.classList.contains("character-layer-open"))await renderCharacter();
@@ -2578,13 +2795,21 @@ async function replaceCharacterMasterPhoto(charId,file,projectId){
   }catch(e){toast("NO SE PUDO CAMBIAR LA FOTO")}
 }
 async function removeCharacterMasterPhoto(charId,projectId){
-  const c=DATA.characters.find(x=>x.id===charId);if(!c?.masterMediaKey)return;
+  const c=fastCharacter(charId);if(!c?.masterMediaKey)return;
   const oldKey=c.masterMediaKey;delete c.masterMediaKey;saveData();
-  await deleteMediaKey(oldKey);
+  setUndoAction({
+    label:"ELIMINAR FOTO",
+    characterId:charId,
+    cleanup:()=>deleteMediaKey(oldKey),
+    undo:async()=>{
+      const target=DATA.characters.find(x=>x.id===charId);if(!target)return;
+      target.masterMediaKey=oldKey;saveData();
+    }
+  });
   renderGlobalProgress();renderTimeline();
   if(projectId===currentProduction && !document.body.classList.contains("character-layer-open"))await renderProduction();
   if(currentCharacter===charId && document.body.classList.contains("character-layer-open"))await renderCharacter();
-  toast("FOTO ELIMINADA");
+  toast("FOTO ELIMINADA · PUEDES DESHACER");
 }
 function restoreAddModal(){
   $("#addModal .modal-card").innerHTML=`
