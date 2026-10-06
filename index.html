@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.2.0</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.2.2</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -16,7 +16,7 @@ html,body{
   margin:0;min-height:100%;background:var(--bg);color:var(--white);
   font-family:Arial,Helvetica,sans-serif;text-transform:uppercase
 }
-body{overflow-x:hidden}
+body{overflow-x:hidden;overscroll-behavior-x:none}
 button,input,select,textarea{font:inherit;text-transform:uppercase}
 button{cursor:pointer;color:inherit}
 .hidden{display:none!important}
@@ -250,21 +250,21 @@ button{cursor:pointer;color:inherit}
 }
 
 #production.halo-ignite .char-card.has-portrait:before{
-  animation:haloIgnite .62s cubic-bezier(.17,.8,.26,1) both;
-  animation-delay:var(--ignite-delay,0ms)
+  animation:haloIgnite .52s cubic-bezier(.17,.8,.26,1) both;
+  animation-delay:var(--ignite-delay,0ms);will-change:opacity,transform
 }
 #production.halo-ignite .char-card.has-portrait:after{
-  animation:haloIgniteInner .55s ease-out both;
-  animation-delay:calc(var(--ignite-delay,0ms) + 40ms)
+  animation:haloIgniteInner .46s ease-out both;
+  animation-delay:calc(var(--ignite-delay,0ms) + 30ms);will-change:opacity,transform
 }
 @keyframes haloIgnite{
-  0%{opacity:0;transform:scale(.68);filter:blur(28px) saturate(.7) brightness(.7)}
-  55%{opacity:1;transform:scale(1.18);filter:blur(19px) saturate(2) brightness(1.42)}
-  100%{opacity:1;transform:scale(1.10);filter:blur(20px) saturate(1.75) brightness(1.28)}
+  0%{opacity:0;transform:scale(.78)}
+  58%{opacity:1;transform:scale(1.16)}
+  100%{opacity:1;transform:scale(1.10)}
 }
 @keyframes haloIgniteInner{
-  0%{opacity:0;transform:scale(.72)}
-  70%{opacity:.95;transform:scale(1.07)}
+  0%{opacity:0;transform:scale(.82)}
+  72%{opacity:.96;transform:scale(1.05)}
   100%{opacity:.82;transform:scale(1)}
 }
 
@@ -342,10 +342,29 @@ button{cursor:pointer;color:inherit}
 
 .profile{display:grid;gap:14px}
 .profile-top{display:grid;grid-template-columns:118px 1fr;gap:14px;align-items:center}
+.profile-photo-wrap{position:relative;width:118px;aspect-ratio:1/1}
 .profile-photo{
-  aspect-ratio:1/1;height:auto;border-radius:16px;overflow:hidden;border:0;
+  width:100%;height:100%;aspect-ratio:1/1;border-radius:16px;overflow:hidden;border:0;
   background:radial-gradient(circle at 50% 55%,#ffffff0f,transparent 70%),#101217;position:relative
 }
+.profile-photo-menu{
+  position:absolute;z-index:12;right:5px;top:5px;width:29px;height:29px;border:1px solid #ffffff26;
+  border-radius:50%;background:#080a0dc2;color:#eef1f6d8;font-size:18px;line-height:1;padding:0;
+  backdrop-filter:blur(8px);opacity:.72
+}
+.profile-photo-menu:active{opacity:1;transform:scale(.93)}
+body.character-layer-open{overflow:hidden;touch-action:none}
+#character.screen.active{
+  position:fixed;z-index:48;left:0;right:0;top:57px;bottom:61px;
+  display:block;max-width:none;margin:0;padding:16px 14px 40px;
+  overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;touch-action:pan-y;
+  background:
+    radial-gradient(circle at 15% 4%,#5a0d1414,transparent 22%),
+    linear-gradient(#090a0d,#08090b)
+}
+#character.screen.active>.profile,#character.screen.active>.back{max-width:1100px;margin-left:auto;margin-right:auto}
+
 .profile-photo img{width:100%;height:100%;object-fit:contain;background:transparent;filter:drop-shadow(0 10px 12px #0008)}
 .profile-photo.dead{filter:grayscale(1)}
 .profile-photo.unknown{filter:sepia(.85) saturate(.7)}
@@ -423,13 +442,6 @@ button{cursor:pointer;color:inherit}
 .relation-target.selected{border-color:#8c98a8;background:#1a1e25}
 .relation-target strong{font-size:11px;display:block}
 .relation-target span{font-size:9px;color:var(--silver);display:block;margin-top:3px}
-.figure-menu-btn{
-  position:absolute;z-index:14;top:5px;left:5px;width:27px;height:27px;border:1px solid #ffffff22;
-  border-radius:50%;background:#080a0db8;color:#eef1f6cc;font-size:17px;line-height:1;padding:0;
-  backdrop-filter:blur(7px);opacity:.68
-}
-.figure-menu-btn:active{opacity:1;transform:scale(.93)}
-
 .form-card,.modal-card{
   border:1px solid var(--line);border-radius:21px;background:#0f1115;padding:15px;box-shadow:var(--shadow)
 }
@@ -646,10 +658,13 @@ button{cursor:pointer;color:inherit}
 </section>
 
 <section id="character" class="screen">
-  <button class="btn back" data-go="production">← VOLVER AL PROYECTO</button>
+  <button class="btn back" id="backFromCharacter">← VOLVER AL PROYECTO</button>
   <div class="profile">
     <div class="profile-top">
-      <button class="profile-photo" id="profilePhoto" title="VER IMAGEN COMPLETA"></button>
+      <div class="profile-photo-wrap">
+        <button class="profile-photo" id="profilePhoto" title="VER IMAGEN COMPLETA"></button>
+        <button class="profile-photo-menu hidden" id="profilePhotoMenu" type="button" title="OPCIONES DE FOTO">⋯</button>
+      </div>
       <div>
         <h2 id="charAlias"></h2>
         <div class="real" id="charReal"></div>
@@ -1177,7 +1192,7 @@ function seedAllProjectRosters(){
   if((DATA.rosterSeedVersion||0)>=6)return;
   DATA.appearances=DATA.appearances||{};
   Object.entries(PROJECT_ROSTER_SEEDS).forEach(([pid,rows])=>{
-    const p=DATA.productions.find(x=>x.id===pid); if(!p)return;
+    const p=fastProject(pid); if(!p)return;
     DATA.projectCast[pid]=DATA.projectCast[pid]||{heroes:[],villains:[],anti:[],allies:[]};
     ["heroes","villains","anti","allies"].forEach(k=>DATA.projectCast[pid][k]=DATA.projectCast[pid][k]||[]);
     rows.forEach(row=>{
@@ -1288,6 +1303,11 @@ function rebuildLibraryCatalog(){
     }
   });
   libraryCatalog=[...map.values()].sort((a,b)=>a.canonical.localeCompare(b.canonical,"es"));
+  libraryCatalog.forEach(e=>{
+    e._canonicalNorm=norm(e.canonical);
+    e._aliasNorms=(e.aliases||[]).map(norm);
+    e._searchNorm=norm([e.canonical,...(e.aliases||[]),...(e.aff||[])].join(" "));
+  });
   updateLibraryStatus();
 }
 async function loadMarvelLibrary(){
@@ -1321,21 +1341,19 @@ function searchLibrary(query,limit=14){
   const q=norm(query);
   if(!q)return [];
   const words=q.split(/\s+/).filter(Boolean);
-  return libraryCatalog
-    .map(e=>{
-      const hay=norm([e.canonical,...(e.aliases||[]),...(e.aff||[])].join(" "));
-      let score=0;
-      if(norm(e.canonical)===q)score+=100;
-      if((e.aliases||[]).some(a=>norm(a)===q))score+=95;
-      if(hay.startsWith(q))score+=60;
-      if(words.every(w=>hay.includes(w)))score+=35;
-      if(hay.includes(q))score+=25;
-      return {e,score};
-    })
-    .filter(x=>x.score>0)
-    .sort((a,b)=>b.score-a.score || a.e.canonical.localeCompare(b.e.canonical,"es"))
-    .slice(0,limit)
-    .map(x=>x.e);
+  const scored=[];
+  for(const e of libraryCatalog){
+    const hay=e._searchNorm||"";
+    let score=0;
+    if(e._canonicalNorm===q)score+=100;
+    if((e._aliasNorms||[]).includes(q))score+=95;
+    if(hay.startsWith(q))score+=60;
+    if(words.every(w=>hay.includes(w)))score+=35;
+    if(hay.includes(q))score+=25;
+    if(score>0)scored.push({e,score});
+  }
+  scored.sort((a,b)=>b.score-a.score || a.e.canonical.localeCompare(b.e.canonical,"es"));
+  return scored.slice(0,limit).map(x=>x.e);
 }
 function libraryDisplayAlias(e){
   return (e.aliases&&e.aliases[0]) || e.canonical;
@@ -1493,17 +1511,71 @@ async function copyPromptText(value,label){
   toast(label+" COPIADO");
 }
 
-function saveData(){localStorage.setItem(STORAGE_KEY,JSON.stringify(DATA))}
+let runtimeIndexesDirty=true;
+let runtimeCharacterById=new Map();
+let runtimeProjectById=new Map();
+let runtimeUniverseById=new Map();
+let runtimeCharacterByEarthName=new Map();
+let runtimeAffiliationsById=new Map();
+let runtimeProjectProgressCache=new Map();
+let runtimeGlobalProgressCache=null;
+
+function invalidateRuntimeIndexes(){
+  runtimeIndexesDirty=true;
+  runtimeProjectProgressCache.clear();
+  runtimeGlobalProgressCache=null;
+}
+function ensureRuntimeIndexes(){
+  if(!runtimeIndexesDirty)return;
+  runtimeCharacterById=new Map((DATA.characters||[]).map(c=>[c.id,c]));
+  runtimeProjectById=new Map((DATA.productions||[]).map(p=>[p.id,p]));
+  runtimeUniverseById=new Map((DATA.universes||[]).map(u=>[u.id,u]));
+  runtimeCharacterByEarthName=new Map();
+  runtimeAffiliationsById=new Map();
+  (DATA.characters||[]).forEach(c=>{
+    runtimeCharacterByEarthName.set(`${c.earth}|${norm(c.real)}`,c);
+    runtimeAffiliationsById.set(c.id,new Set((c.aff||[]).map(a=>norm(translateGroup(a)))));
+  });
+  runtimeIndexesDirty=false;
+  runtimeProjectProgressCache.clear();
+  runtimeGlobalProgressCache=null;
+}
+function fastCharacter(id){ensureRuntimeIndexes();return runtimeCharacterById.get(id)||null}
+function fastProject(id){ensureRuntimeIndexes();return runtimeProjectById.get(id)||null}
+function fastUniverse(id){ensureRuntimeIndexes();return runtimeUniverseById.get(id)||null}
+function fastCharacterByEarthName(earth,name){ensureRuntimeIndexes();return runtimeCharacterByEarthName.get(`${earth}|${norm(name)}`)||null}
+function saveData(){invalidateRuntimeIndexes();localStorage.setItem(STORAGE_KEY,JSON.stringify(DATA))}
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1800)}
 let historyReady=false;
+let characterParentScrollY=0;
+let characterParentScreen="production";
+let restoringCharacterParent=false;
+
 function renderScreen(id){
+  const wasCharacter=document.body.classList.contains("character-layer-open");
   $$(".screen").forEach(x=>x.classList.remove("active"));
   const target=$("#"+id)||$("#home");
   target.classList.add("active");
   const actual=target.id;
+
+  if(actual==="character"){
+    document.body.classList.add("character-layer-open");
+    target.scrollTop=0;
+  }else{
+    document.body.classList.remove("character-layer-open");
+  }
+
   if(actual==="home")renderGlobalProgress();
   $$(".nav-btn").forEach(x=>x.classList.toggle("active",x.dataset.nav===actual));
-  scrollTo({top:0,behavior:"smooth"});
+
+  if(actual==="character"){
+    // Keep the parent page exactly where it was.
+  }else if(restoringCharacterParent && actual===characterParentScreen){
+    restoringCharacterParent=false;
+    requestAnimationFrame(()=>window.scrollTo({top:characterParentScrollY,left:0,behavior:"auto"}));
+  }else{
+    window.scrollTo({top:0,left:0,behavior:"auto"});
+  }
 }
 function go(id,push=true){
   renderScreen(id);
@@ -1847,14 +1919,24 @@ function projectTheme(p){
   return base.map(vividHaloColor);
 }
 function figureProgressForProject(pid){
+  ensureRuntimeIndexes();
+  if(runtimeProjectProgressCache.has(pid))return runtimeProjectProgressCache.get(pid);
   const ids=projectAllCastIds(pid);
-  const done=ids.filter(id=>DATA.characters.find(c=>c.id===id)?.masterMediaKey).length;
-  return {done,total:ids.length,percent:ids.length?Math.round(done*100/ids.length):0};
+  let done=0;
+  ids.forEach(id=>{if(runtimeCharacterById.get(id)?.masterMediaKey)done++});
+  const result={done,total:ids.length,percent:ids.length?Math.round(done*100/ids.length):0};
+  runtimeProjectProgressCache.set(pid,result);
+  return result;
 }
 function globalFigureProgress(){
-  const ids=[...new Set(DATA.productions.flatMap(p=>projectAllCastIds(p.id)))];
-  const done=ids.filter(id=>DATA.characters.find(c=>c.id===id)?.masterMediaKey).length;
-  return {done,total:ids.length,percent:ids.length?Math.round(done*100/ids.length):0};
+  ensureRuntimeIndexes();
+  if(runtimeGlobalProgressCache)return runtimeGlobalProgressCache;
+  const ids=new Set();
+  (DATA.productions||[]).forEach(p=>projectAllCastIds(p.id).forEach(id=>ids.add(id)));
+  let done=0;
+  ids.forEach(id=>{if(runtimeCharacterById.get(id)?.masterMediaKey)done++});
+  runtimeGlobalProgressCache={done,total:ids.size,percent:ids.size?Math.round(done*100/ids.size):0};
+  return runtimeGlobalProgressCache;
 }
 function renderGlobalProgress(){
   const x=globalFigureProgress();
@@ -1952,7 +2034,7 @@ function projectDisplayGroups(p){
   };
 }
 async function renderProduction(){
-  const p=DATA.productions.find(x=>x.id===currentProduction);if(!p)return;
+  const p=fastProject(currentProduction);if(!p)return;
   currentEarth=p.earth;
   const projectThemeColors=projectTheme(p);
   const productionScreen=$("#production");
@@ -1985,7 +2067,6 @@ async function renderProduction(){
       </div>`).join("")+
     `<div class="project-add-character"><button class="btn primary" data-add-project="${p.id}">＋ AGREGAR PERSONAJE</button></div>`;
   $$("#castRoot [data-character]").forEach(b=>b.onclick=()=>openCharacter(b.dataset.character));
-  $$("#castRoot [data-photo-menu]").forEach(b=>b.onclick=e=>{e.stopPropagation();openCharacterPhotoMenu(b.dataset.photoMenu,b.dataset.projectContext)});
   $$("#castRoot [data-project-faction]").forEach(b=>b.onclick=()=>showProjectFaction(p.id,b.dataset.projectFaction));
   $$("#castRoot [data-add-image-character]").forEach(b=>b.onclick=()=>openKnownCharacterImageForm(b.dataset.addImageCharacter,b.dataset.projectContext));
   $$("#castRoot [data-add-project]").forEach(b=>b.onclick=async()=>{
@@ -2001,9 +2082,10 @@ async function renderProduction(){
   await hydrateCharacterCards();
 
   productionScreen.classList.remove("halo-ignite");
-  void productionScreen.offsetWidth;
-  productionScreen.classList.add("halo-ignite");
-  setTimeout(()=>productionScreen.classList.remove("halo-ignite"),1050);
+  requestAnimationFrame(()=>{
+    productionScreen.classList.add("halo-ignite");
+    setTimeout(()=>productionScreen.classList.remove("halo-ignite"),900);
+  });
 
   const related=DATA.productions.filter(x=>x.earth===p.earth&&x.saga===p.saga).sort((a,b)=>(a.order||0)-(b.order||0));
   $("#sagaStrip").innerHTML=related.map(x=>`<button class="saga-item ${x.id===p.id?"active":""}" data-saga-project="${x.id}">
@@ -2023,11 +2105,11 @@ function statusClass(status){
   return "unknown";
 }
 function charCard(id,projectId,index=0){
-  const c=DATA.characters.find(x=>x.id===id);if(!c)return pendingCard();
+  const c=fastCharacter(id);if(!c)return pendingCard();
   const appearance=appearanceFor(id,projectId)||{};
   const mediaKey=c.masterMediaKey||"";
   const shownAlias=appearance.alias||c.alias;
-  const theme=projectTheme(DATA.productions.find(p=>p.id===projectId));
+  const theme=projectTheme(fastProject(projectId));
   return `<div class="char-tile">
     <button class="char-card ${mediaKey?"has-portrait":""}" ${mediaKey?`data-character="${id}"`:`data-add-image-character="${id}"`} data-project-context="${projectId}" style="--halo1:${theme[0]};--halo2:${theme[1]};--ignite-delay:${Math.min(index,8)*55}ms">
       <span class="status-light ${statusClass(c.status)}" title="${c.status}"></span>
@@ -2035,7 +2117,6 @@ function charCard(id,projectId,index=0){
         ${mediaKey?`<img class="hidden" alt="${c.real}">`:`<span class="char-empty"><span><b>＋</b>CARGAR FOTO</span></span>`}
       </span>
     </button>
-    ${mediaKey?`<button class="figure-menu-btn" type="button" data-photo-menu="${id}" data-project-context="${projectId}" title="OPCIONES DE FOTO">⋯</button>`:""}
     <div class="char-label"><strong>${c.real}</strong><span>${shownAlias}</span></div>
   </div>`;
 }
@@ -2055,9 +2136,16 @@ async function hydrateCharacterCards(){
   }));
 }
 
-function openCharacter(id){playCharacterTap();currentCharacter=id;renderCharacter();go("character")}
+function openCharacter(id){
+  playCharacterTap();
+  characterParentScrollY=window.scrollY||document.documentElement.scrollTop||0;
+  characterParentScreen=document.querySelector(".screen.active")?.id||"production";
+  currentCharacter=id;
+  renderCharacter();
+  go("character");
+}
 async function renderCharacter(){
-  const c=DATA.characters.find(x=>x.id===currentCharacter);if(!c)return;
+  const c=fastCharacter(currentCharacter);if(!c)return;
   const currentApp=appearanceFor(c.id,currentProduction)||{};
   $("#charAlias").textContent=c.real;$("#charReal").textContent=currentApp.alias||c.alias||"SIN ALIAS";$("#charStatus").textContent=c.status;
   const statusDot=document.querySelector(".status i"); if(statusDot) statusDot.className=statusClass(c.status);
@@ -2067,6 +2155,14 @@ async function renderCharacter(){
   if(c.masterMediaKey){
     const url=await getMediaURL(c.masterMediaKey);
     if(url){photo.innerHTML=`<img src="${url}" alt="${c.real}">`;currentFullImageURL=url}
+  }
+  const photoMenu=$("#profilePhotoMenu");
+  if(photoMenu){
+    photoMenu.classList.toggle("hidden",!c.masterMediaKey);
+    photoMenu.onclick=e=>{
+      e.stopPropagation();
+      openCharacterPhotoMenu(c.id,currentProduction);
+    };
   }
   const firstProject=(c.projects||[]).map(pid=>DATA.productions.find(p=>p.id===pid)).filter(Boolean).sort((a,b)=>(a.order||9999)-(b.order||9999))[0];
   const earthNode=DATA.universes.find(u=>u.id===c.earth);
@@ -2134,98 +2230,6 @@ async function showCharacterGallery(title,members,subtitle=""){
   });
   $("#closeNodeModal").onclick=()=>{restoreAddModal();$("#addModal").classList.remove("show")};
 }
-function findCharacterByReal(name,earth=null){
-  return DATA.characters.find(c=>(!earth||c.earth===earth)&&norm(c.real)===norm(name))||null;
-}
-const EXPLICIT_RELATIONS={
-  "STEVE ROGERS":{
-    "AMIGOS":["JAMES BUCHANAN BARNES","SAM WILSON"],
-    "PAREJA":["PEGGY CARTER"],
-    "EQUIPO":["SAM WILSON","NATASHA ROMANOFF","CLINT BARTON","TONY STARK"],
-    "ENEMIGOS":["JOHANN SCHMIDT","HELMUT ZEMO"]
-  },
-  "JAMES BUCHANAN BARNES":{
-    "AMIGOS":["STEVE ROGERS","SAM WILSON"],
-    "EQUIPO":["STEVE ROGERS","SAM WILSON"],
-    "ENEMIGOS":["JOHANN SCHMIDT","HELMUT ZEMO"]
-  },
-  "TONY STARK":{
-    "AMIGOS":["JAMES RHODES","BRUCE BANNER"],
-    "PAREJA":["VIRGINIA POTTS"],
-    "FAMILIA":["HOWARD STARK"],
-    "EQUIPO":["STEVE ROGERS","NATASHA ROMANOFF","CLINT BARTON","JAMES RHODES"],
-    "ENEMIGOS":["IVAN VANKO","ALDRICH KILLIAN","THANOS"]
-  },
-  "NATASHA ROMANOFF":{
-    "AMIGOS":["CLINT BARTON","STEVE ROGERS"],
-    "FAMILIA":["YELENA BELOVA"],
-    "EQUIPO":["STEVE ROGERS","TONY STARK","CLINT BARTON"],
-    "ENEMIGOS":["THANOS"]
-  },
-  "CLINT BARTON":{
-    "AMIGOS":["NATASHA ROMANOFF"],
-    "EQUIPO":["STEVE ROGERS","TONY STARK","NATASHA ROMANOFF"],
-    "ENEMIGOS":["THANOS"]
-  },
-  "SAM WILSON":{
-    "AMIGOS":["STEVE ROGERS","JAMES BUCHANAN BARNES"],
-    "EQUIPO":["STEVE ROGERS","JAMES BUCHANAN BARNES"],
-    "ENEMIGOS":["HELMUT ZEMO"]
-  },
-  "PEGGY CARTER":{
-    "PAREJA":["STEVE ROGERS"],
-    "EQUIPO":["HOWARD STARK","TIMOTHY DUGAN"]
-  },
-  "JAMES RHODES":{
-    "AMIGOS":["TONY STARK"],
-    "EQUIPO":["TONY STARK","NATASHA ROMANOFF","STEVE ROGERS"]
-  },
-  "PETER PARKER":{
-    "FAMILIA":["MAY PARKER","BEN PARKER"],
-    "PAREJA":["MARY JANE WATSON","GWEN STACY"]
-  },
-  "LOGAN":{
-    "EQUIPO":["CHARLES XAVIER","SCOTT SUMMERS","JEAN GREY","ORORO MUNROE"],
-    "ENEMIGOS":["ERIK LEHNSHERR","VICTOR CREED"]
-  }
-};
-function inferredTeamMembers(c){
-  const own=new Set((c.aff||[]).map(a=>norm(translateGroup(a))));
-  if(!own.size)return [];
-  return DATA.characters.filter(x=>x.id!==c.id&&x.earth===c.earth&&(x.aff||[]).some(a=>own.has(norm(translateGroup(a)))));
-}
-function inferredEnemyMembers(c){
-  const ids=new Set();
-  (c.projects||[]).forEach(pid=>{
-    const myRole=appearanceFor(c.id,pid)?.role||existingCastRole(pid,c.id);
-    const faction=appearanceFor(c.id,pid)?.faction;
-    const all=projectAllCastIds(pid);
-    all.forEach(id=>{
-      if(id===c.id)return;
-      const otherRole=appearanceFor(id,pid)?.role||existingCastRole(pid,id);
-      const otherFaction=appearanceFor(id,pid)?.faction;
-      if(PROJECT_FACTIONS[pid]&&faction&&otherFaction&&faction!==otherFaction&&otherFaction!=="OTROS PERSONAJES")ids.add(id);
-      else if(myRole==="villains"&&["heroes","allies"].includes(otherRole))ids.add(id);
-      else if(["heroes","allies"].includes(myRole)&&otherRole==="villains")ids.add(id);
-    });
-  });
-  return [...ids].map(id=>DATA.characters.find(c=>c.id===id)).filter(Boolean);
-}
-function relationMembersFor(c,type){
-  const t=norm(type);
-  const explicit=(EXPLICIT_RELATIONS[c.real]?.[t]||[])
-    .map(name=>findCharacterByReal(name,c.earth)||findCharacterByReal(name))
-    .filter(Boolean);
-  let inferred=[];
-  if(t==="EQUIPO")inferred=inferredTeamMembers(c);
-  if(t==="ENEMIGOS")inferred=inferredEnemyMembers(c);
-  return [...new Map([...explicit,...inferred].map(x=>[x.id,x])).values()];
-}
-function showRelation(charId,type){
-  const c=DATA.characters.find(x=>x.id===charId);if(!c)return;
-  const members=relationMembersFor(c,type);
-  showCharacterGallery(`${type} · ${c.real}`,members,`RELACIÓN: ${type}`);
-}
 function showNatureGallery(nature){
   const members=DATA.characters.filter(c=>norm(c.nature)===norm(nature));
   showCharacterGallery(nature,members,"TIPO / NATURALEZA");
@@ -2234,12 +2238,8 @@ function showProjectFaction(pid,label){
   const p=DATA.productions.find(x=>x.id===pid);if(!p)return;
   const layout=projectDisplayGroups(p);
   const group=layout.groups.find(([name])=>name===label);
-  const members=(group?.[1]||[]).map(id=>DATA.characters.find(c=>c.id===id)).filter(Boolean);
+  const members=(group?.[1]||[]).map(id=>fastCharacter(id)).filter(Boolean);
   showCharacterGallery(`${label} · ${p.title}`,members,"FACCIÓN / GRUPO DEL PROYECTO");
-}
-function showAffiliation(name){
-  const members=DATA.characters.filter(c=>(c.aff||[]).some(a=>norm(a)===norm(name)||norm(translateGroup(a))===norm(translateGroup(name))));
-  showCharacterGallery(translateGroup(name),members,"INTEGRANTES REGISTRADOS");
 }
 
 
@@ -2310,7 +2310,7 @@ function addRelationshipEdge(a,b,type,aLabel,bLabel,source="USER"){
   DATA.relationships.push(candidate);return true;
 }
 function findRelationCharacter(name,earth){
-  return DATA.characters.find(c=>c.earth===earth&&norm(c.real)===norm(name))||null;
+  return fastCharacterByEarthName(earth,name);
 }
 const KNOWN_RELATION_SEEDS=[
   ["616","STEVE ROGERS","JAMES BUCHANAN BARNES","AMISTAD","AMIGO","AMIGO"],
@@ -2375,23 +2375,36 @@ function seedKnownRelationships(){
   dedupeRelationshipEdges();
 }
 function ensureIdentityGraph(){
+  if((DATA.identityGraphVersion||0)>=3){
+    DATA.relationships=Array.isArray(DATA.relationships)?DATA.relationships:[];
+    return;
+  }
   DATA.relationships=Array.isArray(DATA.relationships)?DATA.relationships:[];
   DATA.characters=(DATA.characters||[]).map(c=>({...c,aff:uniqueTranslatedList(c.aff||[])}));
   mergeDuplicateCharactersGlobal();
   seedKnownRelationships();
-  DATA.identityGraphVersion=2;
+  DATA.identityGraphVersion=3;
   saveData();
 }
 function sharedTeamLabel(a,b){
-  const aa=uniqueTranslatedList(a.aff||[]),bb=new Set(uniqueTranslatedList(b.aff||[]).map(norm));
-  return aa.find(x=>bb.has(norm(x)))||"EQUIPO";
+  ensureRuntimeIndexes();
+  const otherSet=runtimeAffiliationsById.get(b.id)||new Set();
+  return (a.aff||[]).map(translateGroup).find(x=>otherSet.has(norm(x)))||"EQUIPO";
 }
 function inferredTeamEntries(c){
+  ensureRuntimeIndexes();
+  const own=runtimeAffiliationsById.get(c.id)||new Set();
+  if(!own.size)return [];
   const out=[];
-  DATA.characters.forEach(other=>{
+  (DATA.characters||[]).forEach(other=>{
     if(other.id===c.id||other.earth!==c.earth)return;
-    const label=sharedTeamLabel(c,other);
-    if(label!=="EQUIPO")out.push({character:other,label});
+    const otherSet=runtimeAffiliationsById.get(other.id)||new Set();
+    let label=null;
+    for(const aff of (c.aff||[])){
+      const translated=translateGroup(aff);
+      if(otherSet.has(norm(translated))){label=translated;break}
+    }
+    if(label)out.push({character:other,label});
   });
   return out;
 }
@@ -2400,9 +2413,9 @@ function relationshipEntriesFor(c,type){
   (DATA.relationships||[]).forEach(r=>{
     if(norm(r.type)!==t)return;
     if(r.a===c.id){
-      const other=DATA.characters.find(x=>x.id===r.b);if(other)out.push({character:other,label:r.aLabel||r.type});
+      const other=fastCharacter(r.b);if(other)out.push({character:other,label:r.aLabel||r.type});
     }else if(r.b===c.id){
-      const other=DATA.characters.find(x=>x.id===r.a);if(other)out.push({character:other,label:r.bLabel||r.type});
+      const other=fastCharacter(r.a);if(other)out.push({character:other,label:r.bLabel||r.type});
     }
   });
   if(t===norm("EQUIPO"))out.push(...inferredTeamEntries(c));
@@ -2555,7 +2568,8 @@ async function replaceCharacterMasterPhoto(charId,file,projectId){
     await putMedia(newKey,file);c.masterMediaKey=newKey;saveData();
     if(oldKey)await deleteMediaKey(oldKey);
     renderGlobalProgress();renderTimeline();
-    if(projectId===currentProduction)await renderProduction();
+    if(projectId===currentProduction && !document.body.classList.contains("character-layer-open"))await renderProduction();
+    if(currentCharacter===charId && document.body.classList.contains("character-layer-open"))await renderCharacter();
     toast("FOTO ACTUALIZADA");
   }catch(e){toast("NO SE PUDO CAMBIAR LA FOTO")}
 }
@@ -2564,7 +2578,8 @@ async function removeCharacterMasterPhoto(charId,projectId){
   const oldKey=c.masterMediaKey;delete c.masterMediaKey;saveData();
   await deleteMediaKey(oldKey);
   renderGlobalProgress();renderTimeline();
-  if(projectId===currentProduction)await renderProduction();
+  if(projectId===currentProduction && !document.body.classList.contains("character-layer-open"))await renderProduction();
+  if(currentCharacter===charId && document.body.classList.contains("character-layer-open"))await renderCharacter();
   toast("FOTO ELIMINADA");
 }
 function restoreAddModal(){
@@ -3113,17 +3128,19 @@ setTimeout(()=>loadMarvelLibrary().then(()=>renderLibraryResults()),350);
 prepareImageForm();
 history.replaceState({screen:"home",earth:currentEarth,production:currentProduction,character:currentCharacter},"","#home");
 historyReady=true;
-window.addEventListener("popstate",e=>{
+window.addEventListener("popstate",async e=>{
   const st=e.state||{screen:"home"};
+  const leavingCharacter=document.body.classList.contains("character-layer-open")&&st.screen!=="character";
+  if(leavingCharacter)restoringCharacterParent=true;
   if(st.earth)currentEarth=st.earth;
   if(st.production)currentProduction=st.production;
   if(st.character)currentCharacter=st.character;
   if(st.screen==="earth")renderTimeline();
-  if(st.screen==="production")renderProduction();
-  if(st.screen==="character"&&currentCharacter)renderCharacter();
-  if(st.screen==="intake")prepareImageForm();
+  if(st.screen==="production")await renderProduction();
+  if(st.screen==="character"&&currentCharacter)await renderCharacter();
+  if(st.screen==="intake")await prepareImageForm();
   if(st.screen==="library")renderLibraryResults();
-  if(st.screen==="projectForm")prepareProjectForm(editProjectId);
+  if(st.screen==="projectForm")await prepareProjectForm(editProjectId);
   renderScreen(st.screen||"home");
 });
 
@@ -3138,6 +3155,11 @@ $("#soundBtn").onclick=()=>{soundEnabled=!soundEnabled;localStorage.setItem("mul
 $("#addBtn").onclick=resetAddModalAndShow;wireModal();
 $("#newProjectBtn").onclick=()=>{prepareProjectForm();go("projectForm")};
 $("#editProjectBtn").onclick=()=>{prepareProjectForm(currentProduction);go("projectForm")};
+$("#backFromCharacter").onclick=()=>{
+  restoringCharacterParent=true;
+  if(history.length>1)history.back();
+  else{renderProduction();renderScreen("production")}
+};
 $("#backFromProduction").onclick=()=>{
   const p=DATA.productions.find(x=>x.id===currentProduction);
   cinematicOpen(p,()=>history.back(),true)
@@ -3284,7 +3306,7 @@ function createNewCharacter(){
     ["heroes","villains","anti","allies"].forEach(k=>DATA.projectCast[pid][k]=DATA.projectCast[pid][k]||[]);
     DATA.projectCast[pid][role].push(id);
   }
-  saveData();rebuildLibraryCatalog();
+  seedKnownRelationships();saveData();rebuildLibraryCatalog();
   const entry=libraryCatalog.find(e=>e.existingId===id)||{key:"L:"+norm(c.real),canonical:c.real,aliases:c.aliases,nature:c.nature,aff:c.aff,status:c.status,source:"ÁLBUM",existingId:id};
   selectLibraryEntry(entry,{production:pid});
   closeNewCharacterModal();toast("PERSONAJE CREADO");
