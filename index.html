@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.5.1</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.5.4</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -220,55 +220,39 @@ button{cursor:pointer;color:inherit}
 }
 .char-card.has-portrait{
   overflow:visible;background:transparent!important;border:0!important;border-radius:0!important;
-  box-shadow:none!important;filter:drop-shadow(0 11px 10px #0008)
+  box-shadow:none!important;filter:none
 }
-.char-card.has-portrait:before{
-  content:"";position:absolute;z-index:0;left:-18%;right:-18%;top:-12%;bottom:-16%;
-  border-radius:48%;
-  background:
-    radial-gradient(ellipse at 37% 43%,var(--halo1) 0%,color-mix(in srgb,var(--halo1) 76%,transparent) 24%,transparent 61%),
-    radial-gradient(ellipse at 66% 58%,var(--halo2) 0%,color-mix(in srgb,var(--halo2) 76%,transparent) 26%,transparent 64%),
-    radial-gradient(ellipse at 50% 22%,var(--halo3) 0%,color-mix(in srgb,var(--halo3) 58%,transparent) 20%,transparent 58%);
-  filter:blur(20px) saturate(1.75) brightness(1.28);opacity:1;transform:scale(1.10);
-  mix-blend-mode:screen;pointer-events:none
-}
-.char-card.has-portrait:after{
-  content:"";position:absolute;z-index:0;left:-5%;right:-5%;top:2%;bottom:-4%;border-radius:44%;
-  background:
-    radial-gradient(ellipse at 44% 45%,color-mix(in srgb,var(--halo1) 86%,transparent) 0%,transparent 48%),
-    radial-gradient(ellipse at 60% 57%,color-mix(in srgb,var(--halo2) 84%,transparent) 0%,transparent 52%),
-    radial-gradient(ellipse at 50% 31%,color-mix(in srgb,var(--halo3) 58%,transparent) 0%,transparent 50%);
-  filter:blur(9px) saturate(1.55) brightness(1.18);opacity:.82;pointer-events:none
-}
+/*
+  FIGURA LIBRE + RETROILUMINACIÓN LED CORTA.
+  La luz se calcula desde el canal alfa del PNG; por eso sigue la silueta
+  y nunca crea un rectángulo, tarjeta o fondo visible.
+*/
+.char-card.has-portrait:before,
+.char-card.has-portrait:after{content:none!important}
 .char-card.has-portrait .portrait{
-  overflow:visible;background:transparent;border-radius:0;z-index:1
+  overflow:visible;background:transparent!important;border:0!important;border-radius:0!important;
+  box-shadow:none!important;z-index:1
 }
 .char-card.has-portrait .portrait img{
-  position:relative;z-index:2;
+  position:relative;z-index:2;background:transparent!important;border:0!important;border-radius:0!important;
   filter:
-    drop-shadow(0 0 5px color-mix(in srgb,var(--halo1) 92%,white 8%))
-    drop-shadow(0 0 12px color-mix(in srgb,var(--halo2) 86%,white 14%))
-    drop-shadow(0 0 8px color-mix(in srgb,var(--halo3) 70%,transparent))
-    drop-shadow(0 10px 10px #000c)
+    drop-shadow(0 7px 7px #0009)
+    drop-shadow(0 0 3px color-mix(in srgb,var(--halo1) 68%,transparent))
+    drop-shadow(0 0 6px color-mix(in srgb,var(--halo2) 48%,transparent))
+    drop-shadow(0 0 8px color-mix(in srgb,var(--halo3) 34%,transparent));
 }
-
-#production.halo-ignite .char-card.has-portrait:before{
-  animation:haloIgnite .52s cubic-bezier(.17,.8,.26,1) both;
-  animation-delay:var(--ignite-delay,0ms);will-change:opacity,transform
+#production.halo-ignite .char-card.has-portrait{
+  animation:figureLedIgnite .30s cubic-bezier(.2,.78,.3,1) both;
+  animation-delay:var(--ignite-delay,0ms);
+  will-change:opacity,transform
 }
-#production.halo-ignite .char-card.has-portrait:after{
-  animation:haloIgniteInner .46s ease-out both;
-  animation-delay:calc(var(--ignite-delay,0ms) + 30ms);will-change:opacity,transform
+@media(prefers-reduced-motion:reduce){
+  #production.halo-ignite .char-card.has-portrait{animation:none!important}
 }
-@keyframes haloIgnite{
-  0%{opacity:0;transform:scale(.78)}
-  58%{opacity:1;transform:scale(1.16)}
-  100%{opacity:1;transform:scale(1.10)}
-}
-@keyframes haloIgniteInner{
-  0%{opacity:0;transform:scale(.82)}
-  72%{opacity:.96;transform:scale(1.05)}
-  100%{opacity:.82;transform:scale(1)}
+@keyframes figureLedIgnite{
+  0%{opacity:.72;transform:scale(.975)}
+  62%{opacity:1;transform:scale(1.012)}
+  100%{opacity:1;transform:scale(1)}
 }
 
 .cast-group{margin-top:18px}
@@ -592,6 +576,11 @@ body.character-layer-open{overflow:hidden;touch-action:none}
 }
 .person-card.selected .selected-mark{display:grid}
 .team-modal-list{display:grid;gap:7px;margin:8px 0 10px}
+
+.title-card,.char-tile,.person-card{content-visibility:auto}
+.title-card{contain-intrinsic-size:92px}
+.char-tile{contain-intrinsic-size:118px 160px}
+.person-card{contain-intrinsic-size:100px 145px}
 @media(max-width:420px){
   .people-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
   .people-toolbar{grid-template-columns:1fr 1fr}
@@ -855,7 +844,7 @@ body.character-layer-open{overflow:hidden;touch-action:none}
 </section>
 
 <section id="intake" class="screen">
-  <button class="btn back" data-go="home">← VOLVER</button>
+  <button class="btn back" id="backFromIntake">← VOLVER</button>
   <div class="form-card">
     <h2 id="intakeHeading">REGISTRAR IMAGEN</h2>
     <p id="intakeIntro">INGRESO TIPO INVENTARIO. BUSCA EL PERSONAJE O ENTRA DIRECTAMENTE DESDE SU TARJETA.</p>
@@ -933,7 +922,7 @@ body.character-layer-open{overflow:hidden;touch-action:none}
 </section>
 
 <section id="projectForm" class="screen">
-  <button class="btn back" data-go="earth">← VOLVER A LA TIERRA</button>
+  <button class="btn back" id="backFromProjectForm">← VOLVER</button>
   <div class="form-card">
     <h2>REGISTRAR PROYECTO</h2>
     <p>INGRESA UNA PELÍCULA O TEMPORADA REAL CON SU TÍTULO OFICIAL DE LATINOAMÉRICA Y CARGA SU PORTADA.</p>
@@ -1787,6 +1776,7 @@ function fastUniverse(id){ensureRuntimeIndexes();return runtimeUniverseById.get(
 function fastCharacterByEarthName(earth,name){ensureRuntimeIndexes();return runtimeCharacterByEarthName.get(`${earth}|${norm(name)}`)||null}
 function saveData(){
   try{invalidateRuntimeIndexes()}catch(e){}
+  try{peopleSearchCache?.clear()}catch(e){}
   localStorage.setItem(STORAGE_KEY,JSON.stringify(DATA));
 }
 
@@ -1826,8 +1816,65 @@ let characterParentScreen="production";
 let restoringCharacterParent=false;
 const earthTimelineScroll=new Map();
 let restoringEarthTimeline=false;
+const screenScrollPositions=new Map();
+let restoringScreenScroll=false;
+let pendingOriginAnchor=null;
+let intakeOrigin=null;
+let projectFormOrigin=null;
 function earthTimelineScrollKey(){
   return `${currentEarth||""}|${currentSort||"chronology"}|${currentFilter||"ALL"}`;
+}
+function activeScreenId(){return document.querySelector(".screen.active")?.id||"home"}
+function screenScrollKey(screen=activeScreenId()){
+  if(screen==="earth")return `earth|${currentEarth||""}|${currentSort||"chronology"}|${currentFilter||"ALL"}`;
+  if(screen==="production")return `production|${currentProduction||""}`;
+  if(screen==="character")return `character|${currentCharacter||""}`;
+  if(screen==="projectForm")return `projectForm|${editProjectId||"new"}`;
+  return screen;
+}
+function captureScreenScroll(screen=activeScreenId()){
+  if(!screen)return;
+  if(screen==="character")screenScrollPositions.set(screenScrollKey(screen),$("#character")?.scrollTop||0);
+  else screenScrollPositions.set(screenScrollKey(screen),window.scrollY||document.documentElement.scrollTop||0);
+}
+function restoreSavedScreenScroll(screen){
+  const y=screenScrollPositions.get(screenScrollKey(screen))||0;
+  const anchor=pendingOriginAnchor&&pendingOriginAnchor.screen===screen?pendingOriginAnchor:null;
+  pendingOriginAnchor=null;
+  requestAnimationFrame(()=>{
+    if(screen==="character"){const el=$("#character");if(el)el.scrollTop=y;return}
+    window.scrollTo({top:y,left:0,behavior:"auto"});
+    if(anchor?.selector){
+      requestAnimationFrame(()=>{
+        const el=document.querySelector(anchor.selector);
+        if(!el)return;
+        const delta=el.getBoundingClientRect().top-Number(anchor.viewportTop||0);
+        if(Math.abs(delta)>1)window.scrollBy({top:delta,left:0,behavior:"auto"});
+      });
+    }
+  });
+}
+function rememberOrigin(anchorSelector=""){
+  const screen=activeScreenId();
+  const key=screenScrollKey(screen);
+  const y=screen==="character"?($("#character")?.scrollTop||0):(window.scrollY||document.documentElement.scrollTop||0);
+  screenScrollPositions.set(key,y);
+  const origin={screen,earth:currentEarth,production:currentProduction,character:currentCharacter,scrollKey:key,scrollY:y};
+  if(anchorSelector&&screen!=="character"){
+    const el=document.querySelector(anchorSelector);
+    if(el){origin.anchorSelector=anchorSelector;origin.anchorViewportTop=el.getBoundingClientRect().top}
+  }
+  return origin;
+}
+function primeOriginScroll(origin){
+  if(origin?.scrollKey)screenScrollPositions.set(origin.scrollKey,Number(origin.scrollY)||0);
+  if(origin?.anchorSelector)pendingOriginAnchor={screen:origin.screen,selector:origin.anchorSelector,viewportTop:origin.anchorViewportTop};
+}
+function backToPreviousContext(fallback="home",origin=null){
+  primeOriginScroll(origin);
+  restoringScreenScroll=true;
+  if(history.length>1)history.back();
+  else{restoringScreenScroll=false;renderScreen(fallback)}
 }
 
 function renderScreen(id){
@@ -1847,8 +1894,13 @@ function renderScreen(id){
   if(actual==="home")renderGlobalProgress();
   $$(".nav-btn").forEach(x=>x.classList.toggle("active",x.dataset.nav===actual));
 
-  if(actual==="character"){
-    // Keep the parent page exactly where it was.
+  if(restoringScreenScroll){
+    restoringScreenScroll=false;
+    restoringCharacterParent=false;
+    restoringEarthTimeline=false;
+    restoreSavedScreenScroll(actual);
+  }else if(actual==="character"){
+    // Character is a top layer; do not move the parent page below it.
   }else if(restoringCharacterParent && actual===characterParentScreen){
     restoringCharacterParent=false;
     requestAnimationFrame(()=>window.scrollTo({top:characterParentScrollY,left:0,behavior:"auto"}));
@@ -1861,6 +1913,20 @@ function renderScreen(id){
   }
 }
 function go(id,push=true){
+  const from=activeScreenId();
+  if(from&&from!==id){
+    let captured=false;
+    if(from==="earth"&&id==="production"){
+      const y=earthTimelineScroll.get(earthTimelineScrollKey());
+      if(Number.isFinite(y)){screenScrollPositions.set(screenScrollKey("earth"),y);captured=true}
+    }
+    if(id==="character"&&characterParentScreen===from){
+      screenScrollPositions.set(screenScrollKey(from),characterParentScrollY||0);captured=true;
+    }
+    if(id==="projectForm"&&projectFormOrigin?.screen===from){primeOriginScroll(projectFormOrigin);captured=true}
+    if(id==="intake"&&intakeOrigin?.screen===from){primeOriginScroll(intakeOrigin);captured=true}
+    if(!captured)captureScreenScroll(from);
+  }
   renderScreen(id);
   if(historyReady && push){
     history.pushState({screen:id,earth:currentEarth,production:currentProduction,character:currentCharacter},"","#"+id);
@@ -1872,13 +1938,20 @@ function appBack(){
 }
 
 /* MEDIA: INDEXEDDB, PARA NO LLENAR LOCALSTORAGE CON LAS IMÁGENES */
+let mediaDbPromise=null;
 function mediaDB(){
-  return new Promise((resolve,reject)=>{
+  if(mediaDbPromise)return mediaDbPromise;
+  mediaDbPromise=new Promise((resolve,reject)=>{
     const req=indexedDB.open("MultiversalArchiveMediaV03",1);
-    req.onupgradeneeded=()=>req.result.createObjectStore("media");
-    req.onsuccess=()=>resolve(req.result);
-    req.onerror=()=>reject(req.error);
+    req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains("media"))req.result.createObjectStore("media")};
+    req.onsuccess=()=>{
+      const db=req.result;
+      db.onversionchange=()=>{try{db.close()}catch(e){} mediaDbPromise=null};
+      resolve(db);
+    };
+    req.onerror=()=>{mediaDbPromise=null;reject(req.error)};
   });
+  return mediaDbPromise;
 }
 function compressedDataURL(file,maxSide=760,quality=.82){
   return new Promise((resolve,reject)=>{
@@ -1900,6 +1973,7 @@ function compressedDataURL(file,maxSide=760,quality=.82){
   });
 }
 async function putMedia(key,file){
+  invalidateMediaUrl(key);
   try{
     const db=await mediaDB();
     await new Promise((resolve,reject)=>{
@@ -1907,7 +1981,6 @@ async function putMedia(key,file){
       tx.objectStore("media").put(file,key);
       tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
     });
-    db.close();
     return;
   }catch(e){
     DATA.mediaFallback[key]=await compressedDataURL(file);
@@ -1922,19 +1995,32 @@ async function getMediaBlob(key){
       const req=tx.objectStore("media").get(key);
       req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error);
     });
-    db.close();return blob;
+    return blob;
   }catch(e){return null}
 }
 const mediaUrlCache=new Map();
+const mediaUrlPending=new Map();
+function invalidateMediaUrl(key){
+  if(!key)return;
+  const cached=mediaUrlCache.get(key);
+  if(cached&&String(cached).startsWith("blob:"))try{URL.revokeObjectURL(cached)}catch(e){}
+  mediaUrlCache.delete(key);mediaUrlPending.delete(key);
+}
 async function getMediaURL(key){
   if(!key)return null;
   if(mediaUrlCache.has(key))return mediaUrlCache.get(key);
-  const blob=await getMediaBlob(key);
-  let url=null;
-  if(blob)url=URL.createObjectURL(blob);
-  else url=DATA.mediaFallback?.[key]||null;
-  if(url)mediaUrlCache.set(key,url);
-  return url;
+  if(mediaUrlPending.has(key))return mediaUrlPending.get(key);
+  const pending=(async()=>{
+    const blob=await getMediaBlob(key);
+    let url=null;
+    if(blob)url=URL.createObjectURL(blob);
+    else url=DATA.mediaFallback?.[key]||null;
+    if(url)mediaUrlCache.set(key,url);
+    return url;
+  })();
+  mediaUrlPending.set(key,pending);
+  try{return await pending}
+  finally{mediaUrlPending.delete(key)}
 }
 async function cloneMediaKey(sourceKey,destKey){
   const blob=await getMediaBlob(sourceKey);
@@ -1952,17 +2038,42 @@ async function deleteMediaKey(key){
       tx.objectStore("media").delete(key);
       tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
     });
-    db.close();
   }catch(e){}
   if(DATA.mediaFallback)delete DATA.mediaFallback[key];
-  const cached=mediaUrlCache.get(key);
-  if(cached&&String(cached).startsWith("blob:"))try{URL.revokeObjectURL(cached)}catch(e){}
-  mediaUrlCache.delete(key);
+  invalidateMediaUrl(key);
 }
 async function setMediaBackground(el,key){
   if(!el||!key)return;
   const url=await getMediaURL(key);
   if(url){el.style.backgroundImage=`url("${url}")`;el.classList.add("has-cover");}
+}
+const lazyMediaObserver=("IntersectionObserver" in window)?new IntersectionObserver(entries=>{
+  entries.forEach(entry=>{
+    if(!entry.isIntersecting)return;
+    const el=entry.target;lazyMediaObserver.unobserve(el);loadLazyMedia(el);
+  });
+},{rootMargin:"260px 0px"}):null;
+async function loadLazyMedia(el){
+  if(!el||el.dataset.mediaLoaded==="1")return;
+  const key=el.dataset.lazyMediaKey;if(!key)return;
+  el.dataset.mediaLoaded="1";
+  const url=await getMediaURL(key);
+  if(!url)return;
+  const kind=el.dataset.lazyMediaKind||"background";
+  if(kind==="img"){
+    const img=el.querySelector("img");
+    if(img){img.src=url;img.classList.remove("hidden")}
+  }else if(kind==="person"){
+    el.innerHTML=`<img src="${url}" alt="" loading="lazy" decoding="async">`;
+  }else{
+    el.style.backgroundImage=`url("${url}")`;el.classList.add("has-cover");
+  }
+}
+function scheduleLazyMedia(el,key,kind="background"){
+  if(!el||!key)return;
+  el.dataset.lazyMediaKey=key;el.dataset.lazyMediaKind=kind;
+  if(lazyMediaObserver)lazyMediaObserver.observe(el);
+  else loadLazyMedia(el);
 }
 function normalizedCrop(crop){
   const c=crop||{};
@@ -2055,7 +2166,6 @@ function cinematicOpen(project,callback,reverse=false){
   const ov=$("#transitionOverlay"),card=$("#zoomCard");
   card.style.backgroundImage="";
   ov.classList.remove("show","reverse");
-  void ov.offsetWidth;
 
   const key=project?.coverKey||project?.horizontalKey;
   if(key){
@@ -2103,6 +2213,7 @@ function openEarth(id){
   renderTimeline();go("earth");
 }
 function renderTimeline(){
+  if(lazyMediaObserver)$("#timeline")?.querySelectorAll("[data-lazy-media-key]").forEach(el=>lazyMediaObserver.unobserve(el));
   const u=DATA.universes.find(x=>x.id===currentEarth);
   $("#earthName").textContent=u?.name||"TIERRA";
   let arr=DATA.productions.filter(p=>projectTouchesEarth(p,currentEarth));
@@ -2127,11 +2238,13 @@ function renderTimeline(){
     </button>`;
   }).join(""):`<div class="relation">NO HAY TÍTULOS EN ESTE FILTRO.</div>`;
   $$("#timeline [data-production]").forEach(b=>b.onclick=()=>openProduction(b.dataset.production));
-  $$("#timeline [data-cover]").forEach(el=>{if(el.dataset.cover)setMediaBackground(el,el.dataset.cover)});
+  $$("#timeline [data-cover]").forEach(el=>{if(el.dataset.cover)scheduleLazyMedia(el,el.dataset.cover,"background")});
 }
 async function openProduction(id){
   if(document.querySelector(".screen.active")?.id==="earth"){
-    earthTimelineScroll.set(earthTimelineScrollKey(),window.scrollY||document.documentElement.scrollTop||0);
+    const y=window.scrollY||document.documentElement.scrollTop||0;
+    earthTimelineScroll.set(earthTimelineScrollKey(),y);
+    screenScrollPositions.set(screenScrollKey("earth"),y);
   }
   currentProduction=id;
   const p=DATA.productions.find(x=>x.id===id);
@@ -2253,10 +2366,9 @@ function colorDistance(a,b){
   return Math.hypot(pa[0]-pb[0],pa[1]-pb[1],pa[2]-pb[2]);
 }
 function rgbHex(r,g,b){return "#"+[r,g,b].map(v=>Math.max(0,Math.min(255,v)).toString(16).padStart(2,"0")).join("")}
-async function deriveThemeColorsFromMedia(key){
-  if(!key)return null;
+async function deriveThemeColorsFromURL(url){
+  if(!url)return null;
   try{
-    const url=await getMediaURL(key);if(!url)return null;
     const img=new Image();await new Promise((res,rej)=>{img.onload=res;img.onerror=rej;img.src=url});
     const cv=document.createElement("canvas");cv.width=28;cv.height=16;
     const cx=cv.getContext("2d",{willReadFrequently:true});cx.drawImage(img,0,0,28,16);
@@ -2273,6 +2385,11 @@ async function deriveThemeColorsFromMedia(key){
     const third=ranked.find(c=>c!==second&&colorDistance(first,c)>70&&(!second||colorDistance(second,c)>70));
     return [first,second,third].filter(Boolean).slice(0,3);
   }catch(e){return null}
+}
+async function deriveThemeColorsFromMedia(key){
+  if(!key)return null;
+  const url=await getMediaURL(key);if(!url)return null;
+  return deriveThemeColorsFromURL(url);
 }
 
 const PROJECT_FACTIONS={
@@ -2353,11 +2470,11 @@ async function renderProduction(){
   backdrop.style.backgroundSize="cover";
   backdrop.style.backgroundRepeat="no-repeat";
   if(p.horizontalKey){
-    const url=await getMediaURL(p.horizontalKey);
-    if(url)backdrop.style.backgroundImage=`url("${url}")`;
+    getMediaURL(p.horizontalKey).then(url=>{if(url&&currentProduction===p.id)backdrop.style.backgroundImage=`url("${url}")`}).catch(()=>{});
   }
   const layout=projectDisplayGroups(p);
   const visibleGroups=layout.groups.filter(([,ids])=>ids.length);
+  if(lazyMediaObserver)$("#castRoot")?.querySelectorAll("[data-lazy-media-key]").forEach(el=>lazyMediaObserver.unobserve(el));
   $("#castRoot").innerHTML=
     (layout.note?`<div class="faction-note">${layout.note}</div>`:"")+
     visibleGroups.map(([label,ids,groupColors])=>`
@@ -2372,6 +2489,7 @@ async function renderProduction(){
   $$("#castRoot [data-project-faction]").forEach(b=>b.onclick=()=>showProjectFaction(p.id,b.dataset.projectFaction));
   $$("#castRoot [data-add-image-character]").forEach(b=>b.onclick=()=>openKnownCharacterImageForm(b.dataset.addImageCharacter,b.dataset.projectContext));
   $$("#castRoot [data-add-project]").forEach(b=>b.onclick=async()=>{
+    intakeOrigin=rememberOrigin(`[data-add-project="${b.dataset.addProject}"]`);
     await prepareImageForm();
     const proj=DATA.productions.find(x=>x.id===b.dataset.addProject);
     if(proj){$("#imageEarth").value=proj.earth;refreshImageProjects();$("#imageProduction").value=proj.id;}
@@ -2381,7 +2499,7 @@ async function renderProduction(){
     go("intake");
     setTimeout(()=>{$("#characterSearch").focus();$("#characterSearch").scrollIntoView({behavior:"smooth",block:"center"})},120);
   });
-  await hydrateCharacterCards();
+  hydrateCharacterCards();
 
   productionScreen.classList.remove("halo-ignite");
   requestAnimationFrame(()=>{
@@ -2390,15 +2508,15 @@ async function renderProduction(){
   });
 
   const related=DATA.productions.filter(x=>x.earth===p.earth&&x.saga===p.saga).sort((a,b)=>(a.order||0)-(b.order||0));
+  if(lazyMediaObserver)$("#sagaStrip")?.querySelectorAll("[data-lazy-media-key]").forEach(el=>lazyMediaObserver.unobserve(el));
   $("#sagaStrip").innerHTML=related.map(x=>`<button class="saga-item ${x.id===p.id?"active":""}" data-saga-project="${x.id}">
     <span class="saga-thumb ${x.horizontalKey?"":"pending"}" data-saga-horizontal="${x.horizontalKey||""}"></span>
     <span class="saga-title">${x.title}</span>
   </button>`).join("");
   $$("#sagaStrip [data-saga-project]").forEach(b=>b.onclick=()=>openProduction(b.dataset.sagaProject));
-  await Promise.all($$("#sagaStrip [data-saga-horizontal]").map(async el=>{
-    const key=el.dataset.sagaHorizontal;if(!key)return;
-    const url=await getMediaURL(key);if(url)el.style.backgroundImage=`url("${url}")`;
-  }));
+  $$("#sagaStrip [data-saga-horizontal]").forEach(el=>{
+    const key=el.dataset.sagaHorizontal;if(key)scheduleLazyMedia(el,key,"background");
+  });
 }
 function statusClass(status){
   if(status==="VIVO")return "alive";
@@ -2428,14 +2546,10 @@ function pendingCard(){
     <span class="char-meta"><strong>PENDIENTE</strong><span>TOCAR PARA REGISTRAR</span></span>
   </button>`;
 }
-async function hydrateCharacterCards(){
-  const els=$$("[data-character-media]");
-  await Promise.all(els.map(async el=>{
-    if(!el.dataset.characterMedia)return;
-    const img=el.querySelector("img");
-    const url=await getMediaURL(el.dataset.characterMedia);
-    if(url&&img){img.src=url;img.classList.remove("hidden")}
-  }));
+function hydrateCharacterCards(){
+  $$("[data-character-media]").forEach(el=>{
+    if(el.dataset.characterMedia)scheduleLazyMedia(el,el.dataset.characterMedia,"img");
+  });
 }
 
 function openCharacter(id){
@@ -3098,7 +3212,6 @@ async function exportAlbumBackup(){
     };
     tx.onerror=()=>reject(tx.error);
   });
-  db.close();
   const backup={version:"0.13",createdAt:new Date().toISOString(),data:DATA,media};
   const blob=new Blob([JSON.stringify(backup)],{type:"application/json"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);
@@ -3139,10 +3252,13 @@ function wireBackupControls(){
 }
 function wireModal(){
   $$("#addModal [data-modal-go]").forEach(b=>b.onclick=()=>{
+    const target=b.dataset.modalGo;
+    if(target==="projectForm")projectFormOrigin=rememberOrigin();
+    else intakeOrigin=rememberOrigin();
     $("#addModal").classList.remove("show");
-    if(b.dataset.modalGo==="projectForm")prepareProjectForm();
+    if(target==="projectForm")prepareProjectForm();
     else prepareImageForm();
-    go(b.dataset.modalGo)
+    go(target)
   });
   $("#closeModal").onclick=()=>$("#addModal").classList.remove("show");
   $("#newEarthBtn")?.addEventListener("click",()=>openEarthEditor());
@@ -3318,6 +3434,7 @@ function setKnownCharacterMode(entry,locked){
   }
 }
 async function openKnownCharacterImageForm(charId,pid){
+  intakeOrigin=rememberOrigin(`[data-character="${charId}"],[data-add-image-character="${charId}"]`);
   await prepareImageForm();
   const c=DATA.characters.find(x=>x.id===charId);if(!c)return;
   let entry=libraryCatalog.find(e=>e.existingId===charId);
@@ -3428,7 +3545,15 @@ async function registerImage(){
 
   seedKnownRelationships();saveData();rebuildLibraryCatalog();renderGlobalProgress();renderTimeline();if(pid===currentProduction)renderProjectProgress(pid);clearDraft(IMAGE_DRAFT_KEY);
   toast(previous?"APARICIÓN ACTUALIZADA":"PERSONAJE VINCULADO AL PROYECTO");
+  const origin=intakeOrigin;
   clearImageForm();
+  intakeOrigin=null;
+  if(origin&&origin.screen!=="intake"&&origin.screen!=="home"){
+    if(origin.earth)currentEarth=origin.earth;
+    if(origin.production)currentProduction=origin.production;
+    if(origin.character)currentCharacter=origin.character;
+    backToPreviousContext(origin.screen||"production",origin);
+  }
 }
 async function loadExistingHorizontalPreview(p){
   $("#projectHorizontalPreview").src="";
@@ -3509,6 +3634,7 @@ function clearProjectForm(){
   prepareProjectForm(null)
 }
 async function saveProject(){
+  const wasEditing=!!editProjectId;
   const title=$("#projectTitle").value.trim(),earth=$("#projectEarth").value,saga=$("#projectSaga").value.trim();
   if(!title||!earth||!saga){toast("FALTA TÍTULO, TIERRA O SAGA / SERIE");return}
   let p,id;
@@ -3539,12 +3665,29 @@ async function saveProject(){
       if(hfile)await putMedia(horizontalKey,hfile);
       else if(await cloneMediaKey(DRAFT_HORIZONTAL_MEDIA,horizontalKey))p.horizontalKey=horizontalKey;
       if(hfile)p.horizontalKey=horizontalKey;
-      if(p.horizontalKey&&(!p.themeColors?.length||p.id.startsWith("custom-"))){const derived=await deriveThemeColorsFromMedia(p.horizontalKey);if(derived)p.themeColors=derived}
+
     }catch(e){toast("PROYECTO GUARDADO SIN IMAGEN HORIZONTAL")}
   }
   currentProduction=id;currentEarth=earth;saveData();clearDraft(PROJECT_DRAFT_KEY);renderEarths();renderTimeline();
-  if(returnToIntakeAfterProject){returnToIntakeAfterProject=false;const d=loadDraft(IMAGE_DRAFT_KEY);d.earth=earth;d.production=id;saveDraft(IMAGE_DRAFT_KEY,d);await prepareImageForm();$("#imageEarth").value=earth;refreshImageProjects();$("#imageProduction").value=id;syncAppearanceContext();go("intake");toast("PROYECTO CREADO · CONTINÚA CON EL PERSONAJE")}
-  else{toast("PROYECTO GUARDADO");go("earth")}
+  if(returnToIntakeAfterProject){
+    returnToIntakeAfterProject=false;
+    const d=loadDraft(IMAGE_DRAFT_KEY);d.earth=earth;d.production=id;saveDraft(IMAGE_DRAFT_KEY,d);
+    toast("PROYECTO CREADO · CONTINÚA CON EL PERSONAJE");
+    projectFormOrigin=null;
+    backToPreviousContext("intake");
+  }else{
+    toast("PROYECTO GUARDADO");
+    const origin=projectFormOrigin;projectFormOrigin=null;
+    if(origin){
+      if(origin.screen==="production"){currentEarth=earth;currentProduction=id}
+      else if(origin.earth)currentEarth=origin.earth;
+      backToPreviousContext(origin.screen||"earth",origin);
+    }else if(wasEditing){
+      backToPreviousContext("production");
+    }else{
+      go("earth");
+    }
+  }
 }
 function openEarthEditor(earthId=null){
   const current=earthId?fastUniverse(earthId):null;
@@ -3634,14 +3777,15 @@ try{
 let peopleLetter="ALL";
 let selectedGeneralCharacters=new Set();
 
-seedAllProjectRosters();applyCharacterDetailSeeds();ensureIdentityGraph();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();renderLibraryResults();
-setTimeout(()=>loadMarvelLibrary().then(()=>renderLibraryResults()),350);
-prepareImageForm();
+seedAllProjectRosters();applyCharacterDetailSeeds();ensureIdentityGraph();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();
+setTimeout(()=>loadMarvelLibrary().then(()=>{if(activeScreenId()==="library")renderLibraryResults()}),500);
 history.replaceState({screen:"home",earth:currentEarth,production:currentProduction,character:currentCharacter},"","#home");
 historyReady=true;
 window.addEventListener("popstate",async e=>{
   const st=e.state||{screen:"home"};
-  const activeBefore=document.querySelector(".screen.active")?.id||"home";
+  const activeBefore=activeScreenId();
+  captureScreenScroll(activeBefore);
+  restoringScreenScroll=true;
   const leavingCharacter=document.body.classList.contains("character-layer-open")&&st.screen!=="character";
   if(leavingCharacter)restoringCharacterParent=true;
   if(activeBefore==="production"&&st.screen==="earth")restoringEarthTimeline=true;
@@ -3666,9 +3810,11 @@ document.addEventListener("pointerdown",()=>{
 $("#soundBtn").textContent=soundEnabled?"🔊":"🔇";
 $("#soundBtn").onclick=()=>{soundEnabled=!soundEnabled;localStorage.setItem("multiversalSound",soundEnabled?"1":"0");$("#soundBtn").textContent=soundEnabled?"🔊":"🔇";toast(soundEnabled?"SONIDO ACTIVADO":"SONIDO DESACTIVADO")};
 $("#addBtn").onclick=resetAddModalAndShow;wireModal();
-$("#newProjectBtn").onclick=()=>{returnToIntakeAfterProject=false;prepareProjectForm();go("projectForm")};
+$("#newProjectBtn").onclick=()=>{returnToIntakeAfterProject=false;projectFormOrigin=rememberOrigin();prepareProjectForm();go("projectForm")};
 $("#editEarthBtn").onclick=()=>openEarthEditor(currentEarth);
-$("#editProjectBtn").onclick=()=>{returnToIntakeAfterProject=false;prepareProjectForm(currentProduction);go("projectForm")};
+$("#editProjectBtn").onclick=()=>{returnToIntakeAfterProject=false;projectFormOrigin=rememberOrigin();prepareProjectForm(currentProduction);go("projectForm")};
+$("#backFromIntake").onclick=()=>{const origin=intakeOrigin;intakeOrigin=null;backToPreviousContext(origin?.screen||"home",origin)};
+$("#backFromProjectForm").onclick=()=>{const origin=projectFormOrigin;returnToIntakeAfterProject=false;projectFormOrigin=null;backToPreviousContext(origin?.screen||"earth",origin)};
 $("#backFromCharacter").onclick=()=>{
   restoringCharacterParent=true;
   if(history.length>1)history.back();
@@ -3689,7 +3835,7 @@ $$("[data-nav]").forEach(b=>b.onclick=async()=>{
   if(id==="home"){go("home");return}
   if(id==="earth"){renderTimeline();go("earth");return}
   if(id==="library"){renderLibraryResults();go("library");return}
-  if(id==="intake"){await prepareImageForm();go("intake");return}
+  if(id==="intake"){intakeOrigin=null;await prepareImageForm();go("intake");return}
 });
 $$("[data-sort]").forEach(b=>b.onclick=()=>{currentSort=b.dataset.sort;$$("[data-sort]").forEach(x=>x.classList.toggle("active",x===b));renderTimeline()});
 $$("[data-filter]").forEach(b=>b.onclick=()=>{currentFilter=b.dataset.filter;$$("[data-filter]").forEach(x=>x.classList.toggle("active",x===b));renderTimeline()});
@@ -3712,7 +3858,7 @@ $("#imageFile").onchange=async()=>{
 };
 $("#clearImageForm").onclick=clearImageForm;
 $("#registerImage").onclick=registerImage;
-$("#quickNewProjectFromIntake").onclick=async()=>{saveImageDraft();returnToIntakeAfterProject=true;await prepareProjectForm(null);go("projectForm")};
+$("#quickNewProjectFromIntake").onclick=async()=>{saveImageDraft();returnToIntakeAfterProject=true;projectFormOrigin=rememberOrigin();await prepareProjectForm(null);go("projectForm")};
 $("#copyCharacterPrompt").onclick=()=>copyPromptText(CHARACTER_IMAGE_PROMPT,"PROMPT 1:1");
 $("#copyBannerPrompt").onclick=()=>copyPromptText(BANNER_IMAGE_PROMPT,"PROMPT 16:9");
 
@@ -3739,7 +3885,9 @@ $("#projectHorizontal").onchange=async()=>{
   $("#horizontalUploadText").classList.add("hidden");
   try{
     await putMedia(DRAFT_HORIZONTAL_MEDIA,f);
-    const derived=await deriveThemeColorsFromMedia(DRAFT_HORIZONTAL_MEDIA);
+    const tmpThemeURL=URL.createObjectURL(f);
+    const derived=await deriveThemeColorsFromURL(tmpThemeURL);
+    URL.revokeObjectURL(tmpThemeURL);
     if(derived?.length){$("#projectColorCount").value=String(Math.min(3,derived.length));$("#projectColor1").value=derived[0]||$("#projectColor1").value;$("#projectColor2").value=derived[1]||derived[0]||$("#projectColor2").value;$("#projectColor3").value=derived[2]||derived[1]||derived[0]||$("#projectColor3").value;syncProjectPaletteFields()}
     const d=projectDraftFromForm();d.hasHorizontalMedia=true;saveDraft(PROJECT_DRAFT_KEY,d);toast("BORRADOR HORIZONTAL GUARDADO");
   }catch(e){toast("NO SE PUDO GUARDAR LA IMAGEN HORIZONTAL")}
@@ -3820,6 +3968,13 @@ function createNewCharacter(){
 }
 $("#newCharacterBtn").onclick=openNewCharacterModal;$("#cancelNewCharacter").onclick=closeNewCharacterModal;$("#saveNewCharacter").onclick=createNewCharacter;$("#characterModal").onclick=e=>{if(e.target===$("#characterModal"))closeNewCharacterModal()};
 
+const peopleSearchCache=new Map();
+function peopleSearchKey(c){
+  const cached=peopleSearchCache.get(c.id);
+  if(cached)return cached;
+  const value=norm([c.real,c.alias,...(c.aliases||[])].join(" "));
+  peopleSearchCache.set(c.id,value);return value;
+}
 function peopleTeams(){
   const map=new Map();
   (DATA.characters||[]).forEach(c=>(c.aff||[]).forEach(a=>{
@@ -3827,20 +3982,25 @@ function peopleTeams(){
   }));
   return [...map.values()].sort((a,b)=>a.localeCompare(b,"es"));
 }
+let peopleTeamFilterSignature="";
 function refreshPeopleTeamFilter(){
   const el=$("#peopleTeamFilter");if(!el)return;
-  const current=el.value||"ALL";
-  const teams=peopleTeams();
+  const current=el.value||"ALL",teams=peopleTeams(),signature=teams.join("|");
+  if(signature===peopleTeamFilterSignature&&el.options.length)return;
+  peopleTeamFilterSignature=signature;
   el.innerHTML=`<option value="ALL">TODOS LOS EQUIPOS</option>`+teams.map(x=>`<option value="${escapeHTMLAttr(x)}">${x}</option>`).join("");
   if([...el.options].some(o=>o.value===current))el.value=current;
 }
 function renderPeopleAlphabet(){
   const root=$("#peopleAlphabet");if(!root)return;
-  const letters=["ALL",..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
-  root.innerHTML=letters.map(x=>`<button type="button" data-people-letter="${x}" class="${peopleLetter===x?"active":""}">${x==="ALL"?"★":x}</button>`).join("");
-  root.querySelectorAll("[data-people-letter]").forEach(b=>b.onclick=()=>{
-    peopleLetter=b.dataset.peopleLetter;renderLibraryResults();
-  });
+  if(!root.children.length){
+    const letters=["ALL",..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
+    root.innerHTML=letters.map(x=>`<button type="button" data-people-letter="${x}">${x==="ALL"?"★":x}</button>`).join("");
+    root.querySelectorAll("[data-people-letter]").forEach(b=>b.onclick=()=>{
+      peopleLetter=b.dataset.peopleLetter;renderLibraryResults();
+    });
+  }
+  root.querySelectorAll("[data-people-letter]").forEach(b=>b.classList.toggle("active",b.dataset.peopleLetter===peopleLetter));
 }
 function peoplePhotoStats(){
   const total=(DATA.characters||[]).length,done=(DATA.characters||[]).filter(c=>!!c.masterMediaKey).length;
@@ -3857,7 +4017,7 @@ function filteredPeople(){
   const team=$("#peopleTeamFilter")?.value||"ALL";
   const sort=$("#peopleSort")?.value||"AZ";
   let arr=[...(DATA.characters||[])];
-  if(q)arr=arr.filter(c=>norm([c.real,c.alias,...(c.aliases||[])].join(" ")).includes(q));
+  if(q)arr=arr.filter(c=>peopleSearchKey(c).includes(q));
   if(photo==="WITH")arr=arr.filter(c=>!!c.masterMediaKey);
   if(photo==="WITHOUT")arr=arr.filter(c=>!c.masterMediaKey);
   if(status!=="ALL")arr=arr.filter(c=>c.status===status);
@@ -3882,17 +4042,14 @@ function toggleGeneralCharacterSelection(id,forceOn=false){
   if(forceOn)selectedGeneralCharacters.add(id);
   else if(selectedGeneralCharacters.has(id))selectedGeneralCharacters.delete(id);
   else selectedGeneralCharacters.add(id);
-  updatePeopleSelectionBar();renderLibraryResults();
+  const card=document.querySelector(`[data-person-card="${CSS.escape(id)}"]`);
+  if(card)card.classList.toggle("selected",selectedGeneralCharacters.has(id));
+  updatePeopleSelectionBar();
 }
-async function hydratePeopleCards(){
-  const nodes=$$("#libraryResults [data-person-media]");
-  await Promise.all(nodes.map(async el=>{
-    const key=el.dataset.personMedia;if(!key)return;
-    const url=await getMediaURL(key);
-    if(url){
-      el.innerHTML=`<img src="${url}" alt="">`;
-    }
-  }));
+function hydratePeopleCards(){
+  $$("#libraryResults [data-person-media]").forEach(el=>{
+    const key=el.dataset.personMedia;if(key)scheduleLazyMedia(el,key,"person");
+  });
 }
 function renderLibraryResults(){
   const root=$("#libraryResults");if(!root)return;
@@ -3904,6 +4061,7 @@ function renderLibraryResults(){
 
   const arr=filteredPeople();
   let lastLetter="";
+  if(lazyMediaObserver)root.querySelectorAll("[data-lazy-media-key]").forEach(el=>lazyMediaObserver.unobserve(el));
   root.innerHTML=arr.map(c=>{
     const letter=(norm(c.real).charAt(0)||"#").toUpperCase();
     const header=peopleLetter==="ALL"&&letter!==lastLetter?`<div class="people-letter" id="letter-${letter}">${letter}</div>`:"";
@@ -3933,7 +4091,7 @@ function renderLibraryResults(){
     card.addEventListener("click",e=>{
       if(held){held=false;return}
       if(selectedGeneralCharacters.size){toggleGeneralCharacterSelection(id);return}
-      currentCharacter=id;renderCharacter();go("character");
+      openCharacter(id);
     });
   });
   hydratePeopleCards();
@@ -3969,13 +4127,19 @@ function openBulkTeamModal(mode){
       }
       c.source="USER";
     });
+    const keepY=window.scrollY||document.documentElement.scrollTop||0;
     saveData();rebuildLibraryCatalog();selectedGeneralCharacters.clear();
     restoreAddModal();$("#addModal").classList.remove("show");renderLibraryResults();
+    requestAnimationFrame(()=>window.scrollTo({top:keepY,left:0,behavior:"auto"}));
     toast(mode==="add"?"EQUIPO ACTUALIZADO":"PERSONAJES RETIRADOS DEL EQUIPO");
   };
 }
 
-$("#librarySearch").addEventListener("input",renderLibraryResults);
+let peopleSearchRenderTimer=null;
+$("#librarySearch").addEventListener("input",()=>{
+  clearTimeout(peopleSearchRenderTimer);
+  peopleSearchRenderTimer=setTimeout(renderLibraryResults,110);
+});
 $("#peoplePhotoFilter").addEventListener("change",renderLibraryResults);
 $("#peopleStatusFilter").addEventListener("change",renderLibraryResults);
 $("#peopleTeamFilter").addEventListener("change",renderLibraryResults);
