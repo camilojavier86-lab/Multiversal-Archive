@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.4.0</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.5.1</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -540,6 +540,62 @@ body.character-layer-open{overflow:hidden;touch-action:none}
 .identity-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
 .identity-chip{font-size:9px;color:var(--silver);border:1px solid #343a45;border-radius:999px;padding:6px 8px;background:#15181e}
 .library-results{display:grid;gap:7px;margin-top:12px}
+
+.people-summary{
+  margin:10px 0 12px;padding:11px 12px;border:1px solid var(--line);border-radius:14px;
+  background:#101318
+}
+.people-summary-top{display:flex;justify-content:space-between;gap:10px;align-items:end}
+.people-summary-top strong{font-size:20px;color:var(--white)}
+.people-summary-top span{font-size:9px;color:var(--silver);line-height:1.35}
+.people-toolbar{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}
+.people-toolbar select,.people-toolbar input{
+  width:100%;min-height:39px;border:1px solid var(--line);border-radius:10px;background:#13161b;color:var(--white);padding:7px 8px;
+  font-size:10px
+}
+.people-alpha{
+  display:flex;gap:4px;overflow-x:auto;padding:7px 0 3px;scrollbar-width:none
+}
+.people-alpha::-webkit-scrollbar{display:none}
+.people-alpha button{
+  flex:0 0 31px;height:31px;border:1px solid #303640;border-radius:8px;background:#111419;color:var(--silver);
+  font-size:10px;padding:0
+}
+.people-alpha button.active{background:#252a32;color:var(--white);border-color:#59616d}
+.people-selection{
+  position:sticky;top:58px;z-index:34;display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  margin:8px 0;padding:8px;border:1px solid #49505b;border-radius:12px;background:#0b0d11ed;backdrop-filter:blur(10px)
+}
+.people-selection strong{font-size:10px;margin-right:auto}
+.people-selection .btn{min-height:35px;padding:0 9px;font-size:9px}
+.people-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:7px;margin-top:10px}
+.people-letter{grid-column:1/-1;font-size:12px;letter-spacing:1.3px;color:var(--silver);margin:9px 0 1px;padding-bottom:5px;border-bottom:1px solid #252a31}
+.person-card{
+  min-width:0;border:1px solid #242a32;border-radius:12px;background:#101318;padding:5px;color:var(--white);
+  text-align:center;position:relative;user-select:none;-webkit-user-select:none;touch-action:manipulation
+}
+.person-card.selected{border-color:#e4e8ef;box-shadow:inset 0 0 0 1px #e4e8ef}
+.person-photo{
+  width:100%;aspect-ratio:1/1;border-radius:9px;overflow:hidden;background:#0b0d11;display:grid;place-items:center
+}
+.person-photo img{width:100%;height:100%;object-fit:contain;display:block;background:transparent}
+.person-photo.dead img{filter:grayscale(1)}
+.person-photo.missing img{filter:sepia(1) saturate(.72) contrast(1.02)}
+.person-photo.unknown img{filter:sepia(.92) saturate(.55) opacity(.88)}
+.person-photo .no-photo{font-size:9px;color:#7f8792;line-height:1.25;padding:7px}
+.person-card strong{display:block;font-size:9px;line-height:1.15;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.person-card .person-alias{display:block;font-size:8px;color:var(--silver);line-height:1.15;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.person-card .person-earth{display:block;font-size:7px;color:#8f98a5;line-height:1.15;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.person-card .selected-mark{
+  position:absolute;right:7px;top:7px;width:22px;height:22px;border-radius:50%;display:none;place-items:center;
+  background:#f1f3f6;color:#0b0d11;font-size:12px;font-weight:bold
+}
+.person-card.selected .selected-mark{display:grid}
+.team-modal-list{display:grid;gap:7px;margin:8px 0 10px}
+@media(max-width:420px){
+  .people-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .people-toolbar{grid-template-columns:1fr 1fr}
+}
 .library-card{
   border:1px solid var(--line);border-radius:14px;background:#111318;padding:11px;color:var(--white);text-align:left
 }
@@ -687,6 +743,7 @@ body.character-layer-open{overflow:hidden;touch-action:none}
     <button class="pill" data-filter="MOVIE">PELÍCULAS</button>
     <button class="pill" data-filter="SERIES">SERIES</button>
     <button class="pill" data-filter="SPECIAL">ESPECIALES</button>
+    <button class="pill" data-filter="ONESHOT">ONE-SHOT</button>
   </div>
   <div class="timeline" id="timeline"></div>
 </section>
@@ -747,17 +804,53 @@ body.character-layer-open{overflow:hidden;touch-action:none}
   <button class="btn back" data-go="home">← VOLVER</button>
   <div class="production-head">
     <div>
-      <h2>ÁRBOL / BIBLIOTECA</h2>
-      <p>BUSCA POR NOMBRE, ALIAS O AGRUPACIÓN.</p>
+      <h2>PERSONAJES</h2>
+      <p>VISTA GENERAL DEL ÁLBUM · TODAS LAS TIERRAS.</p>
     </div>
   </div>
+
+  <div class="people-summary">
+    <div class="people-summary-top">
+      <span>PROGRESO DE FIGURAS</span>
+      <strong id="peoplePhotoProgress">0 / 0</strong>
+    </div>
+    <div class="progress-track"><span class="progress-fill" id="peoplePhotoProgressFill"></span></div>
+    <span id="peoplePhotoProgressText">0 FOTOS CARGADAS · 0 PENDIENTES</span>
+  </div>
+
   <div class="form-card">
     <div class="field">
-      <label>BUSCAR EN MARVEL</label>
-      <input id="librarySearch" type="search" placeholder="EJ. WINTER SOLDIER, BUCKY, VENGADORES">
+      <label>BUSCAR PERSONAJE</label>
+      <input id="librarySearch" type="search" placeholder="NOMBRE O ALIAS">
     </div>
-    <div class="library-status" id="libraryStatus">CARGANDO BIBLIOTECA...</div>
-    <div class="library-results" id="libraryResults"></div>
+    <div class="people-toolbar">
+      <select id="peoplePhotoFilter">
+        <option value="ALL">TODOS</option>
+        <option value="WITH">CON FOTO</option>
+        <option value="WITHOUT">SIN FOTO</option>
+      </select>
+      <select id="peopleStatusFilter">
+        <option value="ALL">TODOS LOS ESTADOS</option>
+        <option value="VIVO">VIVOS</option>
+        <option value="MUERTO">MUERTOS</option>
+        <option value="DESAPARECIDO">DESAPARECIDOS</option>
+        <option value="DESCONOCIDO">DESCONOCIDOS</option>
+      </select>
+      <select id="peopleTeamFilter"><option value="ALL">TODOS LOS EQUIPOS</option></select>
+      <select id="peopleSort">
+        <option value="AZ">A-Z</option>
+        <option value="MISSING">FOTOS PENDIENTES PRIMERO</option>
+      </select>
+    </div>
+    <div class="people-alpha" id="peopleAlphabet"></div>
+    <div class="people-selection hidden" id="peopleSelectionBar">
+      <strong id="peopleSelectionCount">0 SELECCIONADOS</strong>
+      <button class="btn" id="peopleAddTeam" type="button">＋ EQUIPO</button>
+      <button class="btn" id="peopleRemoveTeam" type="button">− EQUIPO</button>
+      <button class="btn" id="peopleCancelSelection" type="button">CANCELAR</button>
+    </div>
+    <div class="library-status hidden" id="libraryStatus"></div>
+    <div class="people-grid" id="libraryResults"></div>
   </div>
 </section>
 
@@ -881,7 +974,7 @@ body.character-layer-open{overflow:hidden;touch-action:none}
 
     <div class="form-grid">
       <div class="field"><label>TIERRA</label><select id="projectEarth"></select></div>
-      <div class="field"><label>TIPO</label><select id="projectType"><option value="MOVIE">PELÍCULA</option><option value="SERIES">SERIE / TEMPORADA</option><option value="SPECIAL">ESPECIAL / ONE-SHOT</option></select></div>
+      <div class="field"><label>TIPO</label><select id="projectType"><option value="MOVIE">PELÍCULA</option><option value="SERIES">SERIE / TEMPORADA</option><option value="SPECIAL">ESPECIAL</option><option value="ONESHOT">ONE-SHOT</option></select></div>
       <div class="field"><label>TÍTULO EN ESPAÑOL LATINOAMÉRICA</label><input id="projectTitle" placeholder="TÍTULO OFICIAL"></div>
       <div class="field"><label>SAGA / SERIE</label><input id="projectSaga" placeholder="EJ. CAPITÁN AMÉRICA"></div>
       <div class="field"><label>TEMPORADA</label><input id="projectSeason" type="number" min="1" placeholder="NO APLICA"></div>
@@ -908,7 +1001,7 @@ body.character-layer-open{overflow:hidden;touch-action:none}
 <nav class="bottom-nav">
   <button class="nav-btn active" data-nav="home"><span class="nav-icon">◉</span>UNIVERSOS</button>
   <button class="nav-btn" data-nav="earth"><span class="nav-icon">▣</span>ÁLBUM</button>
-  <button class="nav-btn" data-nav="library"><span class="nav-icon">⌘</span>ÁRBOL</button>
+  <button class="nav-btn" data-nav="library"><span class="nav-icon">◫</span>PERSONAJES</button>
   <button class="nav-btn" data-nav="intake"><span class="nav-icon">＋</span>INGRESAR</button>
 </nav>
 
@@ -1520,7 +1613,11 @@ DATA.characters=(DATA.characters||[]).map(c=>{
   c.powers=Array.isArray(c.powers)?c.powers:[];c.skills=Array.isArray(c.skills)?c.skills:[];c.equipment=Array.isArray(c.equipment)?c.equipment:[];
   c.aff=(c.aff||[]).map(translateGroup);c.relations=[];c.source=c.source||"BASE";return c;
 });
-(DATA.productions||[]).forEach(p=>{p.source=p.source||"BASE";p.customFactions=Array.isArray(p.customFactions)?p.customFactions:[];p.factionColors=p.factionColors||{}});
+const ONE_SHOT_IDS=new Set(["oneshot_agentcarter","oneshot_funny","oneshot_consultant","oneshot_item47","oneshot_allhail"]);
+(DATA.productions||[]).forEach(p=>{
+  p.source=p.source||"BASE";p.customFactions=Array.isArray(p.customFactions)?p.customFactions:[];p.factionColors=p.factionColors||{};
+  if(ONE_SHOT_IDS.has(p.id))p.type="ONESHOT";
+});
 DATA.projectCast = DATA.projectCast || {};
 Object.values(DATA.projectCast).forEach(cast=>{cast.heroes=cast.heroes||[];cast.villains=cast.villains||[];cast.anti=cast.anti||[];cast.allies=cast.allies||[];cast.cameos=cast.cameos||[]});
 DATA.appearances=DATA.appearances||{};
@@ -1727,6 +1824,11 @@ let historyReady=false;
 let characterParentScrollY=0;
 let characterParentScreen="production";
 let restoringCharacterParent=false;
+const earthTimelineScroll=new Map();
+let restoringEarthTimeline=false;
+function earthTimelineScrollKey(){
+  return `${currentEarth||""}|${currentSort||"chronology"}|${currentFilter||"ALL"}`;
+}
 
 function renderScreen(id){
   const wasCharacter=document.body.classList.contains("character-layer-open");
@@ -1750,6 +1852,10 @@ function renderScreen(id){
   }else if(restoringCharacterParent && actual===characterParentScreen){
     restoringCharacterParent=false;
     requestAnimationFrame(()=>window.scrollTo({top:characterParentScrollY,left:0,behavior:"auto"}));
+  }else if(restoringEarthTimeline && actual==="earth"){
+    restoringEarthTimeline=false;
+    const y=earthTimelineScroll.get(earthTimelineScrollKey())||0;
+    requestAnimationFrame(()=>window.scrollTo({top:y,left:0,behavior:"auto"}));
   }else{
     window.scrollTo({top:0,left:0,behavior:"auto"});
   }
@@ -1972,6 +2078,7 @@ function projectTouchesEarth(p,id){
 function projectTypeLabel(p){
   if(p.type==="MOVIE")return "PELÍCULA";
   if(p.type==="SPECIAL")return "ESPECIAL";
+  if(p.type==="ONESHOT")return "ONE-SHOT";
   return "SERIE / TEMPORADA";
 }
 function projectStatusText(p){
@@ -1981,7 +2088,7 @@ function projectStatusText(p){
 }
 function universeCount(id){return DATA.productions.filter(p=>projectTouchesEarth(p,id)).length}
 function renderEarths(){
-  const visible=DATA.universes.filter(u=>universeCount(u.id)>0||u.source==="USER");
+  const visible=DATA.universes.filter(u=>universeCount(u.id)>0);
   $("#earthList").innerHTML=visible.map(u=>`
     <button class="earth-card" data-earth="${u.id}">
       <span class="earth-dot"></span>
@@ -2023,6 +2130,9 @@ function renderTimeline(){
   $$("#timeline [data-cover]").forEach(el=>{if(el.dataset.cover)setMediaBackground(el,el.dataset.cover)});
 }
 async function openProduction(id){
+  if(document.querySelector(".screen.active")?.id==="earth"){
+    earthTimelineScroll.set(earthTimelineScrollKey(),window.scrollY||document.documentElement.scrollTop||0);
+  }
   currentProduction=id;
   const p=DATA.productions.find(x=>x.id===id);
   await cinematicOpen(p,()=>{renderProduction();go("production")},false);
@@ -2457,6 +2567,7 @@ function showProjectFaction(pid,label){
 
 
 function identityKeyForCharacter(c){
+  // Variantes de Tierras distintas NUNCA se fusionan.
   return `${c?.earth||""}|${norm(c?.real||"")}`;
 }
 function uniqueTranslatedList(values){
@@ -3408,7 +3519,7 @@ async function saveProject(){
     season:Number($("#projectSeason").value)||undefined,
     year:Number($("#projectYear").value)||undefined,
     order:Number($("#projectOrder").value)||nextOrder(earth),
-    notes:$("#projectNotes").value.trim(),source:"USER",
+    notes:$("#projectNotes").value.trim(),source:p.source||"USER",
     themeColors:[$("#projectColor1").value,$("#projectColor2").value,$("#projectColor3").value].slice(0,Number($("#projectColorCount").value)||2),
     customFactions:parseFactionNames($("#projectFactions").value),factionColors:parseFactionColors($("#projectFactionColors").value),
     coverCrop:normalizedCrop(coverCropState)
@@ -3520,6 +3631,9 @@ try{
   }
 }catch(e){}
 
+let peopleLetter="ALL";
+let selectedGeneralCharacters=new Set();
+
 seedAllProjectRosters();applyCharacterDetailSeeds();ensureIdentityGraph();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();renderLibraryResults();
 setTimeout(()=>loadMarvelLibrary().then(()=>renderLibraryResults()),350);
 prepareImageForm();
@@ -3527,8 +3641,10 @@ history.replaceState({screen:"home",earth:currentEarth,production:currentProduct
 historyReady=true;
 window.addEventListener("popstate",async e=>{
   const st=e.state||{screen:"home"};
+  const activeBefore=document.querySelector(".screen.active")?.id||"home";
   const leavingCharacter=document.body.classList.contains("character-layer-open")&&st.screen!=="character";
   if(leavingCharacter)restoringCharacterParent=true;
+  if(activeBefore==="production"&&st.screen==="earth")restoringEarthTimeline=true;
   if(st.earth)currentEarth=st.earth;
   if(st.production)currentProduction=st.production;
   if(st.character)currentCharacter=st.character;
@@ -3704,27 +3820,169 @@ function createNewCharacter(){
 }
 $("#newCharacterBtn").onclick=openNewCharacterModal;$("#cancelNewCharacter").onclick=closeNewCharacterModal;$("#saveNewCharacter").onclick=createNewCharacter;$("#characterModal").onclick=e=>{if(e.target===$("#characterModal"))closeNewCharacterModal()};
 
-function renderLibraryResults(){
-  const q=$("#librarySearch")?.value||"";
-  const root=$("#libraryResults");if(!root)return;
-  const results=q.trim()?searchLibrary(q,30):DATA.characters.slice(0,24).map(c=>({
-    key:"L:"+norm(c.real),canonical:c.real,aliases:c.aliases||[c.alias],nature:c.nature||"POR DEFINIR",
-    aff:(c.aff||[]).map(translateGroup),status:c.status||"DESCONOCIDO",source:"ÁLBUM",existingId:c.id
+function peopleTeams(){
+  const map=new Map();
+  (DATA.characters||[]).forEach(c=>(c.aff||[]).forEach(a=>{
+    const clean=translateGroup(String(a||"").trim());if(clean&&!map.has(norm(clean)))map.set(norm(clean),clean);
   }));
-  root.innerHTML=results.map(e=>`
-    <button class="library-card" data-library-key="${e.key}">
-      <strong>${e.canonical}</strong>
-      <span>${(e.aliases&&e.aliases.length?e.aliases.join(" / "):"SIN ALIAS")} · ${e.nature||"POR DEFINIR"}</span>
-      <span>${(e.aff||[]).join(" · ")||"SIN AGRUPACIÓN REGISTRADA"}</span>
-    </button>`).join("")||`<div class="relation">SIN COINCIDENCIAS.</div>`;
-  root.querySelectorAll("[data-library-key]").forEach(btn=>btn.onclick=()=>{
-    const e=libraryCatalog.find(x=>x.key===btn.dataset.libraryKey) || results.find(x=>x.key===btn.dataset.libraryKey);
-    if(!e)return;
-    if(e.existingId){currentCharacter=e.existingId;renderCharacter();go("character")}
-    else{prepareImageForm().then(()=>{selectLibraryEntry(e);go("intake")})}
+  return [...map.values()].sort((a,b)=>a.localeCompare(b,"es"));
+}
+function refreshPeopleTeamFilter(){
+  const el=$("#peopleTeamFilter");if(!el)return;
+  const current=el.value||"ALL";
+  const teams=peopleTeams();
+  el.innerHTML=`<option value="ALL">TODOS LOS EQUIPOS</option>`+teams.map(x=>`<option value="${escapeHTMLAttr(x)}">${x}</option>`).join("");
+  if([...el.options].some(o=>o.value===current))el.value=current;
+}
+function renderPeopleAlphabet(){
+  const root=$("#peopleAlphabet");if(!root)return;
+  const letters=["ALL",..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
+  root.innerHTML=letters.map(x=>`<button type="button" data-people-letter="${x}" class="${peopleLetter===x?"active":""}">${x==="ALL"?"★":x}</button>`).join("");
+  root.querySelectorAll("[data-people-letter]").forEach(b=>b.onclick=()=>{
+    peopleLetter=b.dataset.peopleLetter;renderLibraryResults();
   });
 }
+function peoplePhotoStats(){
+  const total=(DATA.characters||[]).length,done=(DATA.characters||[]).filter(c=>!!c.masterMediaKey).length;
+  return {done,total,missing:Math.max(0,total-done),percent:total?Math.round(done*100/total):0};
+}
+function personStatusVisual(c){
+  const st=statusClass(c.status);
+  return st==="alive"?"alive":st==="dead"?"dead":st==="missing"?"missing":"unknown";
+}
+function filteredPeople(){
+  const q=norm($("#librarySearch")?.value||"");
+  const photo=$("#peoplePhotoFilter")?.value||"ALL";
+  const status=$("#peopleStatusFilter")?.value||"ALL";
+  const team=$("#peopleTeamFilter")?.value||"ALL";
+  const sort=$("#peopleSort")?.value||"AZ";
+  let arr=[...(DATA.characters||[])];
+  if(q)arr=arr.filter(c=>norm([c.real,c.alias,...(c.aliases||[])].join(" ")).includes(q));
+  if(photo==="WITH")arr=arr.filter(c=>!!c.masterMediaKey);
+  if(photo==="WITHOUT")arr=arr.filter(c=>!c.masterMediaKey);
+  if(status!=="ALL")arr=arr.filter(c=>c.status===status);
+  if(team!=="ALL")arr=arr.filter(c=>(c.aff||[]).some(a=>norm(translateGroup(a))===norm(team)));
+  if(peopleLetter!=="ALL")arr=arr.filter(c=>(norm(c.real).charAt(0)||"#").toUpperCase()===peopleLetter);
+  arr.sort((a,b)=>{
+    if(sort==="MISSING"){
+      const pa=a.masterMediaKey?1:0,pb=b.masterMediaKey?1:0;
+      if(pa!==pb)return pa-pb;
+    }
+    return a.real.localeCompare(b.real,"es") || String(fastUniverse(a.earth)?.name||a.earth).localeCompare(String(fastUniverse(b.earth)?.name||b.earth),"es");
+  });
+  return arr;
+}
+function updatePeopleSelectionBar(){
+  const bar=$("#peopleSelectionBar"),count=$("#peopleSelectionCount");
+  if(!bar||!count)return;
+  const n=selectedGeneralCharacters.size;
+  bar.classList.toggle("hidden",n===0);count.textContent=`${n} SELECCIONADO${n===1?"":"S"}`;
+}
+function toggleGeneralCharacterSelection(id,forceOn=false){
+  if(forceOn)selectedGeneralCharacters.add(id);
+  else if(selectedGeneralCharacters.has(id))selectedGeneralCharacters.delete(id);
+  else selectedGeneralCharacters.add(id);
+  updatePeopleSelectionBar();renderLibraryResults();
+}
+async function hydratePeopleCards(){
+  const nodes=$$("#libraryResults [data-person-media]");
+  await Promise.all(nodes.map(async el=>{
+    const key=el.dataset.personMedia;if(!key)return;
+    const url=await getMediaURL(key);
+    if(url){
+      el.innerHTML=`<img src="${url}" alt="">`;
+    }
+  }));
+}
+function renderLibraryResults(){
+  const root=$("#libraryResults");if(!root)return;
+  const stats=peoplePhotoStats();
+  $("#peoplePhotoProgress").textContent=`${stats.done} / ${stats.total}`;
+  $("#peoplePhotoProgressFill").style.width=`${stats.percent}%`;
+  $("#peoplePhotoProgressText").textContent=`${stats.done} FOTOS CARGADAS · ${stats.missing} PENDIENTES · ${stats.percent}%`;
+  refreshPeopleTeamFilter();renderPeopleAlphabet();
+
+  const arr=filteredPeople();
+  let lastLetter="";
+  root.innerHTML=arr.map(c=>{
+    const letter=(norm(c.real).charAt(0)||"#").toUpperCase();
+    const header=peopleLetter==="ALL"&&letter!==lastLetter?`<div class="people-letter" id="letter-${letter}">${letter}</div>`:"";
+    lastLetter=letter;
+    const earth=fastUniverse(c.earth)?.name||c.earth||"TIERRA POR DEFINIR";
+    const selected=selectedGeneralCharacters.has(c.id);
+    return `${header}<button class="person-card ${selected?"selected":""}" type="button" data-person-card="${c.id}">
+      <span class="selected-mark">✓</span>
+      <span class="person-photo ${personStatusVisual(c)}" data-person-media="${c.masterMediaKey||""}">
+        ${c.masterMediaKey?"":`<span class="no-photo">FOTO<br>PENDIENTE</span>`}
+      </span>
+      <strong>${c.real}</strong>
+      <span class="person-alias">${c.alias||"SIN ALIAS"}</span>
+      <span class="person-earth">${earth}</span>
+    </button>`;
+  }).join("")||`<div class="relation" style="grid-column:1/-1">SIN PERSONAJES EN ESTE FILTRO.</div>`;
+
+  root.querySelectorAll("[data-person-card]").forEach(card=>{
+    const id=card.dataset.personCard;
+    let holdTimer=null,held=false;
+    card.addEventListener("contextmenu",e=>e.preventDefault());
+    card.addEventListener("pointerdown",e=>{
+      held=false;
+      holdTimer=setTimeout(()=>{held=true;toggleGeneralCharacterSelection(id,true)},520);
+    });
+    ["pointerup","pointercancel","pointerleave"].forEach(ev=>card.addEventListener(ev,()=>{if(holdTimer)clearTimeout(holdTimer)}));
+    card.addEventListener("click",e=>{
+      if(held){held=false;return}
+      if(selectedGeneralCharacters.size){toggleGeneralCharacterSelection(id);return}
+      currentCharacter=id;renderCharacter();go("character");
+    });
+  });
+  hydratePeopleCards();
+  updatePeopleSelectionBar();
+}
+function openBulkTeamModal(mode){
+  if(!selectedGeneralCharacters.size)return;
+  const teams=peopleTeams();
+  $("#addModal .modal-card").innerHTML=`
+    <h2>${mode==="add"?"AGREGAR A EQUIPO":"QUITAR DE EQUIPO"}</h2>
+    <p>${selectedGeneralCharacters.size} PERSONAJES SELECCIONADOS · LAS TIERRAS NO LIMITAN LAS AFILIACIONES.</p>
+    <div class="form-grid">
+      <div class="field full"><label>EQUIPO EXISTENTE</label><select id="bulkTeamExisting">
+        <option value="">SELECCIONAR</option>${teams.map(x=>`<option value="${escapeHTMLAttr(x)}">${x}</option>`).join("")}
+      </select></div>
+      ${mode==="add"?`<div class="field full"><label>O CREAR EQUIPO NUEVO</label><input id="bulkTeamNew" placeholder="NOMBRE DEL EQUIPO"></div>`:""}
+    </div>
+    <div class="action-row"><button class="btn" id="cancelBulkTeam">CANCELAR</button><button class="btn primary" id="applyBulkTeam">${mode==="add"?"AGREGAR":"QUITAR"}</button></div>`;
+  $("#addModal").classList.add("show");
+  $("#cancelBulkTeam").onclick=()=>{restoreAddModal();$("#addModal").classList.remove("show")};
+  $("#applyBulkTeam").onclick=()=>{
+    const existing=$("#bulkTeamExisting").value.trim();
+    const created=mode==="add"?($("#bulkTeamNew")?.value||"").trim().toUpperCase():"";
+    const team=created||existing;
+    if(!team){toast("SELECCIONA O ESCRIBE UN EQUIPO");return}
+    selectedGeneralCharacters.forEach(id=>{
+      const c=fastCharacter(id);if(!c)return;
+      c.aff=uniqueTranslatedList(c.aff||[]);
+      if(mode==="add"){
+        if(!(c.aff||[]).some(a=>norm(a)===norm(team)))c.aff.push(translateGroup(team));
+      }else{
+        c.aff=(c.aff||[]).filter(a=>norm(a)!==norm(team));
+      }
+      c.source="USER";
+    });
+    saveData();rebuildLibraryCatalog();selectedGeneralCharacters.clear();
+    restoreAddModal();$("#addModal").classList.remove("show");renderLibraryResults();
+    toast(mode==="add"?"EQUIPO ACTUALIZADO":"PERSONAJES RETIRADOS DEL EQUIPO");
+  };
+}
+
 $("#librarySearch").addEventListener("input",renderLibraryResults);
+$("#peoplePhotoFilter").addEventListener("change",renderLibraryResults);
+$("#peopleStatusFilter").addEventListener("change",renderLibraryResults);
+$("#peopleTeamFilter").addEventListener("change",renderLibraryResults);
+$("#peopleSort").addEventListener("change",renderLibraryResults);
+$("#peopleAddTeam").onclick=()=>openBulkTeamModal("add");
+$("#peopleRemoveTeam").onclick=()=>openBulkTeamModal("remove");
+$("#peopleCancelSelection").onclick=()=>{selectedGeneralCharacters.clear();renderLibraryResults()};
 
 $("#profilePhoto").onclick=()=>{
   if(!currentFullImageURL){toast("NO HAY IMAGEN REGISTRADA");return}
