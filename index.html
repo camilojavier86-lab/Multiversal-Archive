@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.5.10 FINAL</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.5.11 FINAL</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -1274,6 +1274,15 @@ function upsertCatalogProject(seed){
   }
   return p;
 }
+function mergeAppearanceRecord(primary,secondary,newId,pid){
+  const out={...(secondary||{}),...(primary||{}),characterId:newId,projectId:pid};
+  Object.entries(secondary||{}).forEach(([key,value])=>{
+    const current=out[key];
+    const empty=current===undefined||current===null||current===""||(Array.isArray(current)&&!current.length);
+    if(empty&&value!==undefined&&value!==null&&value!=="")out[key]=value;
+  });
+  return out;
+}
 function replaceCharacterIdEverywhere(oldId,newId){
   Object.values(DATA.projectCast||{}).forEach(cast=>{
     ["heroes","villains","anti","allies","cameos"].forEach(k=>{
@@ -1285,7 +1294,7 @@ function replaceCharacterIdEverywhere(oldId,newId){
     const obj=DATA[bucket]||{};
     Object.keys(obj).filter(key=>key.startsWith(oldId+"|")).forEach(key=>{
       const pid=key.slice(oldId.length+1),nk=`${newId}|${pid}`;
-      if(!obj[nk])obj[nk]={...obj[key],characterId:newId};
+      obj[nk]=mergeAppearanceRecord(obj[nk],obj[key],newId,pid);
       delete obj[key];
     });
   });
@@ -2511,6 +2520,37 @@ const PROJECT_FACTIONS={
 PROJECT_FACTIONS.cw.groups[0].colors=["#245ea8"];
 PROJECT_FACTIONS.cw.groups[1].colors=["#c32632"];
 PROJECT_FACTIONS.cw.groups[2].colors=["#d9dde5"];
+function canonicalProjectFactionForCharacter(pid,c){
+  const base=PROJECT_FACTIONS?.[pid];if(!base||!c)return "";
+  const group=(base.groups||[]).find(g=>(g.names||[]).some(name=>norm(name)===norm(c.real)));
+  return group?.key||"";
+}
+function normalizeCharacterProjectLinks(c){
+  if(!c)return;
+  const roles=["heroes","villains","anti","allies","cameos"],projectIds=new Set(c.projects||[]);
+  Object.entries(DATA.projectCast||{}).forEach(([pid,cast])=>{if(roles.some(role=>(cast?.[role]||[]).includes(c.id)))projectIds.add(pid)});
+  Object.keys(DATA.appearances||{}).forEach(key=>{if(key.startsWith(c.id+"|"))projectIds.add(key.slice(c.id.length+1))});
+  projectIds.forEach(pid=>{
+    const cast=DATA.projectCast?.[pid];if(!cast)return;
+    roles.forEach(role=>cast[role]=Array.isArray(cast[role])?cast[role]:[]);
+    const key=`${c.id}|${pid}`,app=DATA.appearances?.[key]||DATA.images?.[key]||null;
+    const presentRoles=roles.filter(role=>cast[role].includes(c.id));
+    if(!presentRoles.length&&!app)return;
+    const role=roles.includes(app?.role)?app.role:(presentRoles[0]||"allies");
+    roles.forEach(r=>cast[r]=cast[r].filter(id=>id!==c.id));
+    cast[role].push(c.id);
+    const p=DATA.productions.find(x=>x.id===pid),canonicalFaction=canonicalProjectFactionForCharacter(pid,c);
+    ["appearances","images"].forEach(bucket=>{
+      const obj=DATA[bucket]||{};if(!obj[key])return;
+      obj[key].characterId=c.id;obj[key].projectId=pid;obj[key].characterEarth=c.earth;obj[key].role=role;
+      if(p)obj[key].earth=p.earth;if(canonicalFaction)obj[key].faction=canonicalFaction;
+    });
+  });
+  c.projects=[...projectIds];
+}
+function repairCanonicalProjectAssignments(){
+  (DATA.characters||[]).forEach(c=>normalizeCharacterProjectLinks(c));
+}
 function projectAllCastIds(pid){
   const cast=DATA.projectCast[pid]||{};
   return [...new Set([...(cast.heroes||[]),...(cast.villains||[]),...(cast.anti||[]),...(cast.allies||[]),...(cast.cameos||[])])];
@@ -2838,31 +2878,44 @@ function mergeDuplicateCharactersGlobal(){
     if(!groups.has(key))groups.set(key,[]);
     groups.get(key).push(c);
   });
+  let merged=0;
   groups.forEach(group=>{
     if(group.length<2)return;
-    const score=c=>(c.masterMediaKey?10000:0)+((c.projects||[]).length*100)+((c.aff||[]).length*10)+(String(c.id||"").startsWith("seed-")?0:20);
+    const score=c=>(c.masterMediaKey?10000:0)+((c.projects||[]).length*100)+((c.aff||[]).length*10)+((c.powers||[]).length+(c.skills||[]).length+(c.equipment||[]).length)*4+(String(c.id||"").startsWith("seed-")?0:20);
     group.sort((a,b)=>score(b)-score(a));
     const target=group[0];
     group.slice(1).forEach(old=>{
       if(!target.masterMediaKey&&old.masterMediaKey)target.masterMediaKey=old.masterMediaKey;
+      if(!target.logoMediaKey&&old.logoMediaKey)target.logoMediaKey=old.logoMediaKey;
+      if(!target.alias&&old.alias)target.alias=old.alias;
       target.aliases=[...new Set([...(target.aliases||[target.alias]),...(old.aliases||[old.alias])].filter(Boolean))];
       target.aff=uniqueTranslatedList([...(target.aff||[]),...(old.aff||[])]);
       target.projects=[...new Set([...(target.projects||[]),...(old.projects||[])])];
       target.outfits=[...new Set([...(target.outfits||[]),...(old.outfits||[])])];
+      target.relations=[...new Set([...(target.relations||[]),...(old.relations||[])])];
+      ["powers","skills","equipment"].forEach(key=>target[key]=[...new Set([...(target[key]||[]),...(old[key]||[])])]);
       if((!target.nature||target.nature==="POR DEFINIR")&&old.nature)target.nature=old.nature;
       if((!target.status||target.status==="DESCONOCIDO")&&old.status)target.status=old.status;
+      if(!target.species&&old.species)target.species=old.species;
+      if(!target.origin&&old.origin)target.origin=old.origin;
+      if(!target.firstAppearanceProjectId&&old.firstAppearanceProjectId)target.firstAppearanceProjectId=old.firstAppearanceProjectId;
+      if(!target.firstAppearanceText&&old.firstAppearanceText)target.firstAppearanceText=old.firstAppearanceText;
+      if(old.source==="USER")target.source="USER";
       replaceCharacterIdEverywhere(old.id,target.id);
       (DATA.relationships||[]).forEach(r=>{
         if(r.a===old.id)r.a=target.id;
         if(r.b===old.id)r.b=target.id;
       });
       DATA.characters=DATA.characters.filter(c=>c.id!==old.id);
+      merged++;
     });
+    normalizeCharacterProjectLinks(target);
   });
   Object.values(DATA.projectCast||{}).forEach(cast=>{
     ["heroes","villains","anti","allies","cameos"].forEach(k=>cast[k]=[...new Set(cast[k]||[])]);
   });
   dedupeRelationshipEdges();
+  return merged;
 }
 function addRelationshipEdge(a,b,type,aLabel,bLabel,source="USER"){
   if(!a||!b||a===b)return false;
@@ -2949,15 +3002,14 @@ function seedKnownRelationships(){
   dedupeRelationshipEdges();
 }
 function ensureIdentityGraph(){
-  if((DATA.identityGraphVersion||0)>=3){
-    DATA.relationships=Array.isArray(DATA.relationships)?DATA.relationships:[];
-    return;
-  }
+  const version=Number(DATA.identityGraphVersion)||0;
   DATA.relationships=Array.isArray(DATA.relationships)?DATA.relationships:[];
+  if(version>=4)return;
   DATA.characters=(DATA.characters||[]).map(c=>({...c,aff:uniqueTranslatedList(c.aff||[])}));
   mergeDuplicateCharactersGlobal();
+  repairCanonicalProjectAssignments();
   seedKnownRelationships();
-  DATA.identityGraphVersion=3;
+  DATA.identityGraphVersion=4;
   saveData();
 }
 function sharedTeamLabel(a,b){
@@ -3229,23 +3281,25 @@ function updateQuickAppearanceContext(){
   const config=p?getProjectFactionConfig(p.id):null;
   if(factionField&&faction){
     if(config?.groups?.length){
-      const previous=appearanceFor(c?.id,p?.id)?.faction||"";
-      faction.innerHTML=`<option value="">SIN FACCIÓN / SECCIÓN</option>`+config.groups.map(g=>`<option value="${escapeHTMLAttr(g.key)}" ${g.key===previous?"selected":""}>${g.label}</option>`).join("");
+      const canonical=canonicalProjectFactionForCharacter(p.id,c),previous=appearanceFor(c?.id,p?.id)?.faction||"",selected=canonical||previous;
+      faction.innerHTML=`<option value="">SIN FACCIÓN / SECCIÓN</option>`+config.groups.map(g=>`<option value="${escapeHTMLAttr(g.key)}" ${g.key===selected?"selected":""}>${g.label}</option>`).join("");
+      faction.disabled=!!canonical;
+      faction.title=canonical?"FACCIÓN DEFINIDA POR EL CATÁLOGO DE ESTE PROYECTO":"";
       factionField.classList.remove("hidden");
-    }else{faction.innerHTML="";factionField.classList.add("hidden")}
+    }else{faction.innerHTML="";faction.disabled=false;faction.title="";factionField.classList.add("hidden")}
   }
   const projectSummary=$("#quickProjectSummary");if(projectSummary&&p)projectSummary.textContent=`${fastUniverse(p.earth)?.name||p.earth} · ${p.title}`;
 }
 function closeQuickAppearanceModal(){quickAppearanceCharacterId=null;quickAppearanceProjectId=null;restoreAddModal();$("#addModal").classList.remove("show")}
 function linkCharacterToProject(charId,pid,role,faction=""){
   const c=DATA.characters.find(x=>x.id===charId),p=DATA.productions.find(x=>x.id===pid);if(!c||!p)return false;
-  const validRole=ROLE_LABELS[role]?role:"allies";
+  const validRole=ROLE_LABELS[role]?role:"allies",canonicalFaction=canonicalProjectFactionForCharacter(pid,c);
   DATA.projectCast[pid]=DATA.projectCast[pid]||{heroes:[],villains:[],anti:[],allies:[],cameos:[]};
   ["heroes","villains","anti","allies","cameos"].forEach(k=>{DATA.projectCast[pid][k]=(DATA.projectCast[pid][k]||[]).filter(id=>id!==charId)});
   DATA.projectCast[pid][validRole].push(charId);
   c.projects=[...new Set([...(c.projects||[]),pid])];
   const key=`${charId}|${pid}`,previous=appearanceFor(charId,pid)||{};
-  const appearance={...previous,characterId:charId,projectId:pid,earth:p.earth,characterEarth:c.earth,role:validRole,alias:previous.alias||c.alias,status:previous.status||c.status,nature:previous.nature||c.nature,faction:faction||previous.faction||""};
+  const appearance={...previous,characterId:charId,projectId:pid,earth:p.earth,characterEarth:c.earth,role:validRole,alias:previous.alias||c.alias,status:previous.status||c.status,nature:previous.nature||c.nature,faction:canonicalFaction||faction||previous.faction||""};
   DATA.appearances=DATA.appearances||{};DATA.images=DATA.images||{};
   DATA.appearances[key]=appearance;
   DATA.images[key]={...(DATA.images[key]||{}),...appearance};
@@ -3253,7 +3307,7 @@ function linkCharacterToProject(charId,pid,role,faction=""){
 }
 function saveQuickAppearance(){
   const c=currentQuickCharacter(),p=currentQuickProject();if(!c||!p){toast("FALTA PERSONAJE O PROYECTO");return}
-  const role=$("#quickAppearanceRole")?.value||quickAppearanceDefaultRole(c,p),faction=$("#quickAppearanceFaction")?.value||"";
+  const role=$("#quickAppearanceRole")?.value||quickAppearanceDefaultRole(c,p),faction=canonicalProjectFactionForCharacter(p.id,c)||$("#quickAppearanceFaction")?.value||"";
   if(!linkCharacterToProject(c.id,p.id,role,faction)){toast("NO SE PUDO VINCULAR");return}
   saveData();rebuildLibraryCatalog();
   const active=activeScreenId();
@@ -3589,6 +3643,7 @@ function syncAppearanceContext(){
   const pid=$("#imageProduction").value;
   const roleEl=$("#imageRole");
   configureProjectClassification(pid);
+  if($("#imageSection")){$("#imageSection").disabled=false;$("#imageSection").title=""}
   if(!charId||!pid){roleEl.disabled=false;return}
   const app=appearanceFor(charId,pid);
   const role=app?.role||existingCastRole(pid,charId);
@@ -3601,7 +3656,12 @@ function syncAppearanceContext(){
     roleEl.title="";
   }
   if(app){
-    if(app.faction&&$("#imageSection option").length)$("#imageSection").value=app.faction;
+    const canonicalFaction=canonicalProjectFactionForCharacter(pid,fastCharacter(charId));
+    if($("#imageSection option").length){
+      $("#imageSection").value=canonicalFaction||app.faction||"";
+      $("#imageSection").disabled=!!canonicalFaction;
+      $("#imageSection").title=canonicalFaction?"FACCIÓN DEFINIDA POR EL CATÁLOGO DE ESTE PROYECTO":"";
+    }
     if(app.alias){
       const opts=[...$("#imageAlias").options].map(o=>o.value);
       if(!opts.includes(app.alias)){
@@ -3767,7 +3827,7 @@ async function registerImage(){
   const previous=appearanceFor(charId,pid);
   const existingRole=previous?.role||existingCastRole(pid,charId);
   const customLayout=getProjectFactionConfig(pid);
-  const faction=customLayout?$("#imageSection").value:"";
+  const faction=canonicalProjectFactionForCharacter(pid,c)||(customLayout?$("#imageSection").value:"");
   const chosenRole=$("#imageRole").value;
   const role=existingRole||chosenRole||"allies";
   if(!role){toast("SELECCIONA EL ROL DEL PERSONAJE EN ESTE PROYECTO");return}
