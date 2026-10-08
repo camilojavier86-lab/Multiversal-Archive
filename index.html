@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.5.15 PREVIEW</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.5.16 FINAL</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -582,11 +582,21 @@ body.character-layer-open{overflow:hidden;touch-action:none}
 .person-copy{min-width:0;display:grid;align-content:center;gap:4px}
 .person-card strong{display:block;font-size:13px;line-height:1.1;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .person-card .person-alias{display:block;font-size:10px;color:var(--silver);line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.person-affiliations{display:flex;align-items:center;gap:6px;min-height:28px;margin-top:4px;flex-wrap:nowrap;overflow:hidden}
+.person-affiliations{display:flex;align-items:center;gap:6px;min-height:28px;margin-top:4px;flex-wrap:wrap;overflow:visible}
 .affiliation-mini{width:25px;height:25px;display:grid;place-items:center;flex:0 0 25px;overflow:visible;background:transparent;border:0;padding:0}
 .affiliation-mini img{width:100%;height:100%;object-fit:contain;display:block;background:transparent;filter:drop-shadow(0 2px 4px #0008)}
 .affiliation-mini.fallback{font-size:8px;font-weight:bold;color:#cfd5de;border:1px solid #3d444f;border-radius:50%;background:#15181e}
-.affiliation-more{font-size:9px;color:#aeb5c0;white-space:nowrap}
+.affiliation-relation{display:inline-flex!important;align-items:center;gap:9px;text-align:left}
+.affiliation-inline-icon{width:28px;height:28px;display:grid;place-items:center;flex:0 0 28px;background:transparent;overflow:visible}
+.affiliation-inline-icon img{width:100%;height:100%;object-fit:contain;display:block;background:transparent;filter:drop-shadow(0 2px 4px #0008)}
+.affiliation-gallery-head{display:flex;align-items:center;gap:12px;margin-bottom:4px;min-width:0}
+.affiliation-gallery-logo{width:56px;height:56px;display:grid;place-items:center;flex:0 0 56px;background:transparent;overflow:visible}
+.affiliation-gallery-logo img{width:100%;height:100%;object-fit:contain;display:block;background:transparent;filter:drop-shadow(0 4px 8px #0009)}
+.affiliation-gallery-copy{min-width:0}.affiliation-gallery-copy h2{margin:0}.affiliation-gallery-copy p{margin:6px 0 0}
+.identity-chip.affiliation-chip{display:inline-flex;align-items:center;gap:5px}
+.identity-chip .affiliation-chip-logo{width:16px;height:16px;display:grid;place-items:center;background:transparent;overflow:visible}
+.identity-chip .affiliation-chip-logo img{width:100%;height:100%;object-fit:contain;display:block;background:transparent}
+.affiliation-manager-actions{flex-wrap:wrap;justify-content:flex-end}
 .person-card .selected-mark{position:absolute;right:8px;top:8px;width:22px;height:22px;border-radius:50%;display:none;place-items:center;background:#f1f3f6;color:#0b0d11;font-size:12px;font-weight:bold;z-index:2}
 .person-card.selected .selected-mark{display:grid}
 .team-modal-list{display:grid;gap:7px;margin:8px 0 10px}
@@ -1224,12 +1234,15 @@ const GROUP_CANONICAL_ALIASES={
   "RAVAGERS":"DEVASTADORES","DEVASTADORES":"DEVASTADORES","ILLUMINATI":"ILLUMINATI","DORA MILAJE":"DORA MILAJE",
   "TVA":"TVA","KREE":"KREE","BLACK ORDER":"ORDEN NEGRA","ORDEN NEGRA":"ORDEN NEGRA"
 };
+const CUSTOM_GROUP_ALIASES={};
 function groupAliasKey(value){return norm(value).replace(/[^A-Z0-9]+/g," ").trim()}
 function translateGroup(name){
   const raw=String(name||"").trim();if(!raw)return "";
+  const aliasKey=groupAliasKey(raw);
+  if(CUSTOM_GROUP_ALIASES[aliasKey])return CUSTOM_GROUP_ALIASES[aliasKey];
   const direct=GROUP_TRANSLATIONS[raw.toUpperCase()];
   if(direct)return direct;
-  return GROUP_CANONICAL_ALIASES[groupAliasKey(raw)]||raw.toUpperCase();
+  return GROUP_CANONICAL_ALIASES[aliasKey]||raw.toUpperCase();
 }
 function norm(v){
   return (v||"").toString().normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().trim();
@@ -1687,6 +1700,9 @@ const peopleSearchCache=new Map();
 const STORAGE_KEY="multiversalArchiveDataV03";
 let DATA = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null") || structuredClone(DEFAULT_DATA);
 DATA.affiliationLogos=DATA.affiliationLogos||{};
+DATA.affiliationAliases=DATA.affiliationAliases||{};
+DATA.affiliationNames=DATA.affiliationNames||{};
+Object.entries(DATA.affiliationAliases).forEach(([k,v])=>{if(k&&v)CUSTOM_GROUP_ALIASES[k]=String(v).trim().toUpperCase()});
 DATA.mediaFallback = DATA.mediaFallback || {};
 (DATA.productions||[]).forEach(p=>{p.coverCrop=normalizedCrop(p.coverCrop)});
 DATA.characters=(DATA.characters||[]).map(c=>{
@@ -2811,8 +2827,9 @@ async function renderCharacter(){
 
   c.aff=uniqueTranslatedList(c.aff||[]);
   $("#affiliations").innerHTML=c.aff.length
-    ? c.aff.map(x=>`<button class="relation" data-aff="${x}">${x}</button>`).join("")
+    ? c.aff.map(x=>affiliationRelationHTML(x)).join("")
     : `<span class="relation">SIN AFILIACIONES REGISTRADAS</span>`;
+  await hydrateAffiliationIcons($("#affiliations"));
   $$("#affiliations [data-aff]").forEach(b=>b.onclick=()=>showAffiliation(b.dataset.aff));
 
   const relationTypes=relationshipTypesFor(c);
@@ -2848,16 +2865,20 @@ async function hydrateNodeGallery(root=document){
     if(url){img.src=url;img.classList.remove("hidden")}
   }));
 }
-async function showCharacterGallery(title,members,subtitle=""){
+async function showCharacterGallery(title,members,subtitle="",options={}){
   const unique=[...new Map((members||[]).filter(Boolean).map(c=>[c.id,c])).values()];
+  const affName=options.affiliation?translateGroup(options.affiliation):"";
+  const affKey=affName?affiliationLogoKey(affName):"";
+  const heading=affName
+    ? `<div class="affiliation-gallery-head">${affKey?`<span class="affiliation-gallery-logo" data-affiliation-media="${escapeHTMLAttr(affKey)}"></span>`:""}<span class="affiliation-gallery-copy"><h2>${affName}</h2><p>${subtitle||`${unique.length} PERSONAJES VINCULADOS`}</p></span></div>`
+    : `<h2>${title}</h2><p>${subtitle||`${unique.length} PERSONAJES VINCULADOS`}</p>`;
   $("#addModal .modal-card").innerHTML=`
-    <h2>${title}</h2>
-    <p>${subtitle||`${unique.length} PERSONAJES VINCULADOS`}</p>
+    ${heading}
     <div class="node-gallery">${unique.length?unique.map(c=>nodeCharacterCard(c)).join(""):`<div class="relation">SIN PERSONAJES VINCULADOS TODAVÍA.</div>`}</div>
     <div class="action-row"><button class="btn" id="closeNodeModal">CERRAR</button></div>`;
   $("#addModal").classList.add("show");
   const modal=$("#addModal .modal-card");
-  await hydrateNodeGallery(modal);
+  await Promise.all([hydrateNodeGallery(modal),hydrateAffiliationIcons(modal)]);
   $$("#addModal [data-node-character]").forEach(b=>b.onclick=()=>{
     const id=b.dataset.nodeCharacter;
     restoreAddModal();$("#addModal").classList.remove("show");openCharacter(id);
@@ -3162,7 +3183,7 @@ function showAffiliation(name){
       if(!previous || (!previous.masterMediaKey&&c.masterMediaKey))map.set(key,c);
     }
   });
-  showCharacterGallery(translateGroup(name),[...map.values()],"INTEGRANTES REGISTRADOS");
+  showCharacterGallery(translateGroup(name),[...map.values()],"INTEGRANTES REGISTRADOS",{affiliation:translateGroup(name)});
 }
 
 const RELATION_EDITOR_OPTIONS=[
@@ -3658,11 +3679,9 @@ function renderSelectedIdentity(entry){
   if(!entry){panel.classList.remove("show");return}
   $("#selectedAlias").textContent=entry.canonical;
   $("#selectedReal").textContent=(entry.aliases||[]).join(" / ")||"SIN ALIAS REGISTRADO";
-  const chips=[
-    entry.nature||"POR DEFINIR",
-    ...(entry.aff||[])
-  ];
-  $("#selectedIdentityChips").innerHTML=chips.map(x=>`<span class="identity-chip">${x}</span>`).join("");
+  const nature=entry.nature||"POR DEFINIR",aff=uniqueTranslatedList(entry.aff||[]);
+  $("#selectedIdentityChips").innerHTML=`<span class="identity-chip">${nature}</span>`+aff.map(x=>`<span class="identity-chip affiliation-chip">${affiliationIconHTML(x,"affiliation-chip-logo")}<span>${x}</span></span>`).join("");
+  hydrateAffiliationIcons($("#selectedIdentityChips"));
   panel.classList.add("show");
 }
 function productionOptionsHTML(selectedId="",includePending=true){
@@ -4436,24 +4455,42 @@ function peopleSearchKey(c){
   peopleSearchCache.set(c.id,value);return value;
 }
 function peopleTeams(){
-  const map=new Map();
-  (DATA.characters||[]).forEach(c=>(c.aff||[]).forEach(a=>{
-    const clean=translateGroup(String(a||"").trim());if(clean&&!map.has(norm(clean)))map.set(norm(clean),clean);
-  }));
-  Object.values(GROUP_TRANSLATIONS||{}).forEach(a=>{const clean=translateGroup(a);if(clean&&!map.has(norm(clean)))map.set(norm(clean),clean)});
+  const map=new Map(),add=value=>{
+    const clean=translateGroup(String(value||"").trim());if(clean&&!map.has(norm(clean)))map.set(norm(clean),clean);
+  };
+  (DATA.characters||[]).forEach(c=>(c.aff||[]).forEach(add));
+  Object.values(GROUP_TRANSLATIONS||{}).forEach(add);
+  Object.values(GROUP_CANONICAL_ALIASES||{}).forEach(add);
+  Object.values(DATA.affiliationNames||{}).forEach(add);
   return [...map.values()].sort((a,b)=>a.localeCompare(b,"es"));
 }
 function affiliationKey(name){return norm(translateGroup(name))}
 function affiliationLogoKey(name){return DATA.affiliationLogos?.[affiliationKey(name)]||""}
 function affiliationMembersCount(name){const key=affiliationKey(name);return (DATA.characters||[]).filter(c=>(c.aff||[]).some(a=>affiliationKey(a)===key)).length}
 function affiliationInitials(name){return String(translateGroup(name)||"").split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join("").toUpperCase()||"•"}
+function isBuiltInAffiliation(name){
+  const k=affiliationKey(name);
+  return Object.values(GROUP_TRANSLATIONS||{}).some(x=>affiliationKey(x)===k) || Object.values(GROUP_CANONICAL_ALIASES||{}).some(x=>affiliationKey(x)===k);
+}
+function rememberAffiliationName(name){
+  const canon=translateGroup(name),k=affiliationKey(canon);if(!canon||!k)return canon;
+  DATA.affiliationNames=DATA.affiliationNames||{};DATA.affiliationNames[k]=canon;return canon;
+}
+function affiliationIconHTML(name,cls="affiliation-inline-icon"){
+  const canon=translateGroup(name),key=affiliationLogoKey(canon);
+  return key?`<span class="${cls}" title="${escapeHTMLAttr(canon)}" data-affiliation-media="${escapeHTMLAttr(key)}"></span>`:"";
+}
+function affiliationRelationHTML(name){
+  const canon=translateGroup(name);
+  return `<button class="relation affiliation-relation" data-aff="${escapeHTMLAttr(canon)}">${affiliationIconHTML(canon)}<span>${canon}</span></button>`;
+}
 function affiliationIconsHTML(c){
-  const aff=uniqueTranslatedList(c.aff||[]),visible=aff.slice(0,3);
-  if(!visible.length)return `<span style="font-size:9px;color:#69717d">SIN AFILIACIONES</span>`;
-  return visible.map(name=>{
+  const aff=uniqueTranslatedList(c.aff||[]);
+  if(!aff.length)return `<span style="font-size:9px;color:#69717d">SIN AFILIACIONES</span>`;
+  return aff.map(name=>{
     const key=affiliationLogoKey(name);
     return key?`<span class="affiliation-mini" title="${escapeHTMLAttr(name)}" data-affiliation-media="${escapeHTMLAttr(key)}"></span>`:`<span class="affiliation-mini fallback" title="${escapeHTMLAttr(name)}">${affiliationInitials(name)}</span>`;
-  }).join("")+(aff.length>3?`<span class="affiliation-more">+${aff.length-3}</span>`:"");
+  }).join("");
 }
 async function hydrateAffiliationIcons(root=document){
   const nodes=[...root.querySelectorAll("[data-affiliation-media]")];
@@ -4465,21 +4502,66 @@ async function hydrateAffiliationIcons(root=document){
 async function setAffiliationLogo(name,file){
   if(!name||!file)return;
   if(file.type&&file.type!=="image/png"){toast("USA UN LOGO PNG");return}
-  const canon=translateGroup(name),k=affiliationKey(canon),old=DATA.affiliationLogos?.[k]||"",mediaKey=`affiliation-logo:${k.toLowerCase().replace(/[^a-z0-9]+/g,"-")}:${Date.now()}`;
-  try{await putMedia(mediaKey,file);DATA.affiliationLogos=DATA.affiliationLogos||{};DATA.affiliationLogos[k]=mediaKey;saveData();if(old&&old!==mediaKey)await deleteMediaKey(old);toast("LOGO GUARDADO");openAffiliationManager()}catch(e){toast("NO SE PUDO GUARDAR EL LOGO")}
+  const canon=rememberAffiliationName(name),k=affiliationKey(canon),old=DATA.affiliationLogos?.[k]||"",mediaKey=`affiliation-logo:${k.toLowerCase().replace(/[^a-z0-9]+/g,"-")}:${Date.now()}`;
+  try{
+    await putMedia(mediaKey,file);
+    DATA.affiliationLogos=DATA.affiliationLogos||{};DATA.affiliationLogos[k]=mediaKey;saveData();
+    if(old&&old!==mediaKey)await deleteMediaKey(old);
+    toast("LOGO GUARDADO");openAffiliationManager();
+  }catch(e){toast("NO SE PUDO GUARDAR EL LOGO")}
 }
 async function removeAffiliationLogo(name){
   const k=affiliationKey(name),old=DATA.affiliationLogos?.[k];if(!old)return;
   delete DATA.affiliationLogos[k];saveData();await deleteMediaKey(old);toast("LOGO ELIMINADO");openAffiliationManager();
 }
+async function renameOrMergeAffiliation(oldName){
+  const oldCanon=translateGroup(oldName),oldKey=affiliationKey(oldCanon);
+  const typed=prompt(`NOMBRE CORRECTO PARA "${oldCanon}"`,oldCanon);
+  if(typed===null)return;
+  const raw=String(typed||"").trim().toUpperCase();
+  if(!raw){toast("EL NOMBRE NO PUEDE QUEDAR VACÍO");return}
+  const targetExisting=peopleTeams().find(x=>affiliationKey(x)===affiliationKey(raw) && affiliationKey(x)!==oldKey);
+  const newCanon=targetExisting||raw,newKey=norm(newCanon);
+  if(newKey===oldKey && newCanon===oldCanon)return;
+  const affected=(DATA.characters||[]).filter(c=>(c.aff||[]).some(a=>affiliationKey(a)===oldKey)).length;
+  const action=targetExisting?"FUSIONAR":"RENOMBRAR";
+  if(!confirm(`${action} "${oldCanon}" ${targetExisting?`CON "${newCanon}"`:`COMO "${newCanon}"`}?${affected?`\n\nSE ACTUALIZARÁN ${affected} PERSONAJE${affected===1?"":"S"}.`:""}`))return;
+  (DATA.characters||[]).forEach(c=>{
+    if(!(c.aff||[]).some(a=>affiliationKey(a)===oldKey))return;
+    c.aff=uniqueTranslatedList((c.aff||[]).map(a=>affiliationKey(a)===oldKey?newCanon:a));
+  });
+  DATA.affiliationAliases=DATA.affiliationAliases||{};
+  const alias=groupAliasKey(oldCanon);DATA.affiliationAliases[alias]=newCanon;CUSTOM_GROUP_ALIASES[alias]=newCanon;
+  DATA.affiliationNames=DATA.affiliationNames||{};DATA.affiliationNames[newKey]=newCanon;delete DATA.affiliationNames[oldKey];
+  const oldLogo=DATA.affiliationLogos?.[oldKey]||"",targetLogo=DATA.affiliationLogos?.[newKey]||"";
+  if(oldLogo&&!targetLogo)DATA.affiliationLogos[newKey]=oldLogo;
+  if(oldLogo)delete DATA.affiliationLogos[oldKey];
+  saveData();rebuildLibraryCatalog();peopleTeamFilterSignature="";
+  if(oldLogo&&targetLogo&&oldLogo!==targetLogo)await deleteMediaKey(oldLogo).catch(()=>{});
+  toast(targetExisting?"AFILIACIONES FUSIONADAS":"AFILIACIÓN RENOMBRADA");openAffiliationManager();
+}
+async function deleteAffiliationRecord(name){
+  const canon=translateGroup(name),k=affiliationKey(canon),count=affiliationMembersCount(canon);
+  if(count){alert(`NO SE PUEDE ELIMINAR "${canon}" PORQUE TODAVÍA TIENE ${count} PERSONAJE${count===1?"":"S"} ASOCIADO${count===1?"":"S"}. USA RENOMBRAR / FUSIONAR.`);return}
+  if(!confirm(`ELIMINAR "${canon}" DEL CATÁLOGO DE AFILIACIONES?`))return;
+  const logo=DATA.affiliationLogos?.[k]||"";
+  delete DATA.affiliationLogos?.[k];delete DATA.affiliationNames?.[k];
+  Object.keys(DATA.affiliationAliases||{}).forEach(alias=>{if(norm(DATA.affiliationAliases[alias])===k){delete DATA.affiliationAliases[alias];delete CUSTOM_GROUP_ALIASES[alias]}});
+  saveData();peopleTeamFilterSignature="";
+  if(logo)await deleteMediaKey(logo).catch(()=>{});
+  toast("AFILIACIÓN ELIMINADA");openAffiliationManager();
+}
 function openAffiliationManager(){
   const teams=peopleTeams();
+  teams.forEach(rememberAffiliationName);
   $("#addModal").classList.add("team-modal");
-  $("#addModal .modal-card").innerHTML=`<h2>AFILIACIONES</h2><p>CARGA UNA SOLA VEZ EL LOGO PNG 1:1 DE CADA AFILIACIÓN. SE REUTILIZA AUTOMÁTICAMENTE EN PERSONAJES.</p><div class="affiliation-manager-list">${teams.map(name=>{const key=affiliationLogoKey(name),count=affiliationMembersCount(name);return `<div class="affiliation-manager-row"><div class="affiliation-manager-logo" ${key?`data-affiliation-manager-media="${escapeHTMLAttr(key)}"`:""}>${key?"":`<span class="placeholder">SIN<br>LOGO</span>`}</div><div class="affiliation-manager-copy"><strong>${name}</strong><span>${count} PERSONAJE${count===1?"":"S"}</span></div><div class="affiliation-manager-actions"><button class="btn" type="button" data-aff-upload="${escapeHTMLAttr(name)}">${key?"CAMBIAR":"CARGAR"}</button>${key?`<button class="btn" type="button" data-aff-remove="${escapeHTMLAttr(name)}">✕</button>`:""}</div></div>`}).join("")}</div><div class="action-row"><button class="btn" id="closeAffiliationManager" type="button">CERRAR</button></div>`;
+  $("#addModal .modal-card").innerHTML=`<h2>AFILIACIONES</h2><p>ADMINISTRA EL NOMBRE CANÓNICO Y CARGA UNA SOLA VEZ EL LOGO PNG 1:1. EL MISMO EMBLEMA SE REUTILIZA EN TODA LA APP.</p><div class="affiliation-manager-list">${teams.map(name=>{const key=affiliationLogoKey(name),count=affiliationMembersCount(name);return `<div class="affiliation-manager-row"><div class="affiliation-manager-logo" ${key?`data-affiliation-manager-media="${escapeHTMLAttr(key)}"`:""}>${key?"":`<span class="placeholder">SIN<br>LOGO</span>`}</div><div class="affiliation-manager-copy"><strong>${name}</strong><span>${count} PERSONAJE${count===1?"":"S"}</span></div><div class="affiliation-manager-actions"><button class="btn" type="button" data-aff-upload="${escapeHTMLAttr(name)}">${key?"CAMBIAR":"CARGAR"}</button><button class="btn" type="button" data-aff-rename="${escapeHTMLAttr(name)}">RENOMBRAR / FUSIONAR</button>${count===0&&!isBuiltInAffiliation(name)?`<button class="btn" type="button" data-aff-delete="${escapeHTMLAttr(name)}">ELIMINAR</button>`:""}${key?`<button class="btn" type="button" data-aff-remove="${escapeHTMLAttr(name)}">QUITAR LOGO</button>`:""}</div></div>`}).join("")}</div><div class="action-row"><button class="btn" id="closeAffiliationManager" type="button">CERRAR</button></div>`;
   $("#addModal").classList.add("show");
   $("#closeAffiliationManager").onclick=()=>{restoreAddModal();$("#addModal").classList.remove("show")};
   $$("#addModal [data-aff-upload]").forEach(b=>b.onclick=()=>{const input=document.createElement("input");input.type="file";input.accept="image/png";input.onchange=()=>{const f=input.files?.[0];if(f)setAffiliationLogo(b.dataset.affUpload,f)};input.click()});
   $$("#addModal [data-aff-remove]").forEach(b=>b.onclick=()=>removeAffiliationLogo(b.dataset.affRemove));
+  $$("#addModal [data-aff-rename]").forEach(b=>b.onclick=()=>renameOrMergeAffiliation(b.dataset.affRename));
+  $$("#addModal [data-aff-delete]").forEach(b=>b.onclick=()=>deleteAffiliationRecord(b.dataset.affDelete));
   $$("#addModal [data-affiliation-manager-media]").forEach(async el=>{const url=await getMediaURL(el.dataset.affiliationManagerMedia);if(url)el.innerHTML=`<img src="${url}" alt="">`});
 }
 let peopleTeamFilterSignature="";
