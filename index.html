@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.5.12 FINAL</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.5.14 FINAL</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -43,6 +43,9 @@ button{cursor:pointer;color:inherit}
 .btn.primary{background:linear-gradient(#c92731,#7b1119);border-color:#d6414a}
 .pill{padding:0 13px;font-size:11px;letter-spacing:.8px;white-space:nowrap}
 .pill.active{background:#8e151d;border-color:#df4952}
+.local-preview-warning{display:none;margin:10px 14px 0;padding:10px 12px;border:1px solid #6f5924;border-radius:12px;background:#211b0f;color:#f2d98a;font-size:10px;line-height:1.45;letter-spacing:.45px}
+.local-preview-warning.show{display:block}
+.media-unavailable{display:grid!important;place-items:center;text-align:center;padding:10px;color:#aeb5c0;font-size:8px;line-height:1.3;background:#0d0f13}
 .screen{display:none;max-width:1100px;margin:auto;padding:16px 14px 104px}
 .screen.active{display:block}
 
@@ -696,6 +699,7 @@ body.character-layer-open{overflow:hidden;touch-action:none}
     <button class="icon-btn" id="addBtn" title="AGREGAR">＋</button>
   </div>
 </header>
+<div class="local-preview-warning" id="localPreviewWarning">MODO PRUEBA LOCAL · ESTE ARCHIVO ABIERTO DESDE DESCARGAS USA UN ALMACENAMIENTO SEPARADO DE LA PWA INSTALADA. LAS FOTOS O DATOS QUE FALTEN AQUÍ NO SIGNIFICAN QUE SE HAYAN BORRADO DE TU APP DE GITHUB. PARA VALIDAR TU COLECCIÓN REAL, ABRE LA PWA INSTALADA.</div>
 
 <main>
 
@@ -2184,7 +2188,18 @@ async function loadLazyMedia(el){
   const key=el.dataset.lazyMediaKey;if(!key)return;
   el.dataset.mediaLoaded="1";
   const url=await getMediaURL(key);
-  if(!url)return;
+  if(!url){
+    const kind=el.dataset.lazyMediaKind||"background";
+    if(kind==="img"){
+      el.classList.add("media-unavailable");
+      el.innerHTML=`<span>FOTO NO DISPONIBLE<br>EN ESTA COPIA</span>`;
+    }else if(kind==="person"){
+      el.classList.add("media-unavailable");
+      el.innerHTML=`<span>FOTO NO DISPONIBLE<br>EN ESTA COPIA</span>`;
+    }
+    return;
+  }
+  el.classList.remove("media-unavailable");
   const kind=el.dataset.lazyMediaKind||"background";
   if(kind==="img"){
     const img=el.querySelector("img");
@@ -2532,7 +2547,11 @@ PROJECT_FACTIONS.cw.groups[0].colors=["#245ea8"];
 PROJECT_FACTIONS.cw.groups[1].colors=["#c32632"];
 PROJECT_FACTIONS.cw.groups[2].colors=["#d9dde5"];
 function canonicalProjectFactionForCharacter(pid,c){
-  const base=PROJECT_FACTIONS?.[pid];if(!base||!c)return "";
+  const base=PROJECT_FACTIONS?.[pid],p=fastProject(pid);
+  if(!base||!c||!p)return "";
+  // Las facciones canónicas solo aplican a la variante nativa de la Tierra del proyecto.
+  // Una variante multiversal con el mismo nombre nunca hereda la facción de otra Tierra.
+  if(c.earth!==p.earth)return "";
   const group=(base.groups||[]).find(g=>(g.names||[]).some(name=>norm(name)===norm(c.real)));
   return group?.key||"";
 }
@@ -2594,7 +2613,7 @@ function projectDisplayGroups(p){
   if(custom){
     const all=projectAllCastIds(p.id),used=new Set();
     const groups=custom.groups.map(g=>{
-      const predefined=(g.names||[]).map(name=>DATA.characters.find(c=>norm(c.real)===norm(name)&&all.includes(c.id))?.id).filter(Boolean);
+      const predefined=(g.names||[]).map(name=>DATA.characters.find(c=>c.earth===p.earth&&norm(c.real)===norm(name)&&all.includes(c.id))?.id).filter(Boolean);
       const manual=all.filter(id=>appearanceFor(id,p.id)?.faction===g.key);
       const ids=[...new Set([...predefined,...manual])];ids.forEach(id=>used.add(id));return [g.label,ids,g.colors||[]];
     });
@@ -3452,9 +3471,7 @@ async function openCharacterPhotoMenu(charId,projectId){
   $("#closePhotoMenu").onclick=()=>{restoreAddModal();$("#addModal").classList.remove("show")};
   $("#replaceCharacterPhoto").onclick=()=>{
     restoreAddModal();$("#addModal").classList.remove("show");
-    const input=document.createElement("input");input.type="file";input.accept="image/*";
-    input.onchange=async()=>{const file=input.files?.[0];if(file)await replaceCharacterMasterPhoto(charId,file,projectId)};
-    input.click();
+    pickImageFromGallery(file=>replaceCharacterMasterPhoto(charId,file,projectId));
   };
   $("#deleteCharacterPhoto").onclick=async()=>{
     if(!confirm(`ELIMINAR LA FOTO DE ${c.real}? ESTA FOTO SE USA EN TODAS SUS APARICIONES.`))return;
@@ -3809,15 +3826,24 @@ function setKnownCharacterMode(entry,locked){
     $("#intakeIntro").textContent="INGRESO TIPO INVENTARIO. BUSCA EL PERSONAJE O ENTRA DIRECTAMENTE DESDE SU TARJETA.";
   }
 }
+function pickImageFromGallery(onFile){
+  const input=document.createElement("input");
+  input.type="file";
+  input.accept="image/png,image/webp,image/jpeg,image/*";
+  input.multiple=false;
+  input.style.position="fixed";input.style.left="-9999px";input.style.width="1px";input.style.height="1px";input.style.opacity="0";
+  const cleanup=()=>{try{input.remove()}catch(e){}};
+  input.onchange=async()=>{
+    const file=input.files?.[0]||null;
+    if(file)await onFile(file);
+    cleanup();
+  };
+  document.body.appendChild(input);
+  input.click();
+}
 function openMissingCharacterPhotoPicker(charId,projectId){
   const c=fastCharacter(charId);if(!c)return;
-  const input=document.createElement("input");
-  input.type="file";input.accept="image/*";input.capture="";
-  input.onchange=async()=>{
-    const file=input.files?.[0];if(!file)return;
-    await replaceCharacterMasterPhoto(charId,file,projectId);
-  };
-  input.click();
+  pickImageFromGallery(file=>replaceCharacterMasterPhoto(charId,file,projectId));
 }
 
 async function openKnownCharacterImageForm(charId,pid){
@@ -4158,6 +4184,11 @@ try{
     localStorage.setItem("multiversalPwaNoticeSeen","1");
     setTimeout(()=>{if(!deferredInstallPrompt)hidePwaStatus()},6000);
   }
+}catch(e){}
+
+try{
+  const localPreview=location.protocol==="content:"||location.protocol==="file:";
+  document.getElementById("localPreviewWarning")?.classList.toggle("show",localPreview);
 }catch(e){}
 
 let peopleLetter="ALL";
