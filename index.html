@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.5.14 FINAL</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.5.15 PREVIEW</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -563,37 +563,49 @@ body.character-layer-open{overflow:hidden;touch-action:none}
 }
 .people-selection strong{font-size:10px;margin-right:auto}
 .people-selection .btn{min-height:35px;padding:0 9px;font-size:9px}
-.people-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:7px;margin-top:10px}
+.people-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px;margin-top:10px}
 .people-letter{grid-column:1/-1;font-size:12px;letter-spacing:1.3px;color:var(--silver);margin:9px 0 1px;padding-bottom:5px;border-bottom:1px solid #252a31}
 .person-card{
-  min-width:0;border:1px solid #242a32;border-radius:12px;background:#101318;padding:5px;color:var(--white);
-  text-align:center;position:relative;user-select:none;-webkit-user-select:none;touch-action:manipulation
+  min-width:0;border:1px solid #242a32;border-radius:15px;background:#101318;padding:9px 10px;color:var(--white);
+  text-align:left;position:relative;user-select:none;-webkit-user-select:none;touch-action:manipulation;
+  display:grid;grid-template-columns:82px minmax(0,1fr);gap:12px;align-items:center;min-height:108px
 }
 .person-card.selected{border-color:#e4e8ef;box-shadow:inset 0 0 0 1px #e4e8ef}
-.person-photo{
-  width:100%;aspect-ratio:1/1;border-radius:9px;overflow:hidden;background:#0b0d11;display:grid;place-items:center
-}
-.person-photo img{width:100%;height:100%;object-fit:contain;display:block;background:transparent}
-.person-photo.dead img{filter:grayscale(1)}
-.person-photo.missing img{filter:sepia(1) saturate(.72) contrast(1.02)}
-.person-photo.unknown img{filter:sepia(.92) saturate(.55) opacity(.88)}
-.person-photo .no-photo{font-size:9px;color:#7f8792;line-height:1.25;padding:7px}
-.person-card strong{display:block;font-size:9px;line-height:1.15;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.person-card .person-alias{display:block;font-size:8px;color:var(--silver);line-height:1.15;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.person-card .person-earth{display:block;font-size:7px;color:#8f98a5;line-height:1.15;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.person-card .selected-mark{
-  position:absolute;right:7px;top:7px;width:22px;height:22px;border-radius:50%;display:none;place-items:center;
-  background:#f1f3f6;color:#0b0d11;font-size:12px;font-weight:bold
-}
+.person-visual{display:grid;grid-template-rows:78px auto;gap:5px;min-width:0;align-items:center}
+.person-photo{width:78px;height:78px;overflow:visible;background:transparent;display:grid;place-items:center}
+.person-photo img{width:100%;height:100%;object-fit:contain;display:block;background:transparent;filter:drop-shadow(0 8px 12px #0008)}
+.person-photo.dead img{filter:grayscale(1) drop-shadow(0 8px 12px #0008)}
+.person-photo.missing img{filter:sepia(1) saturate(.72) contrast(1.02) drop-shadow(0 8px 12px #0008)}
+.person-photo.unknown img{filter:sepia(.92) saturate(.55) opacity(.88) drop-shadow(0 8px 12px #0008)}
+.person-photo .no-photo{font-size:8px;color:#7f8792;line-height:1.2;text-align:center;padding:4px}
+.person-earth{display:block;font-size:8px;color:#99a2af;line-height:1.1;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.person-copy{min-width:0;display:grid;align-content:center;gap:4px}
+.person-card strong{display:block;font-size:13px;line-height:1.1;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.person-card .person-alias{display:block;font-size:10px;color:var(--silver);line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.person-affiliations{display:flex;align-items:center;gap:6px;min-height:28px;margin-top:4px;flex-wrap:nowrap;overflow:hidden}
+.affiliation-mini{width:25px;height:25px;display:grid;place-items:center;flex:0 0 25px;overflow:visible;background:transparent;border:0;padding:0}
+.affiliation-mini img{width:100%;height:100%;object-fit:contain;display:block;background:transparent;filter:drop-shadow(0 2px 4px #0008)}
+.affiliation-mini.fallback{font-size:8px;font-weight:bold;color:#cfd5de;border:1px solid #3d444f;border-radius:50%;background:#15181e}
+.affiliation-more{font-size:9px;color:#aeb5c0;white-space:nowrap}
+.person-card .selected-mark{position:absolute;right:8px;top:8px;width:22px;height:22px;border-radius:50%;display:none;place-items:center;background:#f1f3f6;color:#0b0d11;font-size:12px;font-weight:bold;z-index:2}
 .person-card.selected .selected-mark{display:grid}
 .team-modal-list{display:grid;gap:7px;margin:8px 0 10px}
+.affiliation-manager-list{display:grid;gap:8px;margin-top:10px}
+.affiliation-manager-row{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid #2c323b;border-radius:13px;padding:8px 9px;background:#101318}
+.affiliation-manager-logo{width:48px;height:48px;display:grid;place-items:center;background:transparent;overflow:visible}
+.affiliation-manager-logo img{width:100%;height:100%;object-fit:contain;display:block;background:transparent;filter:drop-shadow(0 3px 6px #0008)}
+.affiliation-manager-logo .placeholder{font-size:9px;color:#7f8792;text-align:center;line-height:1.15}
+.affiliation-manager-copy{min-width:0}.affiliation-manager-copy strong{display:block;font-size:11px;line-height:1.15}.affiliation-manager-copy span{display:block;font-size:9px;color:var(--silver);margin-top:3px}
+.affiliation-manager-actions{display:flex;gap:5px}.affiliation-manager-actions .btn{min-height:34px;padding:0 8px;font-size:8px}
 
 .title-card,.person-card{content-visibility:auto}
 .title-card{contain-intrinsic-size:92px}
-.person-card{contain-intrinsic-size:100px 145px}
+.person-card{contain-intrinsic-size:108px 300px}
 @media(max-width:420px){
-  .people-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .people-grid{grid-template-columns:1fr;gap:7px}
   .people-toolbar{grid-template-columns:1fr 1fr}
+  .person-card{grid-template-columns:76px minmax(0,1fr);min-height:102px;padding:8px 9px}
+  .person-visual{grid-template-rows:72px auto}.person-photo{width:72px;height:72px}
 }
 .library-card{
   border:1px solid var(--line);border-radius:14px;background:#111318;padding:11px;color:var(--white);text-align:left
@@ -850,6 +862,7 @@ body.character-layer-open{overflow:hidden;touch-action:none}
         <option value="MISSING">FOTOS PENDIENTES PRIMERO</option>
       </select>
     </div>
+    <div class="action-row"><button class="btn" id="manageAffiliationsBtn" type="button">AFILIACIONES · LOGOS</button></div>
     <div class="people-alpha" id="peopleAlphabet"></div>
     <div class="people-selection hidden" id="peopleSelectionBar">
       <strong id="peopleSelectionCount">0 SELECCIONADOS</strong>
@@ -1673,6 +1686,7 @@ const peopleSearchCache=new Map();
 
 const STORAGE_KEY="multiversalArchiveDataV03";
 let DATA = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null") || structuredClone(DEFAULT_DATA);
+DATA.affiliationLogos=DATA.affiliationLogos||{};
 DATA.mediaFallback = DATA.mediaFallback || {};
 (DATA.productions||[]).forEach(p=>{p.coverCrop=normalizedCrop(p.coverCrop)});
 DATA.characters=(DATA.characters||[]).map(c=>{
@@ -4426,7 +4440,47 @@ function peopleTeams(){
   (DATA.characters||[]).forEach(c=>(c.aff||[]).forEach(a=>{
     const clean=translateGroup(String(a||"").trim());if(clean&&!map.has(norm(clean)))map.set(norm(clean),clean);
   }));
+  Object.values(GROUP_TRANSLATIONS||{}).forEach(a=>{const clean=translateGroup(a);if(clean&&!map.has(norm(clean)))map.set(norm(clean),clean)});
   return [...map.values()].sort((a,b)=>a.localeCompare(b,"es"));
+}
+function affiliationKey(name){return norm(translateGroup(name))}
+function affiliationLogoKey(name){return DATA.affiliationLogos?.[affiliationKey(name)]||""}
+function affiliationMembersCount(name){const key=affiliationKey(name);return (DATA.characters||[]).filter(c=>(c.aff||[]).some(a=>affiliationKey(a)===key)).length}
+function affiliationInitials(name){return String(translateGroup(name)||"").split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join("").toUpperCase()||"•"}
+function affiliationIconsHTML(c){
+  const aff=uniqueTranslatedList(c.aff||[]),visible=aff.slice(0,3);
+  if(!visible.length)return `<span style="font-size:9px;color:#69717d">SIN AFILIACIONES</span>`;
+  return visible.map(name=>{
+    const key=affiliationLogoKey(name);
+    return key?`<span class="affiliation-mini" title="${escapeHTMLAttr(name)}" data-affiliation-media="${escapeHTMLAttr(key)}"></span>`:`<span class="affiliation-mini fallback" title="${escapeHTMLAttr(name)}">${affiliationInitials(name)}</span>`;
+  }).join("")+(aff.length>3?`<span class="affiliation-more">+${aff.length-3}</span>`:"");
+}
+async function hydrateAffiliationIcons(root=document){
+  const nodes=[...root.querySelectorAll("[data-affiliation-media]")];
+  await Promise.all(nodes.map(async el=>{
+    const key=el.dataset.affiliationMedia;if(!key)return;
+    const url=await getMediaURL(key);if(url)el.innerHTML=`<img src="${url}" alt="">`;
+  }));
+}
+async function setAffiliationLogo(name,file){
+  if(!name||!file)return;
+  if(file.type&&file.type!=="image/png"){toast("USA UN LOGO PNG");return}
+  const canon=translateGroup(name),k=affiliationKey(canon),old=DATA.affiliationLogos?.[k]||"",mediaKey=`affiliation-logo:${k.toLowerCase().replace(/[^a-z0-9]+/g,"-")}:${Date.now()}`;
+  try{await putMedia(mediaKey,file);DATA.affiliationLogos=DATA.affiliationLogos||{};DATA.affiliationLogos[k]=mediaKey;saveData();if(old&&old!==mediaKey)await deleteMediaKey(old);toast("LOGO GUARDADO");openAffiliationManager()}catch(e){toast("NO SE PUDO GUARDAR EL LOGO")}
+}
+async function removeAffiliationLogo(name){
+  const k=affiliationKey(name),old=DATA.affiliationLogos?.[k];if(!old)return;
+  delete DATA.affiliationLogos[k];saveData();await deleteMediaKey(old);toast("LOGO ELIMINADO");openAffiliationManager();
+}
+function openAffiliationManager(){
+  const teams=peopleTeams();
+  $("#addModal").classList.add("team-modal");
+  $("#addModal .modal-card").innerHTML=`<h2>AFILIACIONES</h2><p>CARGA UNA SOLA VEZ EL LOGO PNG 1:1 DE CADA AFILIACIÓN. SE REUTILIZA AUTOMÁTICAMENTE EN PERSONAJES.</p><div class="affiliation-manager-list">${teams.map(name=>{const key=affiliationLogoKey(name),count=affiliationMembersCount(name);return `<div class="affiliation-manager-row"><div class="affiliation-manager-logo" ${key?`data-affiliation-manager-media="${escapeHTMLAttr(key)}"`:""}>${key?"":`<span class="placeholder">SIN<br>LOGO</span>`}</div><div class="affiliation-manager-copy"><strong>${name}</strong><span>${count} PERSONAJE${count===1?"":"S"}</span></div><div class="affiliation-manager-actions"><button class="btn" type="button" data-aff-upload="${escapeHTMLAttr(name)}">${key?"CAMBIAR":"CARGAR"}</button>${key?`<button class="btn" type="button" data-aff-remove="${escapeHTMLAttr(name)}">✕</button>`:""}</div></div>`}).join("")}</div><div class="action-row"><button class="btn" id="closeAffiliationManager" type="button">CERRAR</button></div>`;
+  $("#addModal").classList.add("show");
+  $("#closeAffiliationManager").onclick=()=>{restoreAddModal();$("#addModal").classList.remove("show")};
+  $$("#addModal [data-aff-upload]").forEach(b=>b.onclick=()=>{const input=document.createElement("input");input.type="file";input.accept="image/png";input.onchange=()=>{const f=input.files?.[0];if(f)setAffiliationLogo(b.dataset.affUpload,f)};input.click()});
+  $$("#addModal [data-aff-remove]").forEach(b=>b.onclick=()=>removeAffiliationLogo(b.dataset.affRemove));
+  $$("#addModal [data-affiliation-manager-media]").forEach(async el=>{const url=await getMediaURL(el.dataset.affiliationManagerMedia);if(url)el.innerHTML=`<img src="${url}" alt="">`});
 }
 let peopleTeamFilterSignature="";
 function refreshPeopleTeamFilter(){
@@ -4514,15 +4568,18 @@ function renderLibraryResults(){
     lastLetter=letter;
     const earth=fastUniverse(c.earth)?.name||c.earth||"TIERRA POR DEFINIR";
     const selected=selectedGeneralCharacters.has(c.id);
-    return `${header}<button class="person-card ${selected?"selected":""}" type="button" data-person-card="${c.id}">
+    return `${header}<div class="person-card ${selected?"selected":""}" role="button" tabindex="0" data-person-card="${c.id}">
       <span class="selected-mark">✓</span>
-      <span class="person-photo ${personStatusVisual(c)}" data-person-media="${c.masterMediaKey||""}">
-        ${c.masterMediaKey?"":`<span class="no-photo">FOTO<br>PENDIENTE</span>`}
+      <span class="person-visual">
+        <span class="person-photo ${personStatusVisual(c)}" data-person-media="${c.masterMediaKey||""}">${c.masterMediaKey?"":`<span class="no-photo">FOTO<br>PENDIENTE</span>`}</span>
+        <span class="person-earth">${earth}</span>
       </span>
-      <strong>${c.real}</strong>
-      <span class="person-alias">${c.alias||"SIN ALIAS"}</span>
-      <span class="person-earth">${earth}</span>
-    </button>`;
+      <span class="person-copy">
+        <strong>${c.real}</strong>
+        <span class="person-alias">${c.alias||"SIN ALIAS"}</span>
+        <span class="person-affiliations">${affiliationIconsHTML(c)}</span>
+      </span>
+    </div>`;
   }).join("")||`<div class="relation" style="grid-column:1/-1">SIN PERSONAJES EN ESTE FILTRO.</div>`;
 
   root.querySelectorAll("[data-person-card]").forEach(card=>{
@@ -4539,8 +4596,10 @@ function renderLibraryResults(){
       if(selectedGeneralCharacters.size){toggleGeneralCharacterSelection(id);return}
       openCharacter(id);
     });
+    card.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();if(selectedGeneralCharacters.size)toggleGeneralCharacterSelection(id);else openCharacter(id)}});
   });
   hydratePeopleCards();
+  hydrateAffiliationIcons(root);
   updatePeopleSelectionBar();
 }
 function openBulkTeamModal(mode){
@@ -4591,6 +4650,7 @@ $("#peoplePhotoFilter").addEventListener("change",renderLibraryResults);
 $("#peopleStatusFilter").addEventListener("change",renderLibraryResults);
 $("#peopleTeamFilter").addEventListener("change",renderLibraryResults);
 $("#peopleSort").addEventListener("change",renderLibraryResults);
+$("#manageAffiliationsBtn").addEventListener("click",openAffiliationManager);
 $("#peopleAddTeam").onclick=()=>openBulkTeamModal("add");
 $("#peopleRemoveTeam").onclick=()=>openBulkTeamModal("remove");
 $("#peopleCancelSelection").onclick=()=>{selectedGeneralCharacters.clear();renderLibraryResults()};
