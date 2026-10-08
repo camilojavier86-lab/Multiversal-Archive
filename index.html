@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.5.11 FINAL</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.5.12 FINAL</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -376,6 +376,14 @@ body.character-layer-open{overflow:hidden;touch-action:none}
 .relation-node-edit:active{opacity:1;transform:scale(.93)}
 .edit-note{font-size:9px;color:var(--silver);line-height:1.45;margin:-4px 0 10px}
 .danger-btn{border-color:#6f2730!important;color:#ffd9dd!important;background:#241014!important}
+.appearance-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.appearance-actions .btn{min-height:38px;padding:0 10px;font-size:9px}
+@media(max-width:520px){
+  .relation-title-row:has(.appearance-actions){align-items:flex-start;flex-direction:column}
+  .appearance-actions{width:100%;justify-content:stretch}
+  .appearance-actions .btn{flex:1 1 100%}
+}
+
 
 .status{display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:7px 9px;border:1px solid var(--line);border-radius:999px;color:var(--silver)}
 .status i{width:8px;height:8px;border-radius:50%;background:#5b6069}
@@ -785,7 +793,10 @@ body.character-layer-open{overflow:hidden;touch-action:none}
     <div class="relation-grid" id="relations"></div>
     <div class="relation-title-row">
       <div class="section-title">APARICIONES · ORDEN CRONOLÓGICO</div>
-      <button class="btn" id="addAppearanceBtn" type="button">＋ AÑADIR A PROYECTO</button>
+      <div class="appearance-actions">
+        <button class="btn danger-btn hidden" id="removeCurrentAppearanceBtn" type="button">− QUITAR DE ESTE PROYECTO</button>
+        <button class="btn" id="addAppearanceBtn" type="button">＋ AÑADIR A PROYECTO</button>
+      </div>
     </div>
     <div class="appearance-row" id="appearances"></div>
     <div id="outfits" class="hidden"></div>
@@ -2633,7 +2644,7 @@ async function renderProduction(){
     `<div class="project-add-character"><button class="btn primary" data-add-project="${p.id}">＋ AÑADIR PERSONAJE / CAMEO</button></div>`;
   $$("#castRoot [data-character]").forEach(b=>b.onclick=()=>openCharacter(b.dataset.character));
   $$("#castRoot [data-project-faction]").forEach(b=>b.onclick=()=>showProjectFaction(p.id,b.dataset.projectFaction));
-  $$("#castRoot [data-add-image-character]").forEach(b=>b.onclick=()=>openKnownCharacterImageForm(b.dataset.addImageCharacter,b.dataset.projectContext));
+  $$("#castRoot [data-add-image-character]").forEach(b=>b.onclick=()=>openMissingCharacterPhotoPicker(b.dataset.addImageCharacter,b.dataset.projectContext));
   $$("#castRoot [data-add-project]").forEach(b=>b.onclick=()=>openQuickAppearance({projectId:b.dataset.addProject}));
   hydrateCharacterCards();
 
@@ -2702,6 +2713,22 @@ async function renderCharacter(){
   const editBtn=$("#editCharacterBtn");if(editBtn)editBtn.onclick=()=>openCharacterEditor(c.id);
   const undoBtn=$("#undoCharacterBtn");if(undoBtn)undoBtn.onclick=performLastUndo;
   const addAppearanceBtn=$("#addAppearanceBtn");if(addAppearanceBtn)addAppearanceBtn.onclick=()=>openQuickAppearance({characterId:c.id});
+  const removeAppearanceBtn=$("#removeCurrentAppearanceBtn");
+  const canRemoveCurrent=characterParentScreen==="production"&&characterHasProjectAppearance(c.id,currentProduction);
+  if(removeAppearanceBtn){
+    removeAppearanceBtn.classList.toggle("hidden",!canRemoveCurrent);
+    if(canRemoveCurrent){
+      const p=fastProject(currentProduction);
+      removeAppearanceBtn.textContent=`− QUITAR DE ${p?.title||"ESTE PROYECTO"}`;
+      removeAppearanceBtn.onclick=()=>{
+        if(removeCharacterAppearanceFromProject(c.id,currentProduction)){
+          restoringCharacterParent=true;
+          if(history.length>1)history.back();
+          else{renderProduction();renderScreen("production")}
+        }
+      };
+    }else removeAppearanceBtn.onclick=null;
+  }
   const currentApp=appearanceFor(c.id,currentProduction)||{};
   $("#charAlias").textContent=c.real;$("#charReal").textContent=currentApp.alias||c.alias||"SIN ALIAS";$("#charStatus").textContent=c.status;
   const statusDot=document.querySelector(".status i"); if(statusDot) statusDot.className=statusClass(c.status);
@@ -3620,6 +3647,35 @@ function resolveFirstAppearance(c){
 function appearanceFor(charId,pid){
   return DATA.appearances?.[`${charId}|${pid}`]||DATA.images[`${charId}|${pid}`]||null;
 }
+function characterHasProjectAppearance(charId,pid){
+  if(!charId||!pid)return false;
+  const c=fastCharacter(charId);if(!c)return false;
+  if((c.projects||[]).includes(pid))return true;
+  if(appearanceFor(charId,pid))return true;
+  return castRolesFor(pid,charId).length>0;
+}
+function removeCharacterAppearanceFromProject(charId,pid){
+  const c=fastCharacter(charId),p=fastProject(pid);
+  if(!c||!p||!characterHasProjectAppearance(charId,pid))return false;
+  const earth=fastUniverse(c.earth)?.name||c.earth||"TIERRA DESCONOCIDA";
+  if(!confirm(`QUITAR A ${c.real} · ${earth} DE ${p.title}?\n\nSOLO SE ELIMINARÁ ESTA APARICIÓN. SU FICHA, FOTO Y APARICIONES EN OTROS PROYECTOS SE CONSERVAN.`))return false;
+  const key=`${charId}|${pid}`;
+  const cast=DATA.projectCast?.[pid];
+  if(cast){
+    ["heroes","villains","anti","allies","cameos"].forEach(role=>{
+      cast[role]=(cast[role]||[]).filter(id=>id!==charId);
+    });
+  }
+  if(DATA.appearances)delete DATA.appearances[key];
+  if(DATA.images)delete DATA.images[key];
+  c.projects=(c.projects||[]).filter(id=>id!==pid);
+  saveData();
+  rebuildLibraryCatalog();
+  renderGlobalProgress();
+  if(currentEarth===p.earth)renderTimeline();
+  toast(`APARICIÓN ELIMINADA · ${c.real}`);
+  return true;
+}
 async function showMasterImagePreview(charId){
   const c=DATA.characters.find(x=>x.id===charId);
   if(!c?.masterMediaKey)return;
@@ -3753,6 +3809,17 @@ function setKnownCharacterMode(entry,locked){
     $("#intakeIntro").textContent="INGRESO TIPO INVENTARIO. BUSCA EL PERSONAJE O ENTRA DIRECTAMENTE DESDE SU TARJETA.";
   }
 }
+function openMissingCharacterPhotoPicker(charId,projectId){
+  const c=fastCharacter(charId);if(!c)return;
+  const input=document.createElement("input");
+  input.type="file";input.accept="image/*";input.capture="";
+  input.onchange=async()=>{
+    const file=input.files?.[0];if(!file)return;
+    await replaceCharacterMasterPhoto(charId,file,projectId);
+  };
+  input.click();
+}
+
 async function openKnownCharacterImageForm(charId,pid){
   intakeOrigin=rememberOrigin(`[data-character="${charId}"],[data-add-image-character="${charId}"]`);
   await prepareImageForm();
