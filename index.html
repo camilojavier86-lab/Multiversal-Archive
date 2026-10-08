@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.5.7 FINAL</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.5.10 FINAL</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -783,7 +783,10 @@ body.character-layer-open{overflow:hidden;touch-action:none}
       <button class="relation-add-btn" id="addRelationBtn" type="button" title="AÑADIR RELACIÓN">＋</button>
     </div>
     <div class="relation-grid" id="relations"></div>
-    <div class="section-title">APARICIONES · ORDEN CRONOLÓGICO</div>
+    <div class="relation-title-row">
+      <div class="section-title">APARICIONES · ORDEN CRONOLÓGICO</div>
+      <button class="btn" id="addAppearanceBtn" type="button">＋ AÑADIR A PROYECTO</button>
+    </div>
     <div class="appearance-row" id="appearances"></div>
     <div id="outfits" class="hidden"></div>
   </div>
@@ -912,7 +915,8 @@ body.character-layer-open{overflow:hidden;touch-action:none}
       <div class="field"><label>ESTADO</label>
         <select id="imageStatus"><option>VIVO</option><option>MUERTO</option><option>DESAPARECIDO</option><option>DESCONOCIDO</option></select>
       </div>
-      <div class="field full"><label>AGRUPACIONES</label><input id="imageAffiliations" placeholder="SE COMPLETA AL ELEGIR PERSONAJE"></div>
+      <div class="field full"><label>AFILIACIONES / EQUIPOS</label><input id="imageAffiliations" placeholder="SE COMPLETA AL ELEGIR PERSONAJE"></div>
+      <div class="field full"><label>CATÁLOGO DE AFILIACIONES</label><select id="imageAffiliationCatalog"><option value="">＋ AGREGAR DESDE CATÁLOGO</option></select></div>
       <div class="field full"><label>NOTAS</label><textarea id="imageNotes" placeholder="OPCIONAL"></textarea></div>
     </div>
     <div class="action-row">
@@ -1015,8 +1019,14 @@ body.character-layer-open{overflow:hidden;touch-action:none}
 
 <div class="modal" id="characterModal">
   <div class="modal-card">
-    <h2>NUEVO PERSONAJE</h2>
-    <p>CREA LA FICHA MÍNIMA Y DESPUÉS CONTINÚA CON LA IMAGEN.</p>
+    <h2>NUEVO PERSONAJE / VARIANTE</h2>
+    <p>CADA TIERRA CONSERVA SU PROPIA IDENTIDAD Y SU PROPIA FOTO MAESTRA. CREAR UNA VARIANTE NO MODIFICA NI COMPARTE LA FOTO DE OTRA TIERRA.</p>
+    <label class="upload" id="newCharPhotoBox" style="min-height:150px">
+      <input id="newCharPhoto" type="file" accept="image/*" hidden>
+      <img id="newCharPhotoPreview" class="hidden" alt="">
+      <span id="newCharPhotoText">CARGAR FOTO MAESTRA DE ESTA VARIANTE</span>
+    </label>
+    <div class="inline-help" id="newCharPhotoHelp">LA FOTO PERTENECE SOLO A ESTA IDENTIDAD + TIERRA.</div>
     <div class="form-grid">
       <div class="field"><label>NOMBRE REAL</label><input id="newCharReal" placeholder="NOMBRE DEL PERSONAJE"></div>
       <div class="field"><label>ALIAS EN INGLÉS</label><input id="newCharAlias" placeholder="ALIAS O MISMO NOMBRE"></div>
@@ -1031,7 +1041,8 @@ body.character-layer-open{overflow:hidden;touch-action:none}
           <option>SINTÉTICO / ANDROIDE</option><option>OTRO</option><option>POR DEFINIR</option>
         </select>
       </div>
-      <div class="field full"><label>AGRUPACIONES</label><input id="newCharAffiliations" placeholder="EJ. VENGADORES, S.H.I.E.L.D."></div>
+      <div class="field full"><label>AFILIACIONES / EQUIPOS</label><input id="newCharAffiliations" placeholder="EJ. VENGADORES, S.H.I.E.L.D."></div>
+      <div class="field full"><label>CATÁLOGO DE AFILIACIONES</label><select id="newCharAffiliationCatalog"><option value="">＋ AGREGAR DESDE CATÁLOGO</option></select></div>
       <div class="field full"><label>ROL EN ESTE PROYECTO</label>
         <select id="newCharRole">
           <option value="heroes">HÉROE</option>
@@ -1174,9 +1185,23 @@ const GROUP_TRANSLATIONS={
   "BROTHERHOOD OF MUTANTS":"HERMANDAD DE MUTANTES",
   "BROTHERHOOD OF EVIL MUTANTS":"HERMANDAD DE MUTANTES"
 };
+const GROUP_CANONICAL_ALIASES={
+  "AVENGER":"VENGADORES","AVENGERS":"VENGADORES","THE AVENGERS":"VENGADORES","VENGADOR":"VENGADORES","VENGADORES":"VENGADORES",
+  "GUARDIANS":"GUARDIANES DE LA GALAXIA","GUARDIANS OF THE GALAXY":"GUARDIANES DE LA GALAXIA","GUARDIANES":"GUARDIANES DE LA GALAXIA","GUARDIANES DE LA GALAXIA":"GUARDIANES DE LA GALAXIA",
+  "SHIELD":"S.H.I.E.L.D.","S H I E L D":"S.H.I.E.L.D.","S.H.I.E.L.D":"S.H.I.E.L.D.","S.H.I.E.L.D.":"S.H.I.E.L.D.",
+  "HYDRA":"HYDRA","X MEN":"X-MEN","X-MEN":"X-MEN","DEFENDERS":"DEFENSORES","DEFENSORES":"DEFENSORES",
+  "FANTASTIC FOUR":"LOS 4 FANTÁSTICOS","LOS 4 FANTASTICOS":"LOS 4 FANTÁSTICOS","LOS CUATRO FANTASTICOS":"LOS 4 FANTÁSTICOS",
+  "YOUNG AVENGERS":"JÓVENES VENGADORES","JOVENES VENGADORES":"JÓVENES VENGADORES",
+  "TEN RINGS":"DIEZ ANILLOS","THE TEN RINGS":"DIEZ ANILLOS","DIEZ ANILLOS":"DIEZ ANILLOS",
+  "RAVAGERS":"DEVASTADORES","DEVASTADORES":"DEVASTADORES","ILLUMINATI":"ILLUMINATI","DORA MILAJE":"DORA MILAJE",
+  "TVA":"TVA","KREE":"KREE","BLACK ORDER":"ORDEN NEGRA","ORDEN NEGRA":"ORDEN NEGRA"
+};
+function groupAliasKey(value){return norm(value).replace(/[^A-Z0-9]+/g," ").trim()}
 function translateGroup(name){
-  const key=(name||"").trim().toUpperCase();
-  return GROUP_TRANSLATIONS[key]||name||"";
+  const raw=String(name||"").trim();if(!raw)return "";
+  const direct=GROUP_TRANSLATIONS[raw.toUpperCase()];
+  if(direct)return direct;
+  return GROUP_CANONICAL_ALIASES[groupAliasKey(raw)]||raw.toUpperCase();
 }
 function norm(v){
   return (v||"").toString().normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().trim();
@@ -1994,7 +2019,9 @@ function mediaDB(){
   });
   return mediaDbPromise;
 }
-function compressedDataURL(file,maxSide=760,quality=.82){
+function compressedDataURL(file,maxSide=760,quality=.86){
+  // El respaldo también debe conservar la transparencia de los retratos.
+  // JPEG eliminaba el canal alfa y convertía el fondo transparente en un cuadro negro.
   return new Promise((resolve,reject)=>{
     const reader=new FileReader();
     reader.onerror=()=>reject(reader.error);
@@ -2005,12 +2032,41 @@ function compressedDataURL(file,maxSide=760,quality=.82){
         const scale=Math.min(1,maxSide/Math.max(img.width,img.height));
         const w=Math.max(1,Math.round(img.width*scale)),h=Math.max(1,Math.round(img.height*scale));
         const canvas=document.createElement("canvas");canvas.width=w;canvas.height=h;
-        canvas.getContext("2d").drawImage(img,0,0,w,h);
-        resolve(canvas.toDataURL("image/jpeg",quality));
+        const ctx=canvas.getContext("2d",{alpha:true});
+        ctx.clearRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);
+        let out=canvas.toDataURL("image/webp",quality);
+        if(!out.startsWith("data:image/webp"))out=canvas.toDataURL("image/png");
+        resolve(out);
       };
       img.src=reader.result;
     };
     reader.readAsDataURL(file);
+  });
+}
+function repairLegacyCharacterFallback(dataURL){
+  if(!/^data:image\/(?:jpeg|jpg);/i.test(dataURL||""))return Promise.resolve(dataURL);
+  return new Promise(resolve=>{
+    const img=new Image();
+    img.onerror=()=>resolve(dataURL);
+    img.onload=()=>{
+      try{
+        const canvas=document.createElement("canvas");canvas.width=img.naturalWidth||img.width;canvas.height=img.naturalHeight||img.height;
+        const ctx=canvas.getContext("2d",{alpha:true});ctx.drawImage(img,0,0);
+        const frame=ctx.getImageData(0,0,canvas.width,canvas.height),d=frame.data,w=canvas.width,h=canvas.height;
+        const dark=i=>d[i+3]>220&&d[i]<=14&&d[i+1]<=14&&d[i+2]<=14;
+        const corners=[[0,0],[w-1,0],[0,h-1],[w-1,h-1]].filter(([x,y])=>dark((y*w+x)*4)).length;
+        if(corners<3){resolve(dataURL);return}
+        const seen=new Uint8Array(w*h),stack=[];
+        const push=(x,y)=>{if(x<0||y<0||x>=w||y>=h)return;const n=y*w+x;if(seen[n])return;const i=n*4;if(!dark(i))return;seen[n]=1;stack.push(n)};
+        for(let x=0;x<w;x++){push(x,0);push(x,h-1)}
+        for(let y=1;y<h-1;y++){push(0,y);push(w-1,y)}
+        while(stack.length){const n=stack.pop(),x=n%w,y=(n/w)|0,i=n*4;d[i+3]=0;push(x-1,y);push(x+1,y);push(x,y-1);push(x,y+1)}
+        ctx.putImageData(frame,0,0);
+        let out=canvas.toDataURL("image/webp",.9);if(!out.startsWith("data:image/webp"))out=canvas.toDataURL("image/png");
+        resolve(out);
+      }catch(e){resolve(dataURL)}
+    };
+    img.src=dataURL;
   });
 }
 async function putMedia(key,file){
@@ -2055,7 +2111,16 @@ async function getMediaURL(key){
     const blob=await getMediaBlob(key);
     let url=null;
     if(blob)url=URL.createObjectURL(blob);
-    else url=DATA.mediaFallback?.[key]||null;
+    else{
+      url=DATA.mediaFallback?.[key]||null;
+      if(url&&String(key).startsWith("character-master:")){
+        const repaired=await repairLegacyCharacterFallback(url);
+        if(repaired&&repaired!==url){
+          url=repaired;DATA.mediaFallback[key]=repaired;
+          try{localStorage.setItem(STORAGE_KEY,JSON.stringify(DATA))}catch(e){}
+        }
+      }
+    }
     if(url)mediaUrlCache.set(key,url);
     return url;
   })();
@@ -2525,21 +2590,11 @@ async function renderProduction(){
           : `<div class="section-title">${label} · ${ids.length}</div>`}
         <div class="cast-row">${ids.map((id,i)=>charCard(id,p.id,i,groupColors)).join("")}</div>
       </div>`).join("")+
-    `<div class="project-add-character"><button class="btn primary" data-add-project="${p.id}">＋ AGREGAR PERSONAJE</button></div>`;
+    `<div class="project-add-character"><button class="btn primary" data-add-project="${p.id}">＋ AÑADIR PERSONAJE / CAMEO</button></div>`;
   $$("#castRoot [data-character]").forEach(b=>b.onclick=()=>openCharacter(b.dataset.character));
   $$("#castRoot [data-project-faction]").forEach(b=>b.onclick=()=>showProjectFaction(p.id,b.dataset.projectFaction));
   $$("#castRoot [data-add-image-character]").forEach(b=>b.onclick=()=>openKnownCharacterImageForm(b.dataset.addImageCharacter,b.dataset.projectContext));
-  $$("#castRoot [data-add-project]").forEach(b=>b.onclick=async()=>{
-    intakeOrigin=rememberOrigin(`[data-add-project="${b.dataset.addProject}"]`);
-    await prepareImageForm();
-    const proj=DATA.productions.find(x=>x.id===b.dataset.addProject);
-    if(proj){$("#imageEarth").value=proj.earth;refreshImageProjects();$("#imageProduction").value=proj.id;}
-    $("#imageRole").disabled=false;$("#imageRole").value="";
-    configureProjectClassification(proj?.id||"");
-    $("#imageSection").value="";
-    go("intake");
-    setTimeout(()=>{$("#characterSearch").focus();$("#characterSearch").scrollIntoView({behavior:"smooth",block:"center"})},120);
-  });
+  $$("#castRoot [data-add-project]").forEach(b=>b.onclick=()=>openQuickAppearance({projectId:b.dataset.addProject}));
   hydrateCharacterCards();
 
   productionScreen.classList.remove("halo-ignite");
@@ -2606,6 +2661,7 @@ async function renderCharacter(){
   updateUndoButton();
   const editBtn=$("#editCharacterBtn");if(editBtn)editBtn.onclick=()=>openCharacterEditor(c.id);
   const undoBtn=$("#undoCharacterBtn");if(undoBtn)undoBtn.onclick=performLastUndo;
+  const addAppearanceBtn=$("#addAppearanceBtn");if(addAppearanceBtn)addAppearanceBtn.onclick=()=>openQuickAppearance({characterId:c.id});
   const currentApp=appearanceFor(c.id,currentProduction)||{};
   $("#charAlias").textContent=c.real;$("#charReal").textContent=currentApp.alias||c.alias||"SIN ALIAS";$("#charStatus").textContent=c.status;
   const statusDot=document.querySelector(".status i"); if(statusDot) statusDot.className=statusClass(c.status);
@@ -2732,6 +2788,37 @@ function uniqueTranslatedList(values){
     if(clean&&!map.has(norm(clean)))map.set(norm(clean),clean);
   });
   return [...map.values()];
+}
+function affiliationCatalog(){
+  const map=new Map(),add=value=>{
+    const clean=translateGroup(String(value||"").trim());
+    if(clean&&!map.has(norm(clean)))map.set(norm(clean),clean);
+  };
+  Object.values(GROUP_TRANSLATIONS).forEach(add);
+  Object.values(GROUP_CANONICAL_ALIASES).forEach(add);
+  Object.values(PROJECT_ROSTER_SEEDS||{}).forEach(rows=>(rows||[]).forEach(row=>(row?.[4]||[]).forEach(add)));
+  (DATA.characters||[]).forEach(c=>(c.aff||[]).forEach(add));
+  return [...map.values()].sort((a,b)=>a.localeCompare(b,"es"));
+}
+function affiliationOptionsHTML(){
+  return `<option value="">＋ AGREGAR DESDE CATÁLOGO</option>`+affiliationCatalog().map(x=>`<option value="${escapeHTMLAttr(x)}">${x}</option>`).join("");
+}
+function addAffiliationToInput(inputId,value){
+  const input=$("#"+inputId);if(!input||!value)return;
+  const list=uniqueTranslatedList(String(input.value||"").split(",").map(x=>x.trim()).filter(Boolean));
+  const clean=translateGroup(value);
+  if(clean&&!list.some(x=>norm(x)===norm(clean)))list.push(clean);
+  input.value=list.join(", ");
+  input.dispatchEvent(new Event("input",{bubbles:true}));
+}
+function wireAffiliationCatalog(selectId,inputId){
+  const select=$("#"+selectId);if(!select)return;
+  select.innerHTML=affiliationOptionsHTML();
+  select.onchange=()=>{if(select.value)addAffiliationToInput(inputId,select.value);select.value=""};
+}
+function refreshAffiliationCatalogControls(){
+  wireAffiliationCatalog("imageAffiliationCatalog","imageAffiliations");
+  wireAffiliationCatalog("newCharAffiliationCatalog","newCharAffiliations");
 }
 function dedupeRelationshipEdges(){
   const out=[],seen=new Set();
@@ -3094,27 +3181,139 @@ function deleteRelationEditor(){
 
 
 const CHARACTER_NATURE_OPTIONS=["HUMANO","HUMANO MEJORADO","MUTANTE","INHUMANO","EXTRATERRESTRE","DIOS / SER DIVINO","SER MÍSTICO","SINTÉTICO / ANDROIDE","OTRO","POR DEFINIR"];
+const ROLE_LABELS={heroes:"HÉROE",villains:"VILLANO",anti:"ANTIHÉROE",allies:"ALIADO / SECUNDARIO",cameos:"CAMEO"};
+function characterCatalogSuggestion(c){
+  if(!c)return {};
+  const detail=CHARACTER_DETAIL_SEEDS[c.real]||{};
+  const rows=[];
+  Object.entries(PROJECT_ROSTER_SEEDS||{}).forEach(([pid,list])=>{
+    const p=fastProject(pid);if(!p||p.earth!==c.earth)return;
+    (list||[]).forEach(row=>{if(norm(row?.[0])===norm(c.real))rows.push({pid,p,row})});
+  });
+  const aff=uniqueTranslatedList(rows.flatMap(x=>x.row?.[4]||[]));
+  const aliases=[...new Set(rows.map(x=>String(x.row?.[1]||"").trim().toUpperCase()).filter(Boolean))];
+  const nature=rows.map(x=>x.row?.[2]).find(Boolean)||"";
+  const first=rows.map(x=>x.p).sort((a,b)=>(Number(a.releaseOrder)||9999)-(Number(b.releaseOrder)||9999)||(Number(a.year)||9999)-(Number(b.year)||9999))[0]||null;
+  return {species:detail.species||"",origin:detail.origin||"",powers:[...(detail.powers||[])],skills:[...(detail.skills||[])],equipment:[...(detail.equipment||[])],aff,aliases,nature,firstAppearanceProjectId:first?.id||""};
+}
+function projectSelectOptions(selectedId=""){return productionOptionsHTML(selectedId,false)}
+function quickCharacterSearch(query,limit=18){
+  const q=norm(query),words=q.split(/\s+/).filter(Boolean);if(!q)return [];
+  return (DATA.characters||[]).map(c=>{
+    const hay=norm([c.real,c.alias,...(c.aliases||[])].join(" "));let score=0;
+    if(norm(c.real)===q)score+=100;if(norm(c.alias)===q||(c.aliases||[]).some(a=>norm(a)===q))score+=95;
+    if(hay.startsWith(q))score+=55;if(words.every(w=>hay.includes(w)))score+=35;if(hay.includes(q))score+=20;
+    return {c,score};
+  }).filter(x=>x.score>0).sort((a,b)=>b.score-a.score||a.c.real.localeCompare(b.c.real,"es")||String(a.c.earth).localeCompare(String(b.c.earth),"es")).slice(0,limit).map(x=>x.c);
+}
+let quickAppearanceCharacterId=null;
+let quickAppearanceProjectId=null;
+function currentQuickCharacter(){return fastCharacter(quickAppearanceCharacterId)}
+function currentQuickProject(){return fastProject(quickAppearanceProjectId)}
+function quickAppearanceDefaultRole(c,p){return appearanceFor(c?.id,p?.id)?.role||existingCastRole(p?.id,c?.id)||(c&&p&&c.earth!==p.earth?"cameos":"allies")}
+function renderQuickCharacterResults(query){
+  const root=$("#quickCharacterResults");if(!root)return;
+  const results=quickCharacterSearch(query);
+  root.innerHTML=results.length?results.map(c=>`<button class="search-result" type="button" data-quick-character="${c.id}"><span><strong>${c.real}</strong><span>${c.alias||"SIN ALIAS"}</span></span><span class="tag">${fastUniverse(c.earth)?.name||c.earth}</span></button>`).join(""):`<div class="relation">SIN COINCIDENCIAS EN TU ÁLBUM.</div>`;
+  root.querySelectorAll("[data-quick-character]").forEach(b=>b.onclick=()=>{quickAppearanceCharacterId=b.dataset.quickCharacter;$("#quickCharacterSearch").value=currentQuickCharacter()?.real||"";root.innerHTML="";updateQuickAppearanceContext()});
+}
+function updateQuickAppearanceContext(){
+  const c=currentQuickCharacter(),p=currentQuickProject();
+  const identity=$("#quickIdentitySummary");
+  if(identity){identity.innerHTML=c?`<h3>${c.real}</h3><p>${c.alias||"SIN ALIAS"} · ${fastUniverse(c.earth)?.name||c.earth}</p>`:`<h3>PERSONAJE PENDIENTE</h3><p>BUSCA UNA IDENTIDAD EXISTENTE.</p>`;identity.classList.toggle("show",!!c)}
+  const role=$("#quickAppearanceRole");if(role&&c&&p){
+    const existing=appearanceFor(c.id,p.id)?.role||existingCastRole(p.id,c.id);
+    if(existing||!role.dataset.touched)role.value=existing||quickAppearanceDefaultRole(c,p);
+  }
+  const factionField=$("#quickAppearanceFactionField"),faction=$("#quickAppearanceFaction");
+  const config=p?getProjectFactionConfig(p.id):null;
+  if(factionField&&faction){
+    if(config?.groups?.length){
+      const previous=appearanceFor(c?.id,p?.id)?.faction||"";
+      faction.innerHTML=`<option value="">SIN FACCIÓN / SECCIÓN</option>`+config.groups.map(g=>`<option value="${escapeHTMLAttr(g.key)}" ${g.key===previous?"selected":""}>${g.label}</option>`).join("");
+      factionField.classList.remove("hidden");
+    }else{faction.innerHTML="";factionField.classList.add("hidden")}
+  }
+  const projectSummary=$("#quickProjectSummary");if(projectSummary&&p)projectSummary.textContent=`${fastUniverse(p.earth)?.name||p.earth} · ${p.title}`;
+}
+function closeQuickAppearanceModal(){quickAppearanceCharacterId=null;quickAppearanceProjectId=null;restoreAddModal();$("#addModal").classList.remove("show")}
+function linkCharacterToProject(charId,pid,role,faction=""){
+  const c=DATA.characters.find(x=>x.id===charId),p=DATA.productions.find(x=>x.id===pid);if(!c||!p)return false;
+  const validRole=ROLE_LABELS[role]?role:"allies";
+  DATA.projectCast[pid]=DATA.projectCast[pid]||{heroes:[],villains:[],anti:[],allies:[],cameos:[]};
+  ["heroes","villains","anti","allies","cameos"].forEach(k=>{DATA.projectCast[pid][k]=(DATA.projectCast[pid][k]||[]).filter(id=>id!==charId)});
+  DATA.projectCast[pid][validRole].push(charId);
+  c.projects=[...new Set([...(c.projects||[]),pid])];
+  const key=`${charId}|${pid}`,previous=appearanceFor(charId,pid)||{};
+  const appearance={...previous,characterId:charId,projectId:pid,earth:p.earth,characterEarth:c.earth,role:validRole,alias:previous.alias||c.alias,status:previous.status||c.status,nature:previous.nature||c.nature,faction:faction||previous.faction||""};
+  DATA.appearances=DATA.appearances||{};DATA.images=DATA.images||{};
+  DATA.appearances[key]=appearance;
+  DATA.images[key]={...(DATA.images[key]||{}),...appearance};
+  return true;
+}
+function saveQuickAppearance(){
+  const c=currentQuickCharacter(),p=currentQuickProject();if(!c||!p){toast("FALTA PERSONAJE O PROYECTO");return}
+  const role=$("#quickAppearanceRole")?.value||quickAppearanceDefaultRole(c,p),faction=$("#quickAppearanceFaction")?.value||"";
+  if(!linkCharacterToProject(c.id,p.id,role,faction)){toast("NO SE PUDO VINCULAR");return}
+  saveData();rebuildLibraryCatalog();
+  const active=activeScreenId();
+  closeQuickAppearanceModal();
+  if(active==="production"&&currentProduction===p.id)renderProduction();
+  if(active==="character"&&currentCharacter===c.id)renderCharacter();
+  toast(`${c.real} · ${ROLE_LABELS[role]||"APARICIÓN"} AGREGADO`);
+}
+function openQuickAppearance({characterId=null,projectId=null}={}){
+  quickAppearanceCharacterId=characterId||null;quickAppearanceProjectId=projectId||null;
+  const c=currentQuickCharacter(),p=currentQuickProject();
+  $("#addModal .modal-card").innerHTML=`
+    <h2>AÑADIR APARICIÓN</h2>
+    <p>VINCULA UNA IDENTIDAD EXISTENTE A CUALQUIER PELÍCULA, SERIE, ESPECIAL U ONE-SHOT. LA TIERRA DEL PERSONAJE NO CAMBIA.</p>
+    ${c?`<div class="selected-identity show" id="quickIdentitySummary"></div>`:`<div class="field full"><label>BUSCAR EN TU ÁLBUM</label><input id="quickCharacterSearch" type="search" placeholder="NOMBRE O ALIAS"></div><div class="search-results show" id="quickCharacterResults"></div><div class="selected-identity" id="quickIdentitySummary"></div>`}
+    ${p?`<div class="field full"><label>PROYECTO</label><div class="relation" id="quickProjectSummary"></div></div>`:`<div class="field full"><label>PROYECTO</label><select id="quickAppearanceProject">${projectSelectOptions("")}</select></div><div class="inline-help" id="quickProjectSummary"></div>`}
+    <div class="form-grid">
+      <div class="field full"><label>ROL EN ESTA PRODUCCIÓN</label><select id="quickAppearanceRole">${Object.entries(ROLE_LABELS).map(([key,label])=>`<option value="${key}">${label}</option>`).join("")}</select></div>
+      <div class="field full hidden" id="quickAppearanceFactionField"><label>FACCIÓN / SECCIÓN DEL PROYECTO</label><select id="quickAppearanceFaction"></select></div>
+    </div>
+    ${!c&&p?`<button class="btn" id="quickCreateNewCharacter" type="button" style="width:100%;margin-top:10px">＋ CREAR PERSONAJE / VARIANTE NUEVA</button>`:""}
+    <div class="action-row"><button class="btn" id="cancelQuickAppearance" type="button">CANCELAR</button><button class="btn primary" id="saveQuickAppearance" type="button">GUARDAR APARICIÓN</button></div>`;
+  $("#addModal").classList.add("show");
+  $("#cancelQuickAppearance").onclick=closeQuickAppearanceModal;
+  $("#saveQuickAppearance").onclick=saveQuickAppearance;
+  const projectSelect=$("#quickAppearanceProject");if(projectSelect){projectSelect.onchange=()=>{quickAppearanceProjectId=projectSelect.value||null;updateQuickAppearanceContext()};if(projectSelect.value)quickAppearanceProjectId=projectSelect.value}
+  const role=$("#quickAppearanceRole");if(role)role.onchange=()=>role.dataset.touched="1";
+  const search=$("#quickCharacterSearch");if(search){search.addEventListener("input",()=>renderQuickCharacterResults(search.value));setTimeout(()=>search.focus(),50)}
+  const create=$("#quickCreateNewCharacter");if(create)create.onclick=()=>{const pid=quickAppearanceProjectId,suggested=$("#quickCharacterSearch")?.value||"";restoreAddModal();$("#addModal").classList.remove("show");openNewCharacterModal(pid,suggested)};
+  updateQuickAppearanceContext();
+}
 function openCharacterEditor(charId){
   const c=fastCharacter(charId);if(!c)return;
-  const otherAliases=(c.aliases||[]).filter(a=>a&&norm(a)!==norm(c.alias||""));
+  const suggestion=characterCatalogSuggestion(c);
+  const species=c.species||suggestion.species||"",origin=c.origin||suggestion.origin||"";
+  const powers=(c.powers||[]).length?c.powers:(suggestion.powers||[]),skills=(c.skills||[]).length?c.skills:(suggestion.skills||[]),equipment=(c.equipment||[]).length?c.equipment:(suggestion.equipment||[]);
+  const nature=(c.nature&&c.nature!=="POR DEFINIR")?c.nature:(suggestion.nature||c.nature||"POR DEFINIR");
+  const affiliations=(c.aff||[]).length?c.aff:(suggestion.aff||[]);
+  const suggestedAliases=[...new Set([...(c.aliases||[]),...(suggestion.aliases||[])].filter(Boolean))];
+  const otherAliases=suggestedAliases.filter(a=>a&&norm(a)!==norm(c.alias||""));
+  const firstAppearanceId=c.firstAppearanceProjectId||suggestion.firstAppearanceProjectId||"";
   $("#addModal .modal-card").innerHTML=`
     <h2>EDITAR PERSONAJE</h2>
-    <p class="edit-note">EL ID INTERNO NO CAMBIA. TODO LO QUE CORRIJAS SE REFLEJA EN SUS APARICIONES.</p>
+    <p class="edit-note">EL ID INTERNO NO CAMBIA. LOS CAMPOS VACÍOS SE PRECARGAN CON EL CATÁLOGO DISPONIBLE; TUS DATOS GUARDADOS TIENEN PRIORIDAD. EN VARIANTES DE OTRA TIERRA, REVISA SI ALGÚN DATO CAMBIA.</p>
     <div class="form-grid">
       <div class="field full"><label>NOMBRE CANÓNICO</label><input id="editCharReal" value="${escapeHTMLAttr(c.real||"")}"></div>
       <div class="field"><label>ALIAS PRINCIPAL</label><input id="editCharAlias" value="${escapeHTMLAttr(c.alias||"")}"></div>
       <div class="field"><label>TIERRA DE IDENTIDAD</label><select id="editCharEarth">${DATA.universes.map(u=>`<option value="${u.id}" ${u.id===c.earth?"selected":""}>${u.name}</option>`).join("")}</select></div>
       <div class="field"><label>ESTADO</label><select id="editCharStatus">${["VIVO","MUERTO","DESAPARECIDO","DESCONOCIDO"].map(x=>`<option ${x===c.status?"selected":""}>${x}</option>`).join("")}</select></div>
-      <div class="field"><label>TIPO / NATURALEZA</label><select id="editCharNature">${CHARACTER_NATURE_OPTIONS.map(x=>`<option ${x===c.nature?"selected":""}>${x}</option>`).join("")}</select></div>
-      <div class="field"><label>ESPECIE</label><input id="editCharSpecies" value="${escapeHTMLAttr(c.species||"")}" placeholder="EJ. KREE, HUMANO, ASGARDIANO"></div>
-      <div class="field"><label>ORIGEN / PLANETA</label><input id="editCharOrigin" value="${escapeHTMLAttr(c.origin||"")}" placeholder="EJ. HALA, ASGARD, TIERRA"></div>
-      <div class="field full"><label>PODERES</label><input id="editCharPowers" value="${escapeHTMLAttr((c.powers||[]).join(", "))}" placeholder="SEPARADOS POR COMA"></div>
-      <div class="field full"><label>HABILIDADES</label><input id="editCharSkills" value="${escapeHTMLAttr((c.skills||[]).join(", "))}" placeholder="COMBATE, ESPIONAJE, PUNTERÍA..."></div>
-      <div class="field full"><label>ARMA / EQUIPO PRINCIPAL</label><input id="editCharEquipment" value="${escapeHTMLAttr((c.equipment||[]).join(", "))}" placeholder="ESCUDO, MJÖLNIR, ARCO..."></div>
-      <div class="field full"><label>PRIMERA APARICIÓN</label><select id="editCharFirstAppearance">${productionOptionsHTML(c.firstAppearanceProjectId||"")}</select></div>
+      <div class="field"><label>TIPO / NATURALEZA</label><select id="editCharNature">${CHARACTER_NATURE_OPTIONS.map(x=>`<option ${x===nature?"selected":""}>${x}</option>`).join("")}</select></div>
+      <div class="field"><label>ESPECIE</label><input id="editCharSpecies" value="${escapeHTMLAttr(species)}" placeholder="EJ. KREE, HUMANO, ASGARDIANO"></div>
+      <div class="field"><label>ORIGEN / PLANETA</label><input id="editCharOrigin" value="${escapeHTMLAttr(origin)}" placeholder="EJ. HALA, ASGARD, TIERRA"></div>
+      <div class="field full"><label>PODERES</label><input id="editCharPowers" value="${escapeHTMLAttr(powers.join(", "))}" placeholder="SEPARADOS POR COMA"></div>
+      <div class="field full"><label>HABILIDADES</label><input id="editCharSkills" value="${escapeHTMLAttr(skills.join(", "))}" placeholder="COMBATE, ESPIONAJE, PUNTERÍA..."></div>
+      <div class="field full"><label>ARMA / EQUIPO PRINCIPAL</label><input id="editCharEquipment" value="${escapeHTMLAttr(equipment.join(", "))}" placeholder="ESCUDO, MJÖLNIR, ARCO..."></div>
+      <div class="field full"><label>PRIMERA APARICIÓN</label><select id="editCharFirstAppearance">${productionOptionsHTML(firstAppearanceId)}</select></div>
       <div class="field full"><label>SI NO ESTÁ EN EL CATÁLOGO</label><input id="editCharFirstAppearanceText" value="${escapeHTMLAttr(c.firstAppearanceText||"")}" placeholder="TÍTULO LIBRE / PENDIENTE"></div>
       <div class="field full"><label>OTROS ALIAS</label><input id="editCharAliases" value="${escapeHTMLAttr(otherAliases.join(", "))}" placeholder="SEPARADOS POR COMA"></div>
-      <div class="field full"><label>AFILIACIONES</label><input id="editCharAff" value="${escapeHTMLAttr((c.aff||[]).join(", "))}" placeholder="EJ. VENGADORES, S.H.I.E.L.D."></div>
+      <div class="field full"><label>AFILIACIONES</label><input id="editCharAff" value="${escapeHTMLAttr(affiliations.join(", "))}" placeholder="EJ. VENGADORES, S.H.I.E.L.D."></div>
+      <div class="field full"><label>CATÁLOGO DE AFILIACIONES</label><select id="editCharAffCatalog">${affiliationOptionsHTML()}</select></div>
       <div class="field full"><label>LOGO / EMBLEMA DEL PERSONAJE</label><input id="editCharLogoFile" type="file" accept="image/*"></div>
       ${c.logoMediaKey?`<div class="field full"><label><input id="removeCharLogo" type="checkbox"> ELIMINAR LOGO / EMBLEMA ACTUAL</label></div>`:""}
     </div>
@@ -3122,6 +3321,7 @@ function openCharacterEditor(charId){
   $("#addModal").classList.add("show");
   $("#cancelCharacterEditor").onclick=()=>{restoreAddModal();$("#addModal").classList.remove("show")};
   $("#saveCharacterEditor").onclick=()=>saveCharacterEditor(charId);
+  wireAffiliationCatalog("editCharAffCatalog","editCharAff");
 }
 function escapeHTMLAttr(value){
   return String(value??"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
@@ -3307,25 +3507,34 @@ function wireModal(){
   wireBackupControls();
 }
 
+function intakeCharacterSearch(query,limit=18){
+  const q=norm(query);if(!q)return [];
+  const album=quickCharacterSearch(query,limit).map(c=>libraryEntryForCharacter(c));
+  const seen=new Set(album.map(e=>e.existingId));
+  const catalog=searchLibrary(query,limit).filter(e=>!e.existingId||!seen.has(e.existingId));
+  return [...album,...catalog].slice(0,limit);
+}
 function renderCharacterSearchResults(query){
   const root=$("#characterSearchResults");
-  const earth=$("#imageEarth")?.value||currentEarth||"";
-  const results=searchLibrary(query).map(e=>contextualLibraryEntry(e,earth));
+  const results=intakeCharacterSearch(query);
   if(!query.trim()){root.classList.remove("show");root.innerHTML="";return}
-  const cards=results.map(e=>`
-    <button class="search-result" type="button" data-lib-key="${e.key}">
+  const cards=results.map((e,index)=>{
+    const earth=e.existingId?(fastUniverse(e.identityEarth)?.name||e.identityEarth||"TIERRA"):"CATÁLOGO";
+    return `<button class="search-result" type="button" data-lib-result="${index}">
       <span><strong>${e.canonical}</strong><span>${(e.aliases&&e.aliases.length?e.aliases.join(" / "):"SIN ALIAS REGISTRADO")}</span></span>
-      <span class="tag">${e.nature||"POR DEFINIR"}</span>
-    </button>`).join("");
+      <span class="tag">${earth}</span>
+    </button>`;
+  }).join("");
   root.innerHTML=cards+`<button class="search-result" type="button" id="searchCreateNew">
     <span><strong>${results.length?"¿NO ES NINGUNO DE ESTOS?":"NO HAY COINCIDENCIAS"}</strong>
     <span>CREAR / VINCULAR PERSONAJE NUEVO</span></span><span class="tag">＋</span></button>`;
   root.classList.add("show");
-  root.querySelectorAll("[data-lib-key]").forEach(btn=>btn.onclick=()=>{
-    const e=libraryCatalog.find(x=>x.key===btn.dataset.libKey);
-    if(e)selectLibraryEntry(e);
+  root.querySelectorAll("[data-lib-result]").forEach(btn=>btn.onclick=()=>{
+    const e=results[Number(btn.dataset.libResult)];if(!e)return;
+    const production=$("#imageProduction")?.value||"";
+    selectLibraryEntry(e,{earth:e.identityEarth||$("#imageEarth")?.value||currentEarth,existingId:e.existingId||null,production});
   });
-  const create=$("#searchCreateNew");if(create)create.onclick=openNewCharacterModal;
+  const create=$("#searchCreateNew");if(create)create.onclick=()=>openNewCharacterModal();
 }
 function fillAliasOptions(entry,preferred=""){
   const aliases=[...new Set([...(entry?.aliases||[]), ...(entry?.existingId?[(DATA.characters.find(c=>c.id===entry.existingId)?.alias||"")]:[])].filter(Boolean))];
@@ -3405,8 +3614,9 @@ function syncAppearanceContext(){
   }
 }
 function selectLibraryEntry(entry,opts={}){
-  const targetEarth=opts.earth||$("#imageEarth")?.value||currentEarth||"";
-  if(opts.earth&&$("#imageEarth"))$("#imageEarth").value=opts.earth;
+  const production=opts.production||$("#imageProduction")?.value||"";
+  const targetEarth=opts.earth||entry?.identityEarth||$("#imageEarth")?.value||currentEarth||"";
+  if(targetEarth&&$("#imageEarth"))$("#imageEarth").value=targetEarth;
   entry=contextualLibraryEntry(entry,targetEarth);
   if(opts.existingId){
     const forced=DATA.characters.find(c=>c.id===opts.existingId&&(!targetEarth||c.earth===targetEarth));
@@ -3421,14 +3631,15 @@ function selectLibraryEntry(entry,opts={}){
   $("#imageNature").value=entry.nature||"POR DEFINIR";
   $("#imageStatus").value=entry.status||"DESCONOCIDO";
   $("#imageAffiliations").value=(entry.aff||[]).join(", ");
-  refreshImageProjects();
-  if(opts.production)$("#imageProduction").value=opts.production;
+  refreshImageProjects(production);
+  if(production)$("#imageProduction").value=production;
   syncAppearanceContext();
   if(entry.existingId)showMasterImagePreview(entry.existingId);
   saveImageDraft();
 }
 async function prepareImageForm(){
   releaseTransientPreviewURL("image");
+  wireAffiliationCatalog("imageAffiliationCatalog","imageAffiliations");
   setKnownCharacterMode(null,false);
   const d=loadDraft(IMAGE_DRAFT_KEY);
   $("#imageEarth").innerHTML=DATA.universes.map(u=>`<option value="${u.id}">${u.name}</option>`).join("");
@@ -3486,11 +3697,9 @@ async function openKnownCharacterImageForm(charId,pid){
   intakeOrigin=rememberOrigin(`[data-character="${charId}"],[data-add-image-character="${charId}"]`);
   await prepareImageForm();
   const c=DATA.characters.find(x=>x.id===charId);if(!c)return;
-  let entry=libraryCatalog.find(e=>e.existingId===charId);
-  if(!entry)entry={key:"L:"+norm(c.real),canonical:c.real,aliases:c.aliases||[c.alias],nature:c.nature||"POR DEFINIR",aff:(c.aff||[]).map(translateGroup),status:c.status||"DESCONOCIDO",source:"ÁLBUM",existingId:c.id};
+  const entry=libraryEntryForCharacter(c);
   selectLibraryEntry(entry,{production:pid,earth:c.earth,existingId:charId});
-  const p=DATA.productions.find(x=>x.id===pid);
-  if(p){$("#imageEarth").value=p.earth;refreshImageProjects();$("#imageProduction").value=pid;syncAppearanceContext();}
+  refreshImageProjects(pid);$("#imageProduction").value=pid;syncAppearanceContext();
   setKnownCharacterMode(entry,true);
   go("intake");
 }
@@ -3499,17 +3708,11 @@ function prefillImageForProject(pid){
   const p=DATA.productions.find(x=>x.id===pid);if(!p)return;
   $("#imageEarth").value=p.earth;refreshImageProjects();$("#imageProduction").value=p.id;syncAppearanceContext();
 }
-function refreshImageProjects(){
-  const rawId=$("#imageCharacter").value,earth=$("#imageEarth").value;
-  const c=DATA.characters.find(x=>x.id===rawId);
-  let prods;
-  if(c && c.projects?.length){
-    prods=c.projects.map(id=>DATA.productions.find(p=>p.id===id)).filter(Boolean);
-  }else{
-    prods=DATA.productions.filter(p=>p.earth===earth);
-  }
-  $("#imageProduction").innerHTML=`<option value="">SELECCIONAR</option>`+
-    prods.sort((a,b)=>(a.order||9999)-(b.order||9999)).map(p=>`<option value="${p.id}">${p.title}</option>`).join("");
+function refreshImageProjects(selectedId=""){
+  const select=$("#imageProduction");if(!select)return;
+  const keep=selectedId||select.value||"";
+  select.innerHTML=productionOptionsHTML(keep,true);
+  if(keep&&[...select.options].some(o=>o.value===keep))select.value=keep;
 }
 function clearImageForm(){
   releaseTransientPreviewURL("image");
@@ -3585,9 +3788,10 @@ async function registerImage(){
   }
   if(!c.masterMediaKey){toast("CARGA LA IMAGEN MAESTRA DEL PERSONAJE");return}
 
+  const project=fastProject(pid);
   const appearance={
     ...(previous||{}),
-    characterId:charId,projectId:pid,earth:$("#imageEarth").value,
+    characterId:charId,projectId:pid,earth:project?.earth||c.earth,characterEarth:c.earth,
     alias:$("#imageAlias").value||c.alias,status:$("#imageStatus").value,
     nature:$("#imageNature").value,role,faction:faction||previous?.faction||"",notes:$("#imageNotes").value.trim()
   };
@@ -3832,7 +4036,7 @@ try{
 let peopleLetter="ALL";
 let selectedGeneralCharacters=new Set();
 
-seedAllProjectRosters();applyCharacterDetailSeeds();ensureIdentityGraph();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();
+seedAllProjectRosters();applyCharacterDetailSeeds();ensureIdentityGraph();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();
 setTimeout(()=>loadMarvelLibrary().then(()=>{if(activeScreenId()==="library")renderLibraryResults()}),500);
 history.replaceState({screen:"home",earth:currentEarth,production:currentProduction,character:currentCharacter},"","#home");
 historyReady=true;
@@ -4005,35 +4209,53 @@ document.querySelectorAll('input[name="imageRelation"]').forEach(cb=>cb.addEvent
   if(el) el.addEventListener("change",saveProjectDraft);
 });
 
-function openNewCharacterModal(){
+let newCharacterProjectContext="";
+function openNewCharacterModal(projectId="",suggestedName=""){
+  releaseTransientPreviewURL("new-character");
+  newCharacterProjectContext=typeof projectId==="string"?projectId:"";
+  const contextProject=fastProject(newCharacterProjectContext);
   $("#newCharEarth").innerHTML=DATA.universes.map(u=>`<option value="${u.id}">${u.name}</option>`).join("");
-  $("#newCharEarth").value=$("#imageEarth").value||currentEarth;
+  $("#newCharEarth").value=contextProject?.earth||$("#imageEarth").value||currentEarth;
   $("#newCharStatus").value=$("#imageStatus").value||"VIVO";
-  const q=$("#characterSearch").value.trim();
+  const q=String(suggestedName||$("#characterSearch")?.value||"").trim();
   $("#newCharReal").value=q;$("#newCharAlias").value="";$("#newCharNature").value="POR DEFINIR";$("#newCharAffiliations").value="";$("#newCharRole").value="allies";
-  $("#newCharFirstAppearance").innerHTML=productionOptionsHTML("");$("#newCharFirstAppearance").value="";$("#newCharFirstAppearanceText").value="";
+  $("#newCharPhoto").value="";$("#newCharPhotoPreview").src="";$("#newCharPhotoPreview").classList.add("hidden");$("#newCharPhotoText").classList.remove("hidden");
+  $("#newCharPhotoHelp").textContent=newCharacterProjectContext?"PARA CREAR UNA VARIANTE DESDE UN PROYECTO, CARGA SU FOTO MAESTRA. ESA FOTO NO SE COMPARTE CON OTRAS TIERRAS.":"LA FOTO SE GUARDA SOLO PARA ESTA IDENTIDAD + TIERRA. PUEDES DEJARLA PENDIENTE SI ESTÁS CREANDO LA FICHA FUERA DE UN PROYECTO.";
+  $("#newCharFirstAppearance").innerHTML=productionOptionsHTML(newCharacterProjectContext);$("#newCharFirstAppearance").value=newCharacterProjectContext||"";$("#newCharFirstAppearanceText").value="";
+  wireAffiliationCatalog("newCharAffiliationCatalog","newCharAffiliations");
+  $("#newCharEarth").onchange=()=>{const p=fastProject(newCharacterProjectContext);if(p&&$("#newCharEarth").value!==p.earth)$("#newCharRole").value="cameos"};
+  $("#newCharPhoto").onchange=()=>{const file=$("#newCharPhoto").files?.[0];releaseTransientPreviewURL("new-character");if(!file){$("#newCharPhotoPreview").src="";$("#newCharPhotoPreview").classList.add("hidden");$("#newCharPhotoText").classList.remove("hidden");return}const url=createTransientPreviewURL("new-character",file);$("#newCharPhotoPreview").src=url;$("#newCharPhotoPreview").classList.remove("hidden");$("#newCharPhotoText").classList.add("hidden")};
   $("#characterModal").classList.add("show");
 }
-function closeNewCharacterModal(){$("#characterModal").classList.remove("show")}
+function closeNewCharacterModal(){releaseTransientPreviewURL("new-character");newCharacterProjectContext="";$("#characterModal").classList.remove("show")}
 function slugId(text){return (text||"personaje").toLocaleLowerCase("es").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")+"-"+Date.now()}
-function createNewCharacter(){
-  const real=$("#newCharReal").value.trim(),alias=$("#newCharAlias").value.trim()||real,earth=$("#newCharEarth").value,status=$("#newCharStatus").value,role=$("#newCharRole").value,pid=$("#imageProduction").value;
-  const nature=$("#newCharNature").value||"POR DEFINIR",aff=$("#newCharAffiliations").value.split(",").map(x=>translateGroup(x.trim())).filter(Boolean);
+async function createNewCharacter(){
+  const real=$("#newCharReal").value.trim(),alias=$("#newCharAlias").value.trim()||real,earth=$("#newCharEarth").value,status=$("#newCharStatus").value,role=$("#newCharRole").value,pid=newCharacterProjectContext||$("#imageProduction").value;
+  const quickContext=!!newCharacterProjectContext,photoFile=$("#newCharPhoto")?.files?.[0]||null;
+  const nature=$("#newCharNature").value||"POR DEFINIR",aff=uniqueTranslatedList($("#newCharAffiliations").value.split(",").map(x=>x.trim()).filter(Boolean));
   if(!real||!alias||!earth){toast("FALTA NOMBRE O TIERRA");return}
   const existing=DATA.characters.find(c=>c.earth===earth&&norm(c.real)===norm(real));
-  if(existing){closeNewCharacterModal();const entry=libraryEntryForCharacter(existing);selectLibraryEntry(entry,{production:pid,earth,existingId:existing.id});toast("PERSONAJE YA EXISTÍA · SE USÓ LA MISMA FICHA");return}
-  const id=slugId(real);
-  const c={id,earth,real:real.toUpperCase(),alias:alias.toUpperCase(),aliases:[alias.toUpperCase()],nature,status,aff,relations:[],projects:pid?[pid]:[],outfits:[],source:"USER",species:"",origin:"",powers:[],skills:[],equipment:[],firstAppearanceProjectId:$("#newCharFirstAppearance").value||"",firstAppearanceText:$("#newCharFirstAppearanceText").value.trim().toUpperCase()};
-  DATA.characters.push(c);
-  if(pid){
-    DATA.projectCast[pid]=DATA.projectCast[pid]||{heroes:[],villains:[],anti:[],allies:[],cameos:[]};["heroes","villains","anti","allies","cameos"].forEach(k=>DATA.projectCast[pid][k]=DATA.projectCast[pid][k]||[]);
-    DATA.projectCast[pid][role].push(id);DATA.appearances[`${id}|${pid}`]=DATA.appearances[`${id}|${pid}`]||{characterId:id,projectId:pid,earth:fastProject(pid)?.earth||earth,role,alias:c.alias,status,characterEarth:earth};
+  if(existing){
+    if(photoFile&&!existing.masterMediaKey){const mediaKey=`character-master:${existing.id}:${Date.now()}`;try{await putMedia(mediaKey,photoFile);existing.masterMediaKey=mediaKey}catch(e){toast("NO SE PUDO GUARDAR LA FOTO");return}}
+    if(pid)linkCharacterToProject(existing.id,pid,role,"");
+    saveData();rebuildLibraryCatalog();closeNewCharacterModal();
+    if(quickContext&&currentProduction===pid)renderProduction();
+    else{const entry=libraryEntryForCharacter(existing);selectLibraryEntry(entry,{production:pid,earth,existingId:existing.id})}
+    toast("PERSONAJE YA EXISTÍA EN ESTA TIERRA · SE USÓ ESA VARIANTE");return;
   }
+  if(quickContext&&!photoFile){toast("CARGA LA FOTO MAESTRA DE ESTA VARIANTE");return}
+  const id=slugId(real);
+  const c={id,earth,real:real.toUpperCase(),alias:alias.toUpperCase(),aliases:[alias.toUpperCase()],nature,status,aff,relations:[],projects:[],outfits:[],source:"USER",species:"",origin:"",powers:[],skills:[],equipment:[],firstAppearanceProjectId:$("#newCharFirstAppearance").value||"",firstAppearanceText:$("#newCharFirstAppearanceText").value.trim().toUpperCase()};
+  if(photoFile){const mediaKey=`character-master:${id}:${Date.now()}`;try{await putMedia(mediaKey,photoFile);c.masterMediaKey=mediaKey}catch(e){toast("NO SE PUDO GUARDAR LA FOTO");return}}
+  DATA.characters.push(c);
+  if(pid)linkCharacterToProject(id,pid,role,"");
   seedKnownRelationships();saveData();rebuildLibraryCatalog();
   const entry=libraryEntryForCharacter(c);
-  selectLibraryEntry(entry,{production:pid,earth,existingId:id});closeNewCharacterModal();toast("PERSONAJE CREADO");
+  closeNewCharacterModal();
+  if(quickContext){if(currentProduction===pid)renderProduction();toast("VARIANTE CREADA CON SU FOTO Y VINCULADA");return}
+  selectLibraryEntry(entry,{production:pid,earth,existingId:id});toast(photoFile?"PERSONAJE CREADO CON FOTO MAESTRA":"PERSONAJE CREADO · FOTO PENDIENTE");
 }
-$("#newCharacterBtn").onclick=openNewCharacterModal;$("#cancelNewCharacter").onclick=closeNewCharacterModal;$("#saveNewCharacter").onclick=createNewCharacter;$("#characterModal").onclick=e=>{if(e.target===$("#characterModal"))closeNewCharacterModal()};
+$("#newCharacterBtn").onclick=()=>openNewCharacterModal();$("#cancelNewCharacter").onclick=closeNewCharacterModal;$("#saveNewCharacter").onclick=createNewCharacter;$("#characterModal").onclick=e=>{if(e.target===$("#characterModal"))closeNewCharacterModal()};
 
 function peopleSearchKey(c){
   const cached=peopleSearchCache.get(c.id);
