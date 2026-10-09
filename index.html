@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.6.2 FINAL</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.6.3 PREVIEW</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -274,7 +274,7 @@ button{cursor:pointer;color:inherit}
   transition:.18s transform;color:var(--white);padding:0;text-align:left;min-width:0
 }
 .char-label{
-  position:relative;z-index:8;margin-top:-2px;padding:8px 4px 4px;text-align:center;min-height:39px;
+  position:relative;z-index:8;margin-top:-2px;padding:8px 4px 4px;text-align:center;min-height:52px;
   background:linear-gradient(180deg,transparent 0%,#08090b55 34%,#08090bc9 74%,#08090bf0 100%);
   border-radius:0 0 12px 12px
 }
@@ -285,6 +285,10 @@ button{cursor:pointer;color:inherit}
 .char-label span{
   position:relative;z-index:9;font-size:9px;line-height:1.15;color:#e7eaf0;display:block;margin-top:3px;
   text-shadow:0 1px 2px #000,0 0 7px #000
+}
+.char-label .char-earth{
+  font-size:8px;letter-spacing:.55px;color:#aeb4c0;margin-top:4px;text-transform:uppercase;
+  white-space:normal;overflow-wrap:anywhere
 }
 .char-empty{
   position:absolute;inset:0;display:grid;place-items:center;text-align:center;
@@ -1556,6 +1560,90 @@ function repairLegacySeedUniverses(){
     }else c.earth=toEarth;
     Object.values(DATA.appearances||{}).forEach(app=>{if(app.characterId===c.id)app.characterEarth=toEarth});
   });
+}
+
+
+function seedRowsForIdentity(real){
+  const out=[];
+  Object.entries(PROJECT_ROSTER_SEEDS||{}).forEach(([pid,rows])=>{
+    const p=fastProject(pid);if(!p)return;
+    (rows||[]).forEach(row=>{
+      if(norm(row?.[0])!==norm(real))return;
+      out.push({pid,earth:row?.[5]||p.earth,row});
+    });
+  });
+  return out;
+}
+function uniqueSeedEarthForAppearance(real,pid){
+  const p=fastProject(pid);if(!p)return "";
+  const earths=[...new Set((PROJECT_ROSTER_SEEDS?.[pid]||[])
+    .filter(row=>norm(row?.[0])===norm(real))
+    .map(row=>row?.[5]||p.earth)
+    .filter(Boolean))];
+  return earths.length===1?earths[0]:"";
+}
+function moveAppearanceToIdentity(fromChar,toChar,pid){
+  if(!fromChar||!toChar||!pid||fromChar.id===toChar.id)return false;
+  const cast=DATA.projectCast?.[pid];
+  if(cast){
+    ["heroes","villains","anti","allies","cameos"].forEach(role=>{
+      const arr=cast[role]||[];
+      const had=arr.includes(fromChar.id);
+      cast[role]=arr.filter(id=>id!==fromChar.id);
+      if(had&&!cast[role].includes(toChar.id))cast[role].push(toChar.id);
+    });
+  }
+  const oldKey=`${fromChar.id}|${pid}`,newKey=`${toChar.id}|${pid}`;
+  const oldApp=DATA.appearances?.[oldKey];
+  if(oldApp){
+    DATA.appearances[newKey]={...(DATA.appearances[newKey]||{}),...oldApp,characterId:toChar.id,projectId:pid,characterEarth:toChar.earth};
+    delete DATA.appearances[oldKey];
+  }
+  fromChar.projects=(fromChar.projects||[]).filter(x=>x!==pid);
+  toChar.projects=[...new Set([...(toChar.projects||[]),pid])];
+  return true;
+}
+function repairMovedCharacterIdentities(){
+  if((DATA.identityRepairVersion||0)>=1)return;
+  const report=[];
+  (DATA.characters||[]).slice().forEach(c=>{
+    const rows=seedRowsForIdentity(c.real);
+    if(!rows.length)return;
+    const expectedEarths=[...new Set(rows.map(x=>x.earth).filter(Boolean))];
+    let originalEarth="";
+    for(const earth of expectedEarths){
+      if(c.id===stableSeedId(earth,c.real)){originalEarth=earth;break}
+    }
+    if(!originalEarth){
+      const evidence=[...new Set((c.projects||[])
+        .map(pid=>uniqueSeedEarthForAppearance(c.real,pid))
+        .filter(Boolean))];
+      if(evidence.length===1)originalEarth=evidence[0];
+    }
+    if(!originalEarth||originalEarth===c.earth)return;
+    const fromEarth=c.earth;
+    const existing=(DATA.characters||[]).find(x=>x.id!==c.id&&x.earth===originalEarth&&norm(x.real)===norm(c.real));
+    if(existing){
+      let moved=0;
+      (c.projects||[]).slice().forEach(pid=>{
+        if(uniqueSeedEarthForAppearance(c.real,pid)===originalEarth){
+          if(moveAppearanceToIdentity(c,existing,pid))moved++;
+        }
+      });
+      if(moved)report.push({name:c.real,from:fromEarth,to:originalEarth,action:"REASIGNADAS",count:moved});
+    }else{
+      c.earth=originalEarth;
+      Object.values(DATA.appearances||{}).forEach(app=>{if(app.characterId===c.id)app.characterEarth=originalEarth});
+      report.push({name:c.real,from:fromEarth,to:originalEarth,action:"RESTAURADA",count:(c.projects||[]).length});
+    }
+  });
+  DATA.identityRepairVersion=1;
+  DATA.identityRepairReport=report;
+  if(report.length){
+    seedKnownRelationships();
+    runtimeIndexesDirty=true;
+  }
+  saveData();
 }
 
 function ensureFirstAppearanceFromProjects(){
@@ -2856,7 +2944,7 @@ function charCard(id,projectId,index=0,overrideColors=[]){
         ${mediaKey?`<img class="hidden" alt="${c.real}">`:`<span class="char-empty"><span><b>＋</b>CARGAR FOTO</span></span>`}
       </span>
     </button>
-    <div class="char-label"><strong>${c.real}</strong><span>${shownAlias}</span></div>
+    <div class="char-label"><strong>${c.real}</strong><span>${shownAlias}</span><span class="char-earth">${fastUniverse(c.earth)?.name||c.earth||"ORIGEN DESCONOCIDO"}</span></div>
   </div>`;
 }
 function pendingCard(){
@@ -3561,7 +3649,8 @@ function openCharacterEditor(charId){
     <div class="form-grid">
       <div class="field full"><label>NOMBRE CANÓNICO</label><input id="editCharReal" value="${escapeHTMLAttr(c.real||"")}"></div>
       <div class="field"><label>ALIAS PRINCIPAL</label><input id="editCharAlias" value="${escapeHTMLAttr(c.alias||"")}"></div>
-      <div class="field"><label>TIERRA DE IDENTIDAD</label><select id="editCharEarth">${DATA.universes.map(u=>`<option value="${u.id}" ${u.id===c.earth?"selected":""}>${u.name}</option>`).join("")}</select></div>
+      <div class="field"><label>TIERRA DE IDENTIDAD</label><select id="editCharEarth" disabled>${DATA.universes.map(u=>`<option value="${u.id}" ${u.id===c.earth?"selected":""}>${u.name}</option>`).join("")}</select></div>
+      <div class="field"><label>VARIANTE MULTIVERSAL</label><button class="btn" id="editCreateVariant" type="button">＋ CREAR EN OTRA TIERRA</button></div>
       <div class="field"><label>ESTADO</label><select id="editCharStatus">${["VIVO","MUERTO","DESAPARECIDO","DESCONOCIDO"].map(x=>`<option ${x===c.status?"selected":""}>${x}</option>`).join("")}</select></div>
       <div class="field"><label>TIPO / NATURALEZA</label><select id="editCharNature">${CHARACTER_NATURE_OPTIONS.map(x=>`<option ${x===nature?"selected":""}>${x}</option>`).join("")}</select></div>
       <div class="field"><label>ESPECIE</label><input id="editCharSpecies" value="${escapeHTMLAttr(species)}" placeholder="EJ. KREE, HUMANO, ASGARDIANO"></div>
@@ -3581,6 +3670,17 @@ function openCharacterEditor(charId){
   $("#addModal").classList.add("show");
   $("#cancelCharacterEditor").onclick=()=>{restoreAddModal();$("#addModal").classList.remove("show")};
   $("#saveCharacterEditor").onclick=()=>saveCharacterEditor(charId);
+  $("#editCreateVariant").onclick=()=>{
+    const source=fastCharacter(charId);if(!source)return;
+    restoreAddModal();$("#addModal").classList.remove("show");
+    openNewCharacterModal("",source.real);
+    $("#newCharAlias").value=source.alias||source.real;
+    $("#newCharStatus").value=source.status||"DESCONOCIDO";
+    $("#newCharNature").value=source.nature||"POR DEFINIR";
+    $("#newCharAffiliations").value=(source.aff||[]).join(", ");
+    $("#newCharEarth").value=DATA.universes.find(u=>u.id!==source.earth)?.id||source.earth;
+    $("#newCharPhotoHelp").textContent="NUEVA VARIANTE: EL ORIGINAL NO SE MODIFICA. LA FOTO MAESTRA DEBE CARGARSE DE FORMA INDEPENDIENTE.";
+  };
   wireAffiliationCatalog("editCharAffCatalog","editCharAff");
 }
 function escapeHTMLAttr(value){
@@ -3588,7 +3688,7 @@ function escapeHTMLAttr(value){
 }
 async function saveCharacterEditor(charId){
   const c=fastCharacter(charId);if(!c)return;
-  const real=$("#editCharReal").value.trim().toUpperCase(),alias=$("#editCharAlias").value.trim().toUpperCase()||real,earth=$("#editCharEarth").value;
+  const real=$("#editCharReal").value.trim().toUpperCase(),alias=$("#editCharAlias").value.trim().toUpperCase()||real,earth=c.earth;
   const duplicate=DATA.characters.find(x=>x.id!==charId&&x.earth===earth&&norm(x.real)===norm(real));
   if(!real){toast("EL NOMBRE NO PUEDE QUEDAR VACÍO");return}
   if(duplicate){alert(`YA EXISTE ${duplicate.real} EN ${fastUniverse(earth)?.name||earth}. NO SE FUSIONÓ NADA.`);return}
@@ -4352,7 +4452,11 @@ try{
 let peopleLetter="ALL";
 let selectedGeneralCharacters=new Set();
 
-applyArchiveYearCutoff();seedAllProjectRosters();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();
+applyArchiveYearCutoff();seedAllProjectRosters();repairMovedCharacterIdentities();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();
+if((DATA.identityRepairReport||[]).length&&!DATA.identityRepairNoticeV1){
+  DATA.identityRepairNoticeV1=true;saveData();
+  setTimeout(()=>toast(`REPARACIÓN DE IDENTIDADES · ${DATA.identityRepairReport.length} CASO${DATA.identityRepairReport.length===1?"":"S"} CORREGIDO${DATA.identityRepairReport.length===1?"":"S"}`),450);
+}
 setTimeout(()=>loadMarvelLibrary().then(()=>{if(activeScreenId()==="library")renderLibraryResults()}),500);
 history.replaceState({screen:"home",earth:currentEarth,production:currentProduction,character:currentCharacter},"","#home");
 historyReady=true;
