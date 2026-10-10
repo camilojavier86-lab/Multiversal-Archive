@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.8.5 FINAL</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.8.9 FINAL</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -147,11 +147,11 @@ button{cursor:pointer;color:inherit}
 
 
 
-.cover-crop-editor{
+.cover-crop-editor{display:none!important;
   display:none!important;margin:14px 0 16px;padding:12px;border:1px solid var(--line);
   border-radius:16px;background:#111318
 }
-.cover-crop-editor.show{display:block}
+.cover-crop-editor.show{display:none!important}
 .cover-crop-editor h3{margin:0 0 6px;font-size:13px;letter-spacing:1.2px;color:var(--white)}
 .cover-crop-editor p{margin:0 0 10px;font-size:10px;line-height:1.45;color:var(--silver)}
 .cover-crop-stage{
@@ -694,6 +694,15 @@ body.character-layer-open{overflow:hidden;touch-action:none}
 .image-viewer.show{display:flex}
 .image-viewer img{max-width:100%;max-height:90vh;object-fit:contain;border-radius:16px;border:1px solid #ffffff22}
 .image-viewer button{position:absolute;top:18px;right:18px}
+
+
+/* 1.8.6 · LOGROS DE COLECCIÓN */
+.project-complete-mark{display:inline-flex;align-items:center;gap:6px;margin-top:7px;padding:5px 9px;border:1px solid #d7b65a66;border-radius:999px;background:linear-gradient(90deg,#3b2d1022,#d7b65a18);color:#f0d27a;font-size:9px;letter-spacing:.8px;box-shadow:0 0 18px #d7b65a12}
+.project-complete-mark .star{font-size:12px;text-shadow:0 0 12px #f0c65baa}
+.title-card.completed-project{border-color:#d7b65a55;box-shadow:inset 0 0 0 1px #d7b65a10,0 10px 30px -26px #d7b65a55}
+.title-card.completed-project:after{content:"★";position:absolute;right:10px;top:9px;color:#f0c65b;font-size:13px;text-shadow:0 0 12px #f0c65baa}
+.project-progress.complete{border-color:#d7b65a66!important;background:linear-gradient(90deg,#241c0d,#16181d)!important;color:#f0d27a!important}
+.project-progress.complete strong{color:#ffe7a3!important}
 
 @media(min-width:760px){
   .screen{padding-left:28px;padding-right:28px}
@@ -1341,7 +1350,7 @@ input:focus,select:focus,textarea:focus{
     </div>
 
     <div class="cover-crop-editor" id="coverCropEditor">
-      <h3>ENCUADRE HORIZONTAL 16:9</h3>
+      <h3>ENCUADRE LEGACY OCULTO</h3>
       <p>ARRASTRA LA IMAGEN PARA ELEGIR QUÉ PARTE SE VERÁ DENTRO DEL PROYECTO. LA PORTADA VERTICAL ORIGINAL NO SE MODIFICA.</p>
       <div class="cover-crop-stage" id="coverCropStage">
         <div class="cover-crop-grid"></div>
@@ -3147,7 +3156,7 @@ function renderTimeline(){
     const prog=figureProgressForProject(p.id);
     const visualComplete=!!(p.coverKey&&p.horizontalKey);
     const complete=prog.total>0?prog.done===prog.total:visualComplete;
-    return `<button class="title-card" data-production="${p.id}">
+    return `<button class="title-card ${complete?"completed-project":""}" data-production="${p.id}">
       <span class="poster ${complete?"complete":"incomplete"}" data-cover="${p.coverKey||""}"></span>
       <span>
         <strong>${p.title}</strong>
@@ -3155,6 +3164,7 @@ function renderTimeline(){
         ${prog.total
           ? `<span class="timeline-figure-progress ${complete?"complete":""}"><strong>${prog.done} / ${prog.total}</strong> FIGURAS · ${prog.percent}%</span>`
           : `<span class="timeline-figure-progress no-figures ${complete?"complete":""}"><strong>SIN FIGURAS</strong> · ${visualComplete?"VISUAL COMPLETO":"FALTA PORTADA / BANNER"}</span>`}
+        ${complete?`<span class="project-complete-mark"><span class="star">★</span> PROYECTO COMPLETADO</span>`:""}
       </span>
       <span class="order">${String(i+1).padStart(2,"0")}</span>
     </button>`;
@@ -3280,7 +3290,9 @@ function renderGlobalProgress(){
 }
 function renderProjectProgress(pid){
   const x=figureProgressForProject(pid),el=$("#productionProgress"),p=fastProject(pid);if(!el)return;
-  if(x.total)el.innerHTML=`<strong>${x.done} / ${x.total}</strong><span>FIGURAS · ${x.percent}%</span>`;
+  const complete=x.total>0&&x.done===x.total;
+  el.classList.toggle("complete",complete);
+  if(x.total)el.innerHTML=`<strong>${x.done} / ${x.total}</strong><span>FIGURAS · ${x.percent}%</span>${complete?`<span class="project-complete-mark"><span class="star">★</span> COLECCIÓN COMPLETA</span>`:""}`;
   else el.innerHTML=`<strong>SIN FIGURAS</strong><span>${p?.coverKey&&p?.horizontalKey?"VISUAL COMPLETO":"PORTADA / BANNER PENDIENTE"}</span>`;
 }
 function colorDistance(a,b){
@@ -4215,21 +4227,45 @@ function openQuickAppearance({characterId=null,projectId=null}={}){
 let unlockCelebrationTimer=null;
 async function showUnlockCelebration({kind="CHARACTER",name="",alias="",earth="",mediaKey=""}={}){
   const overlay=$("#unlockCelebration");if(!overlay)return;
-  const labels={CHARACTER:"NUEVO PERSONAJE EN EL UNIVERSO",VARIANT:"NUEVA VARIANTE DESCUBIERTA",AFFILIATION:"NUEVA AFILIACIÓN REGISTRADA",UNIVERSE:"NUEVO UNIVERSO DESCUBIERTO",PROJECT:"NUEVO PROYECTO REGISTRADO"};
+  const labels={CHARACTER:"NUEVO PERSONAJE EN EL UNIVERSO",VARIANT:"NUEVA VARIANTE DESCUBIERTA",AFFILIATION:"NUEVA AFILIACIÓN REGISTRADA",UNIVERSE:"NUEVO UNIVERSO DESCUBIERTO",PROJECT:"NUEVO PROYECTO REGISTRADO",PROJECT_COMPLETE:"PROYECTO COMPLETADO",PROJECT_LEVEL:"META DEL PROYECTO ALCANZADA"};
   $("#unlockKicker").textContent=labels[kind]||"NUEVO DESCUBRIMIENTO";
   $("#unlockName").textContent=name||"NUEVO REGISTRO";
   const aliasEl=$("#unlockAlias");aliasEl.textContent=alias||"";aliasEl.classList.toggle("hidden",!alias);
   const earthEl=$("#unlockEarth");earthEl.textContent=earth||"ARCHIVO MULTIVERSAL";earthEl.classList.toggle("hidden",!earth&&kind==="AFFILIATION");
   const photo=$("#unlockPhoto");photo.innerHTML="";photo.classList.add("hidden");
   if(mediaKey){try{const url=await getMediaURL(mediaKey);if(url){photo.innerHTML=`<img src="${url}" alt="">`;photo.classList.remove("hidden");applyStoredMediaFrame(photo,mediaKey,"portrait")}}catch(e){}}
-  $("#unlockStar").textContent=kind==="UNIVERSE"?"✦":kind==="AFFILIATION"?"◆":kind==="PROJECT"?"★":"★";
+  $("#unlockStar").textContent=kind==="UNIVERSE"?"✦":kind==="AFFILIATION"?"◆":kind==="PROJECT_COMPLETE"?"✪":kind==="PROJECT_LEVEL"?"✦":kind==="PROJECT"?"★":"★";
   overlay.classList.add("show");overlay.setAttribute("aria-hidden","false");
-  clearTimeout(unlockCelebrationTimer);unlockCelebrationTimer=setTimeout(hideUnlockCelebration,3200);
+  clearTimeout(unlockCelebrationTimer);
+  const holdMs=kind==="PROJECT_COMPLETE"?6200:kind==="PROJECT_LEVEL"?4200:3600;
+  unlockCelebrationTimer=setTimeout(hideUnlockCelebration,holdMs);
 }
 function hideUnlockCelebration(){const overlay=$("#unlockCelebration");if(!overlay)return;overlay.classList.remove("show");overlay.setAttribute("aria-hidden","true");clearTimeout(unlockCelebrationTimer)}
 $("#unlockContinue")?.addEventListener("click",hideUnlockCelebration);
 $("#unlockCelebration")?.addEventListener("click",e=>{if(e.target===$("#unlockCelebration"))hideUnlockCelebration()});
 
+function projectRewardLevel(percent){if(percent>=100)return 100;if(percent>=75)return 75;if(percent>=50)return 50;if(percent>=25)return 25;return 0}
+function ensureProjectRewardBaseline(pid){
+  DATA.projectRewardLevels=DATA.projectRewardLevels||{};
+  if(DATA.projectRewardLevels[pid]===undefined){DATA.projectRewardLevels[pid]=projectRewardLevel(figureProgressForProject(pid).percent);saveData();}
+}
+function initializeProjectRewardBaselines(){
+  DATA.projectRewardLevels=DATA.projectRewardLevels||{};
+  let changed=false;
+  (DATA.productions||[]).forEach(p=>{if(DATA.projectRewardLevels[p.id]===undefined){DATA.projectRewardLevels[p.id]=projectRewardLevel(figureProgressForProject(p.id).percent);changed=true}});
+  if(changed)saveData();
+}
+async function checkProjectProgressReward(pid,{allowCelebration=true}={}){
+  if(!pid)return;
+  DATA.projectRewardLevels=DATA.projectRewardLevels||{};
+  const p=fastProject(pid),progress=figureProgressForProject(pid),next=projectRewardLevel(progress.percent);
+  const prev=Number(DATA.projectRewardLevels[pid]??0);
+  if(next<=prev){if(DATA.projectRewardLevels[pid]===undefined){DATA.projectRewardLevels[pid]=next;saveData()}return}
+  DATA.projectRewardLevels[pid]=next;saveData();
+  if(!allowCelebration||next<25)return;
+  const complete=next===100;
+  setTimeout(()=>showUnlockCelebration({kind:complete?"PROJECT_COMPLETE":"PROJECT_LEVEL",name:p?.title||"PROYECTO",alias:complete?"TODAS LAS FIGURAS DESBLOQUEADAS":`${next}% DE FIGURAS COMPLETADO`,earth:complete?"INSIGNIA DE COLECCIÓN OBTENIDA":"SIGUE COMPLETANDO TU ÁLBUM",mediaKey:p?.coverKey||p?.horizontalKey||""}),160);
+}
 function characterCompletionPercent(c){
   if(!c)return 0;
   const first=resolveFirstAppearance(c);
@@ -4424,6 +4460,7 @@ async function replaceCharacterMasterPhoto(charId,file,projectId){
       }
     });
     renderGlobalProgress();renderTimeline();
+    await checkProjectProgressReward(projectId,{allowCelebration:true});
     if(projectId===currentProduction && !document.body.classList.contains("character-layer-open"))await renderProduction();
     if(currentCharacter===charId && document.body.classList.contains("character-layer-open"))await renderCharacter();
     toast("FOTO ACTUALIZADA");const url=await getMediaURL(newKey);if(url)openMediaFrameEditor({key:newKey,url,kind:"portrait",title:`AJUSTAR · ${c.real}`,onSave:()=>{if(currentProduction===projectId)renderProduction();if(currentCharacter===charId)renderCharacter();renderLibraryResults()}});
@@ -4879,7 +4916,7 @@ async function registerImage(){
   DATA.appearances[key]=appearance;
   DATA.images[key]={...appearance}; // keep old reader compatibility, without duplicate media
 
-  seedKnownRelationships();saveData();rebuildLibraryCatalog();renderGlobalProgress();renderTimeline();if(pid===currentProduction)renderProjectProgress(pid);clearDraft(IMAGE_DRAFT_KEY);
+  seedKnownRelationships();saveData();rebuildLibraryCatalog();renderGlobalProgress();renderTimeline();if(pid===currentProduction)renderProjectProgress(pid);await checkProjectProgressReward(pid,{allowCelebration:true});clearDraft(IMAGE_DRAFT_KEY);
   toast(previous?"APARICIÓN ACTUALIZADA":"PERSONAJE VINCULADO AL PROYECTO");
   const origin=intakeOrigin;
   clearImageForm();
@@ -5140,7 +5177,7 @@ try{
 let peopleLetter="ALL";
 let selectedGeneralCharacters=new Set();
 
-applyArchiveYearCutoff();seedAllProjectRosters();repairMovedCharacterIdentities();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
+applyArchiveYearCutoff();seedAllProjectRosters();repairMovedCharacterIdentities();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();initializeProjectRewardBaselines();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
 if((DATA.identityRepairReport||[]).length&&!DATA.identityRepairNoticeV1){
   DATA.identityRepairNoticeV1=true;saveData();
   setTimeout(()=>toast(`REPARACIÓN DE IDENTIDADES · ${DATA.identityRepairReport.length} CASO${DATA.identityRepairReport.length===1?"":"S"} CORREGIDO${DATA.identityRepairReport.length===1?"":"S"}`),450);
@@ -5387,7 +5424,7 @@ async function createNewCharacter(){
   const entry=libraryEntryForCharacter(c);
   closeNewCharacterModal();
   const unlockKind=variantSourceId?"VARIANT":"CHARACTER",unlockEarth=fastUniverse(earth)?.name||earth;
-  if(quickContext){if(currentProduction===pid)renderProduction();showUnlockCelebration({kind:unlockKind,name:c.real,alias:c.alias,earth:unlockEarth,mediaKey:c.masterMediaKey||""});return}
+  if(quickContext){if(currentProduction===pid)renderProduction();await checkProjectProgressReward(pid,{allowCelebration:true});showUnlockCelebration({kind:unlockKind,name:c.real,alias:c.alias,earth:unlockEarth,mediaKey:c.masterMediaKey||""});return}
   selectLibraryEntry(entry,{production:pid,earth,existingId:id});showUnlockCelebration({kind:unlockKind,name:c.real,alias:c.alias,earth:unlockEarth,mediaKey:c.masterMediaKey||""});
 }
 $("#newCharacterBtn").onclick=()=>openNewCharacterModal();$("#cancelNewCharacter").onclick=closeNewCharacterModal;$("#saveNewCharacter").onclick=createNewCharacter;$("#characterModal").onclick=e=>{if(e.target===$("#characterModal"))closeNewCharacterModal()};
