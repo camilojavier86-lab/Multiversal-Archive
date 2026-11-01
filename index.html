@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.9.1 FINAL</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.9.2 FINAL</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -1052,6 +1052,8 @@ input:focus,select:focus,textarea:focus{
   .char-card,.person-card,.earth-card,.title-card{will-change:auto!important}
 }
 
+
+.duplicate-review-list{display:grid;gap:12px;margin:14px 0}.duplicate-review-card{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;padding:14px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(180deg,#151821,#101218)}.duplicate-review-card>div:not(.duplicate-vs):not(.action-row){min-width:0}.duplicate-review-card strong,.duplicate-review-card span{display:block}.duplicate-review-card span{font-size:12px;color:var(--muted);margin-top:4px}.duplicate-review-card small{grid-column:1/-1;color:#f4c978;letter-spacing:.06em}.duplicate-review-card .action-row{grid-column:1/-1;margin:0;display:flex;flex-wrap:wrap}.duplicate-vs{font-weight:900;color:#f4c978}.game-editor-section.danger{border-color:#6d2a31}.game-editor-section.danger summary{background:linear-gradient(90deg,#2a1216aa,#11131800)}
 </style>
 
 <meta name="theme-color" content="#090b10">
@@ -1233,7 +1235,7 @@ input:focus,select:focus,textarea:focus{
         <option value="MISSING">FOTOS PENDIENTES PRIMERO</option>
       </select>
     </div>
-    <div class="action-row"><button class="btn" id="manageAffiliationsBtn" type="button">AFILIACIONES · LOGOS</button></div>
+    <div class="action-row"><button class="btn" id="manageAffiliationsBtn" type="button">AFILIACIONES · LOGOS</button><button class="btn" id="possibleDuplicatesBtn" type="button">POSIBLES DUPLICADOS</button></div>
     <div class="people-alpha" id="peopleAlphabet"></div>
     <div class="people-selection hidden" id="peopleSelectionBar">
       <strong id="peopleSelectionCount">0 SELECCIONADOS</strong>
@@ -4665,11 +4667,18 @@ function openCharacterEditor(charId){
       ${c.logoMediaKey?`<div class="field full"><label><input id="removeCharLogo" type="checkbox"> ELIMINAR EMBLEMA ACTUAL</label></div>`:""}
     </div></div></details>
 
+    <details class="game-editor-section danger"><summary>${editorSectionSummary("GESTIÓN DEL REGISTRO","FUSIONAR O ELIMINAR CON PROTECCIÓN","!")}</summary><div class="game-editor-body">
+      <div class="game-editor-hint">FUSIONAR CONSERVA APARICIONES Y DATOS EN OTRO PERSONAJE. ELIMINAR SOLO SE PERMITE CUANDO ESTA IDENTIDAD NO TIENE APARICIONES.</div>
+      <div class="action-row"><button class="btn" id="mergeCharacterRecord" type="button">FUSIONAR CON OTRO</button><button class="btn danger-btn" id="deleteCharacterRecord" type="button">ELIMINAR PERSONAJE</button></div>
+    </div></details>
+
     <div class="action-row"><button class="btn" id="cancelCharacterEditor">CANCELAR</button><button class="btn primary" id="saveCharacterEditor">GUARDAR CAMBIOS</button></div>`;
   $("#addModal").classList.add("show");
   $("#cancelCharacterEditor").onclick=()=>{restoreAddModal();$("#addModal").classList.remove("show")};
   $("#saveCharacterEditor").onclick=()=>saveCharacterEditor(charId);
   $("#editManageEarth").onclick=()=>{restoreAddModal();$("#addModal").classList.remove("show");openEarthEditor(c.earth)};
+  $("#mergeCharacterRecord").onclick=()=>openCharacterMergeTool(charId);
+  $("#deleteCharacterRecord").onclick=()=>attemptDeleteCharacter(charId);
   $("#editCreateVariant").onclick=()=>{
     const source=fastCharacter(charId);if(!source)return;
     restoreAddModal();$("#addModal").classList.remove("show");
@@ -6055,6 +6064,100 @@ function openBulkTeamModal(mode){
   };
 }
 
+
+function characterAppearanceIds(id){
+  const out=new Set();
+  const c=fastCharacter(id);
+  (c?.projects||[]).forEach(pid=>out.add(pid));
+  Object.entries(DATA.projectCast||{}).forEach(([pid,cast])=>{
+    ["heroes","villains","anti","allies","cameos"].forEach(role=>{if((cast?.[role]||[]).includes(id))out.add(pid)});
+  });
+  Object.keys(DATA.appearances||{}).forEach(k=>{if(k.startsWith(id+"|"))out.add(k.slice(id.length+1))});
+  return [...out].filter(pid=>fastProject(pid));
+}
+function characterAppearanceLabel(id){
+  const ids=characterAppearanceIds(id);
+  return ids.map(pid=>fastProject(pid)?.title||pid);
+}
+function mergeCandidateScore(source,target){
+  let score=0;
+  if(source.earth===target.earth)score+=40;
+  if(norm(source.real)===norm(target.real))score+=70;
+  if(norm(source.alias)===norm(target.alias))score+=35;
+  if([target.alias,...(target.aliases||[])].some(a=>norm(a)===norm(source.real)))score+=30;
+  if([source.alias,...(source.aliases||[])].some(a=>norm(a)===norm(target.real)))score+=30;
+  if(source.masterMediaKey&&target.masterMediaKey&&source.masterMediaKey===target.masterMediaKey)score+=90;
+  return score;
+}
+function openCharacterMergeTool(sourceId){
+  const source=fastCharacter(sourceId);if(!source)return;
+  const candidates=(DATA.characters||[]).filter(c=>c.id!==sourceId).sort((a,b)=>mergeCandidateScore(source,b)-mergeCandidateScore(source,a)||String(a.alias||a.real).localeCompare(String(b.alias||b.real),"es"));
+  $("#addModal").classList.add("team-modal");
+  $("#addModal .modal-card").innerHTML=`<h2>FUSIONAR PERSONAJE</h2><p><strong>${escapeHTML(source.alias||source.real)}</strong> SERÁ ABSORBIDO POR EL PERSONAJE QUE ELIJAS. SUS APARICIONES Y DATOS SE CONSERVAN.</p>
+    <div class="field full"><label>PERSONAJE QUE SE CONSERVA</label><select id="mergeCharacterTarget"><option value="">SELECCIONAR</option>${candidates.map(c=>`<option value="${escapeHTMLAttr(c.id)}">${escapeHTML(c.alias||c.real)} · ${escapeHTML(c.real)} · ${escapeHTML(fastUniverse(c.earth)?.name||c.earth||"ORIGEN DESCONOCIDO")}</option>`).join("")}</select></div>
+    <div class="action-row"><button class="btn" id="cancelCharacterMerge">CANCELAR</button><button class="btn primary" id="confirmCharacterMerge">FUSIONAR</button></div>`;
+  $("#addModal").classList.add("show");
+  $("#cancelCharacterMerge").onclick=()=>{restoreAddModal();$("#addModal").classList.remove("show")};
+  $("#confirmCharacterMerge").onclick=async()=>{
+    const targetId=$("#mergeCharacterTarget").value,target=fastCharacter(targetId);if(!target){toast("SELECCIONA EL PERSONAJE QUE SE CONSERVA");return}
+    const appearances=characterAppearanceLabel(sourceId);
+    const msg=`FUSIONAR ${source.alias||source.real} CON ${target.alias||target.real}?\n\nSE CONSERVARÁ: ${target.alias||target.real} · ${fastUniverse(target.earth)?.name||target.earth}.\nSE MOVERÁN ${appearances.length} APARICIONES Y LOS DATOS ÚTILES DEL DUPLICADO.`;
+    if(!confirm(msg))return;
+    const sourceMaster=source.masterMediaKey||"",sourceLogo=source.logoMediaKey||"";
+    mergeCharacterData190(target,source);dedupeRelationshipEdges();normalizeCharacterProjectLinks(target);saveData();rebuildLibraryCatalog();
+    currentCharacter=target.id;
+    restoreAddModal();$("#addModal").classList.remove("show");
+    await renderCharacter();renderLibraryResults();toast("PERSONAJES FUSIONADOS");
+    // Media is deliberately not deleted here. If both records had distinct photos, mergeCharacterData190 preserves the secondary key as legacy.
+  };
+}
+async function attemptDeleteCharacter(id){
+  const c=fastCharacter(id);if(!c)return;
+  const apps=characterAppearanceIds(id);
+  if(apps.length){
+    const names=apps.map(pid=>fastProject(pid)?.title||pid).slice(0,8).join("\n• ");
+    alert(`NO SE PUEDE ELIMINAR ${c.alias||c.real}.\n\nTIENE ${apps.length} APARICIÓN${apps.length===1?"":"ES"}:\n• ${names}${apps.length>8?"\n• …":""}\n\nQUÍTALO DE ESOS PROYECTOS O FUSIÓNALO CON LA IDENTIDAD CORRECTA.`);return;
+  }
+  if(!confirm(`ELIMINAR DEFINITIVAMENTE ${c.alias||c.real} · ${fastUniverse(c.earth)?.name||c.earth||"ORIGEN DESCONOCIDO"}?\n\nNO TIENE APARICIONES. ESTA ACCIÓN ELIMINARÁ SU FICHA Y SUS MEDIOS.`))return;
+  const media=[c.masterMediaKey,c.logoMediaKey,...(c.legacyMasterMediaKeys||[])].filter(Boolean);
+  DATA.relationships=(DATA.relationships||[]).filter(r=>r.a!==id&&r.b!==id);
+  DATA.characters=DATA.characters.filter(x=>x.id!==id);
+  delete DATA.characterNotes?.[id];
+  saveData();rebuildLibraryCatalog();
+  for(const key of media)await deleteMediaKey(key);
+  restoreAddModal();$("#addModal").classList.remove("show");
+  currentCharacter=null;renderLibraryResults();go("library");toast("PERSONAJE ELIMINADO");
+}
+function possibleDuplicateGroups(){
+  const chars=[...(DATA.characters||[])],links=new Map();
+  const add=(a,b,reason)=>{if(a.id===b.id)return;const key=[a.id,b.id].sort().join("|");const row=links.get(key)||{a,b,reasons:new Set(),score:0};row.reasons.add(reason);row.score=Math.max(row.score,mergeCandidateScore(a,b));links.set(key,row)};
+  for(let i=0;i<chars.length;i++)for(let j=i+1;j<chars.length;j++){
+    const a=chars[i],b=chars[j];
+    if(a.earth===b.earth&&norm(a.real)===norm(b.real))add(a,b,"MISMO NOMBRE + TIERRA");
+    if(a.earth===b.earth&&norm(a.alias||a.real)===norm(b.alias||b.real))add(a,b,"MISMO ALIAS + TIERRA");
+    if(a.earth===b.earth&&(norm(a.real)===norm(b.alias)||norm(b.real)===norm(a.alias)))add(a,b,"NOMBRE / ALIAS COINCIDENTE");
+    const contextEarths=new Set(["void","unknown-origin"]);
+    if(a.earth!==b.earth&&norm(a.real)===norm(b.real)&&norm(a.alias||a.real)===norm(b.alias||b.real)&&(contextEarths.has(a.earth)||contextEarths.has(b.earth)))add(a,b,"MISMA IDENTIDAD · ORIGEN/CONTEXTO DISTINTO");
+    if(a.masterMediaKey&&b.masterMediaKey&&a.masterMediaKey===b.masterMediaKey)add(a,b,"MISMA FOTO MAESTRA");
+  }
+  return [...links.values()].sort((x,y)=>y.score-x.score||String(x.a.alias||x.a.real).localeCompare(String(y.a.alias||y.a.real),"es"));
+}
+function openPossibleDuplicates(){
+  const groups=possibleDuplicateGroups();
+  $("#addModal").classList.add("team-modal");
+  $("#addModal .modal-card").innerHTML=`<h2>POSIBLES DUPLICADOS</h2><p>LA APP NO BORRA NI FUSIONA NADA AUTOMÁTICAMENTE. REVISA CADA PAR Y DECIDE.</p>
+    <div class="duplicate-review-list">${groups.length?groups.map((g,i)=>`<div class="duplicate-review-card"><div><strong>${escapeHTML(g.a.alias||g.a.real)}</strong><span>${escapeHTML(g.a.real)} · ${escapeHTML(fastUniverse(g.a.earth)?.name||g.a.earth||"ORIGEN DESCONOCIDO")}</span></div><div class="duplicate-vs">VS</div><div><strong>${escapeHTML(g.b.alias||g.b.real)}</strong><span>${escapeHTML(g.b.real)} · ${escapeHTML(fastUniverse(g.b.earth)?.name||g.b.earth||"ORIGEN DESCONOCIDO")}</span></div><small>${[...g.reasons].join(" · ")}</small><div class="action-row"><button class="btn" data-open-dup="${g.a.id}">VER 1</button><button class="btn" data-open-dup="${g.b.id}">VER 2</button><button class="btn primary" data-merge-dup="${g.a.id}" data-target-dup="${g.b.id}">FUSIONAR 1 → 2</button><button class="btn primary" data-merge-dup="${g.b.id}" data-target-dup="${g.a.id}">FUSIONAR 2 → 1</button></div></div>`).join(""):`<div class="relation">NO SE DETECTARON POSIBLES DUPLICADOS.</div>`}</div>
+    <div class="action-row"><button class="btn" id="closeDuplicateReview">CERRAR</button></div>`;
+  $("#addModal").classList.add("show");
+  $("#closeDuplicateReview").onclick=()=>{restoreAddModal();$("#addModal").classList.remove("show")};
+  $$('[data-open-dup]').forEach(b=>b.onclick=()=>{const id=b.dataset.openDup;restoreAddModal();$("#addModal").classList.remove("show");openCharacter(id)});
+  $$('[data-merge-dup]').forEach(b=>b.onclick=()=>{
+    const source=fastCharacter(b.dataset.mergeDup),target=fastCharacter(b.dataset.targetDup);if(!source||!target)return;
+    if(!confirm(`FUSIONAR ${source.alias||source.real} EN ${target.alias||target.real}?\n\nSE CONSERVARÁ LA SEGUNDA IDENTIDAD Y SE TRASLADARÁN APARICIONES Y DATOS.`))return;
+    mergeCharacterData190(target,source);dedupeRelationshipEdges();normalizeCharacterProjectLinks(target);saveData();rebuildLibraryCatalog();renderLibraryResults();openPossibleDuplicates();toast("PERSONAJES FUSIONADOS");
+  });
+}
+
 let peopleSearchRenderTimer=null;
 $("#librarySearch").addEventListener("input",()=>{
   clearTimeout(peopleSearchRenderTimer);
@@ -6068,6 +6171,7 @@ $("#peopleNatureFilter").addEventListener("change",renderLibraryResults);
 $("#peopleCompletionFilter").addEventListener("change",renderLibraryResults);
 $("#peopleSort").addEventListener("change",renderLibraryResults);
 $("#manageAffiliationsBtn").addEventListener("click",openAffiliationManager);
+$("#possibleDuplicatesBtn").addEventListener("click",openPossibleDuplicates);
 $("#peopleAddTeam").onclick=()=>openBulkTeamModal("add");
 $("#peopleRemoveTeam").onclick=()=>openBulkTeamModal("remove");
 $("#peopleCancelSelection").onclick=()=>{selectedGeneralCharacters.clear();renderLibraryResults()};
