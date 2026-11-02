@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.9.2 FINAL</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.9.3 FINAL</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -1020,6 +1020,13 @@ body:after{opacity:.07;background-size:64px 64px;mask-image:linear-gradient(to b
 }
 #production .orphan-cast-label strong{color:#f4c36f!important}
 #production .orphan-cast-label span{color:#b9bec8!important}
+#production .orphan-cast-actions{display:flex;justify-content:center;margin-top:4px}
+#production .orphan-remove-btn{width:100%;border:1px solid #e85d672e;background:#190e12;color:#e9a8ad;border-radius:10px;padding:7px 6px;font-size:8px;letter-spacing:.7px}
+#production .orphan-remove-btn:active{transform:scale(.98)}
+.record-appearance-list{display:grid;gap:8px;margin:12px 0}
+.record-appearance-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:10px;border:1px solid #ffffff14;border-radius:12px;background:#0b0d11}
+.record-appearance-row span{min-width:0;font-size:10px;color:#d7dbe3;line-height:1.25}
+.record-appearance-row .btn{padding:8px 10px;font-size:8px;white-space:nowrap}
 .person-photo.media-unavailable{
   display:grid!important;place-items:center!important;text-align:center!important;
   background:radial-gradient(circle at 50% 38%,#ffffff0e,transparent 58%)!important;
@@ -2457,6 +2464,52 @@ function repairDeadpoolWolverine191(){
   runtimeIndexesDirty=true;saveData();rebuildLibraryCatalog();
 }
 
+
+// 1.9.3 · Reparación de duplicados exactos atrapados por versiones anteriores.
+// En este álbum NOMBRE CANÓNICO + TIERRA define una identidad única.
+function mergeSameIdRecord193(target,source){
+  if(!target||!source||target===source)return target;
+  if(!target.masterMediaKey&&source.masterMediaKey)target.masterMediaKey=source.masterMediaKey;
+  else if(target.masterMediaKey&&source.masterMediaKey&&target.masterMediaKey!==source.masterMediaKey)target.legacyMasterMediaKeys=[...new Set([...(target.legacyMasterMediaKeys||[]),source.masterMediaKey,...(source.legacyMasterMediaKeys||[])])];
+  if(!target.logoMediaKey&&source.logoMediaKey)target.logoMediaKey=source.logoMediaKey;
+  target.aliases=[...new Set([target.alias,source.alias,...(target.aliases||[]),...(source.aliases||[])].filter(Boolean))];
+  target.aff=uniqueTranslatedList([...(target.aff||[]),...(source.aff||[])]);
+  target.projects=[...new Set([...(target.projects||[]),...(source.projects||[])])];
+  target.outfits=[...new Set([...(target.outfits||[]),...(source.outfits||[])])];
+  for(const key of ["species","origin","firstAppearanceProjectId","firstAppearanceText"]){if(!target[key]&&source[key])target[key]=source[key]}
+  for(const key of ["powers","skills","equipment"]){if(!(target[key]||[]).length&&(source[key]||[]).length)target[key]=[...source[key]]}
+  if((!target.nature||target.nature==="POR DEFINIR")&&source.nature)target.nature=source.nature;
+  if((!target.status||target.status==="DESCONOCIDO")&&source.status)target.status=source.status;
+  return target;
+}
+function repairExactIdentityDuplicates193(){
+  if((DATA.identityRepairVersion193||0)>=193)return;
+  const report=[];
+  // 1) Colapsar objetos repetidos que comparten exactamente el mismo ID interno.
+  const byId=new Map();
+  for(const c of [...(DATA.characters||[])]){
+    if(!byId.has(c.id)){byId.set(c.id,c);continue}
+    let keep=byId.get(c.id),other=c;
+    if(characterRichness190(other)>characterRichness190(keep)){const tmp=keep;keep=other;other=tmp;byId.set(c.id,keep)}
+    mergeSameIdRecord193(keep,other);
+    DATA.characters=DATA.characters.filter(x=>x!==other);
+    report.push(`ID DUPLICADO CONSOLIDADO · ${keep.real} · ${keep.earth}`);
+  }
+  // 2) Colapsar identidades exactas NOMBRE + TIERRA aunque tengan IDs distintos.
+  const groups=new Map();
+  for(const c of DATA.characters||[]){const key=`${c.earth}|${norm(c.real)}`;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(c)}
+  for(const group of groups.values()){
+    if(group.length<2)continue;
+    const sorted=[...group].sort((a,b)=>characterRichness190(b)-characterRichness190(a));let keep=sorted[0];
+    for(const dup of sorted.slice(1)){if(dup.id===keep.id){mergeSameIdRecord193(keep,dup);DATA.characters=DATA.characters.filter(x=>x!==dup)}else keep=mergeCharacterData190(keep,dup);report.push(`IDENTIDAD EXACTA CONSOLIDADA · ${keep.real} · ${keep.earth}`)}
+  }
+  Object.values(DATA.projectCast||{}).forEach(cast=>["heroes","villains","anti","allies","cameos"].forEach(role=>cast[role]=[...new Set(cast[role]||[])]));
+  (DATA.characters||[]).forEach(c=>normalizeCharacterProjectLinks(c));
+  dedupeRelationshipEdges();
+  DATA.identityRepairVersion193=193;DATA.identityRepairReport193=report;
+  saveData();rebuildLibraryCatalog();
+}
+
 function stableSeedId(earth,canonical){
   return "seed-"+norm(earth)+"-"+norm(canonical).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"");
 }
@@ -3780,6 +3833,10 @@ async function renderProduction(){
     const role=$("#quickAppearanceRole");if(role){role.value=orphanRepairContext.role;role.dataset.touched="1"}
     toast("ELIGE O CREA EL PERSONAJE PARA ESTA APARICIÓN");
   });
+  $$("#castRoot [data-remove-pending]").forEach(b=>b.onclick=e=>{
+    e.preventDefault();e.stopPropagation();
+    removeOrphanCastSlot(b.dataset.projectContext||currentProduction,b.dataset.removePending||"");
+  });
   $$("#castRoot [data-add-project]").forEach(b=>b.onclick=()=>openQuickAppearance({projectId:b.dataset.addProject}));
   hydrateCharacterCards();
 
@@ -3828,6 +3885,7 @@ function pendingCard(id,projectId){
       <span class="portrait"><span class="char-empty"><span><b>＋</b>VINCULAR PERSONAJE</span></span></span>
     </button>
     <div class="char-label orphan-cast-label"><strong>VINCULAR PERSONAJE</strong><span>TOCA PARA ELEGIR LA IDENTIDAD</span></div>
+    <div class="orphan-cast-actions"><button class="orphan-remove-btn" type="button" data-remove-pending="${id||""}" data-project-context="${projectId||""}">− QUITAR ESPACIO</button></div>
   </div>`;
 }
 function orphanCastRole(pid,id){
@@ -3839,6 +3897,16 @@ function clearOrphanCastReference(pid,id){
   if(cast)["heroes","villains","anti","allies","cameos"].forEach(role=>cast[role]=(cast[role]||[]).filter(x=>x!==id));
   if(DATA.appearances)delete DATA.appearances[`${id}|${pid}`];
   if(DATA.images)delete DATA.images[`${id}|${pid}`];
+}
+function removeOrphanCastSlot(pid,id){
+  const p=fastProject(pid);if(!pid||!id||!p)return false;
+  if(fastCharacter(id)){toast("ESTA IDENTIDAD EXISTE. ÁBRELA Y QUITA SU APARICIÓN DESDE GESTIÓN DEL REGISTRO.");return false}
+  if(!confirm(`QUITAR ESTE ESPACIO VACÍO DE ${p.title}?\n\nDEJARÁ DE CONTAR COMO FIGURA DEL PROYECTO. NO SE BORRARÁ NINGÚN PERSONAJE.`))return false;
+  clearOrphanCastReference(pid,id);
+  saveData();rebuildLibraryCatalog();renderGlobalProgress();
+  if(currentEarth===p.earth)renderTimeline();
+  if(currentProduction===pid)renderProduction();
+  toast("ESPACIO VACÍO ELIMINADO");return true;
 }
 let orphanRepairContext=null;
 function hydrateCharacterCards(){
@@ -4619,6 +4687,8 @@ function openCharacterEditor(charId){
   const first=resolveFirstAppearance({...c,firstAppearanceProjectId:firstAppearanceId});
   const pct=characterCompletionPercent(c),earthName=fastUniverse(c.earth)?.name||c.earth||"ORIGEN DESCONOCIDO";
   const capCount=[...powers,...skills,...equipment].length;
+  const registeredApps=characterAppearanceIds(c.id);
+  const registeredAppsHTML=registeredApps.length?registeredApps.map(pid=>{const p=fastProject(pid);return `<div class="record-appearance-row"><span><strong>${escapeHTML(p?.title||pid)}</strong><br>${escapeHTML(fastUniverse(p?.earth)?.name||p?.earth||"")}</span><button class="btn" type="button" data-unlink-record-project="${escapeHTMLAttr(pid)}">QUITAR</button></div>`}).join(""):`<div class="relation">SIN APARICIONES REGISTRADAS.</div>`;
   $("#addModal").classList.add("team-modal");
   $("#addModal .modal-card").innerHTML=`
     <h2>FICHA DE PERSONAJE</h2>
@@ -4667,8 +4737,9 @@ function openCharacterEditor(charId){
       ${c.logoMediaKey?`<div class="field full"><label><input id="removeCharLogo" type="checkbox"> ELIMINAR EMBLEMA ACTUAL</label></div>`:""}
     </div></div></details>
 
-    <details class="game-editor-section danger"><summary>${editorSectionSummary("GESTIÓN DEL REGISTRO","FUSIONAR O ELIMINAR CON PROTECCIÓN","!")}</summary><div class="game-editor-body">
-      <div class="game-editor-hint">FUSIONAR CONSERVA APARICIONES Y DATOS EN OTRO PERSONAJE. ELIMINAR SOLO SE PERMITE CUANDO ESTA IDENTIDAD NO TIENE APARICIONES.</div>
+    <details class="game-editor-section danger"><summary>${editorSectionSummary("GESTIÓN DEL REGISTRO","FUSIONAR · DESVINCULAR · ELIMINAR","!")}</summary><div class="game-editor-body">
+      <div class="game-editor-hint">PUEDES QUITAR ESTA IDENTIDAD DE UN PROYECTO SIN BORRAR SU FICHA. FUSIONAR TRASLADA SUS DATOS Y APARICIONES A OTRA IDENTIDAD. ELIMINAR SOLO SE HABILITA CUANDO YA NO TIENE APARICIONES.</div>
+      <label>APARICIONES REGISTRADAS · ${registeredApps.length}</label><div class="record-appearance-list">${registeredAppsHTML}</div>
       <div class="action-row"><button class="btn" id="mergeCharacterRecord" type="button">FUSIONAR CON OTRO</button><button class="btn danger-btn" id="deleteCharacterRecord" type="button">ELIMINAR PERSONAJE</button></div>
     </div></details>
 
@@ -4679,6 +4750,12 @@ function openCharacterEditor(charId){
   $("#editManageEarth").onclick=()=>{restoreAddModal();$("#addModal").classList.remove("show");openEarthEditor(c.earth)};
   $("#mergeCharacterRecord").onclick=()=>openCharacterMergeTool(charId);
   $("#deleteCharacterRecord").onclick=()=>attemptDeleteCharacter(charId);
+  $$('[data-unlink-record-project]').forEach(b=>b.onclick=()=>{
+    const pid=b.dataset.unlinkRecordProject;if(!pid)return;
+    if(removeCharacterAppearanceFromProject(charId,pid)){
+      if(fastCharacter(charId))openCharacterEditor(charId);
+    }
+  });
   $("#editCreateVariant").onclick=()=>{
     const source=fastCharacter(charId);if(!source)return;
     restoreAddModal();$("#addModal").classList.remove("show");
@@ -5489,7 +5566,7 @@ try{
 let peopleLetter="ALL";
 let selectedGeneralCharacters=new Set();
 
-applyArchiveYearCutoff();seedAllProjectRosters();repairDuplicateIdentities190();repairDeadpoolWolverine191();repairMovedCharacterIdentities();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();initializeProjectRewardBaselines();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
+applyArchiveYearCutoff();seedAllProjectRosters();repairDuplicateIdentities190();repairDeadpoolWolverine191();repairExactIdentityDuplicates193();repairMovedCharacterIdentities();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();initializeProjectRewardBaselines();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
 if((DATA.identityRepairReport||[]).length&&!DATA.identityRepairNoticeV1){
   DATA.identityRepairNoticeV1=true;saveData();
   setTimeout(()=>toast(`REPARACIÓN DE IDENTIDADES · ${DATA.identityRepairReport.length} CASO${DATA.identityRepairReport.length===1?"":"S"} CORREGIDO${DATA.identityRepairReport.length===1?"":"S"}`),450);
@@ -6094,7 +6171,7 @@ function openCharacterMergeTool(sourceId){
   const candidates=(DATA.characters||[]).filter(c=>c.id!==sourceId).sort((a,b)=>mergeCandidateScore(source,b)-mergeCandidateScore(source,a)||String(a.alias||a.real).localeCompare(String(b.alias||b.real),"es"));
   $("#addModal").classList.add("team-modal");
   $("#addModal .modal-card").innerHTML=`<h2>FUSIONAR PERSONAJE</h2><p><strong>${escapeHTML(source.alias||source.real)}</strong> SERÁ ABSORBIDO POR EL PERSONAJE QUE ELIJAS. SUS APARICIONES Y DATOS SE CONSERVAN.</p>
-    <div class="field full"><label>PERSONAJE QUE SE CONSERVA</label><select id="mergeCharacterTarget"><option value="">SELECCIONAR</option>${candidates.map(c=>`<option value="${escapeHTMLAttr(c.id)}">${escapeHTML(c.alias||c.real)} · ${escapeHTML(c.real)} · ${escapeHTML(fastUniverse(c.earth)?.name||c.earth||"ORIGEN DESCONOCIDO")}</option>`).join("")}</select></div>
+    <div class="field full"><label>PERSONAJE QUE SE CONSERVA</label><select id="mergeCharacterTarget"><option value="">SELECCIONAR</option>${candidates.map(c=>`<option value="${escapeHTMLAttr(c.id)}">${escapeHTML(c.alias||c.real)} · ${escapeHTML(c.real)} · ${escapeHTML(fastUniverse(c.earth)?.name||c.earth||"ORIGEN DESCONOCIDO")} · ${characterAppearanceIds(c.id).length} APAR.</option>`).join("")}</select></div>
     <div class="action-row"><button class="btn" id="cancelCharacterMerge">CANCELAR</button><button class="btn primary" id="confirmCharacterMerge">FUSIONAR</button></div>`;
   $("#addModal").classList.add("show");
   $("#cancelCharacterMerge").onclick=()=>{restoreAddModal();$("#addModal").classList.remove("show")};
