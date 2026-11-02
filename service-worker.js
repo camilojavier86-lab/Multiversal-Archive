@@ -1,8 +1,12 @@
-const CACHE_NAME="multiversal-archive-shell-v1.9.3";
+const CACHE_NAME="multiversal-archive-shell-v1.9.3.1";
 const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon-192.png","./icon-512.png"];
 
 self.addEventListener("install",event=>{
-  event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)));
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache=>cache.addAll(APP_SHELL))
+      .then(()=>self.skipWaiting())
+  );
 });
 
 self.addEventListener("activate",event=>{
