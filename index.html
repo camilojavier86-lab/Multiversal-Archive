@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.9.7 FINAL</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.9.8 FINAL</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -2470,6 +2470,25 @@ function normalizeRosterDuplicates197(){
     PROJECT_ROSTER_SEEDS[pid]=out;
   });
 }
+function ensureFirstAvengerRoster198(){
+  addRosterRows197("ca1",[
+    ["STEVE ROGERS","CAPTAIN AMERICA","HUMANO MEJORADO","heroes",["COMANDOS AULLADORES"],"616",""],
+    ["JAMES BUCHANAN BARNES","BUCKY BARNES","HUMANO","heroes",["COMANDOS AULLADORES"],"616",""],
+    ["PEGGY CARTER","AGENT CARTER","HUMANO","allies",["RESERVA CIENTÍFICA ESTRATÉGICA"],"616",""],
+    ["JOHANN SCHMIDT","RED SKULL","HUMANO MEJORADO","villains",["HYDRA"],"616",""],
+    ["ARNIM ZOLA","ARNIM ZOLA","HUMANO","villains",["HYDRA"],"616",""],
+    ["HOWARD STARK","HOWARD STARK","HUMANO","allies",["RESERVA CIENTÍFICA ESTRATÉGICA","INDUSTRIAS STARK"],"616",""],
+    ["ABRAHAM ERSKINE","ABRAHAM ERSKINE","HUMANO","allies",["RESERVA CIENTÍFICA ESTRATÉGICA"],"616",""],
+    ["CHESTER PHILLIPS","CHESTER PHILLIPS","HUMANO","allies",["RESERVA CIENTÍFICA ESTRATÉGICA"],"616",""],
+    ["TIMOTHY DUGAN","DUM DUM DUGAN","HUMANO","allies",["COMANDOS AULLADORES"],"616",""],
+    ["GABRIEL JONES","GABE JONES","HUMANO","allies",["COMANDOS AULLADORES"],"616",""],
+    ["JIM MORITA","JIM MORITA","HUMANO","allies",["COMANDOS AULLADORES"],"616",""],
+    ["JAMES MONTGOMERY FALSWORTH","JAMES FALSWORTH","HUMANO","allies",["COMANDOS AULLADORES"],"616",""],
+    ["JACQUES DERNIER","JACQUES DERNIER","HUMANO","allies",["COMANDOS AULLADORES"],"616",""],
+    ["NICHOLAS JOSEPH FURY","NICK FURY","HUMANO","cameos",["S.H.I.E.L.D."],"616",""]
+  ]);
+}
+
 function ensureGuardiansRoster197(){
   const classic=["DEVASTADORES","GUARDIANES DE LA GALAXIA ORIGINALES"];
   addRosterRows197("gotg1",[
@@ -2569,6 +2588,55 @@ function normalizeCanonicalRoster196(){
   APPEARANCE_STAGE_SEEDS_195["10005|JOHN ALLERDYCE"]={x2:["ETAPA ORIGINAL"],x3:["ETAPA ORIGINAL"],deadpoolwolverine:["ETAPA ACTUAL"]};
   APPEARANCE_STAGE_SEEDS_195["10005|VICTOR CREED"]={xmen1:["ETAPA ORIGINAL"],deadpoolwolverine:["ETAPA ACTUAL"]};
   APPEARANCE_STAGE_SEEDS_195["121347|MEPHISTOPHELES"]={ghostrider1:["MEPHISTOPHELES"],ghostrider2:["ROARKE"]};
+}
+
+function ensureCoreRosterAudit198(){
+  if((DATA.coreRosterAudit198||0)>=198)return;
+  ensureFirstAvengerRoster198();
+  normalizeRosterDuplicates197();
+  DATA.appearances=DATA.appearances||{};
+  DATA.images=DATA.images||{};
+
+  const pid="ca1",p=fastProject(pid);
+  if(p){
+    (PROJECT_ROSTER_SEEDS[pid]||[]).forEach(row=>{
+      const earth=row[5]||p.earth;
+      const {c,role}=ensureSeedCharacter(earth,row);
+      c.aff=uniqueTranslatedList([...(c.aff||[]),...(row[4]||[])]);
+      c.projects=[...new Set([...(c.projects||[]),pid])];
+      if(!castRolesFor(pid,c.id).length)linkCharacterToProject(c.id,pid,role||"allies","",row[6]||"");
+      const key=c.id+"|"+pid;
+      const app=DATA.appearances[key]||DATA.images[key];
+      if(app){
+        app.characterEarth=c.earth;
+        app.alias=app.alias||row[1]||c.alias;
+        DATA.appearances[key]={...(DATA.appearances[key]||{}),...app};
+        DATA.images[key]={...(DATA.images[key]||{}),...app};
+      }
+    });
+  }
+
+  // Exact identity duplicates can surface after old DEFAULT_DATA ids and seeded ids meet.
+  const groups=new Map();
+  (DATA.characters||[]).forEach(c=>{
+    const key=c.earth+"|"+norm(c.real);
+    if(!groups.has(key))groups.set(key,[]);
+    groups.get(key).push(c);
+  });
+  for(const group of groups.values()){
+    if(group.length<2)continue;
+    const sorted=[...group].sort((a,b)=>characterRichness190(b)-characterRichness190(a));
+    let keep=sorted[0];
+    for(const dup of sorted.slice(1))keep=mergeCharacterData190(keep,dup);
+  }
+
+  Object.values(DATA.projectCast||{}).forEach(cast=>{
+    ["heroes","villains","anti","allies","cameos"].forEach(role=>cast[role]=[...new Set(cast[role]||[])]);
+  });
+  DATA.coreRosterAudit198=198;
+  runtimeIndexesDirty=true;
+  saveData();
+  rebuildLibraryCatalog();
 }
 
 function ensureGlobalRosterAudit197(){
@@ -6430,7 +6498,7 @@ try{
 let peopleLetter="ALL";
 let selectedGeneralCharacters=new Set();
 
-ensureGuardiansRoster197();normalizeCanonicalRoster196();normalizeRosterDuplicates197();applyArchiveYearCutoff();seedAllProjectRosters();repairCassieCassandra196();ensureCatalogAudit194();repairCanonicalStageIdentities195();ensureStageAndAffiliationAudit195();repairDuplicateIdentities190();repairDeadpoolWolverine191();repairExactIdentityDuplicates193();repairMovedCharacterIdentities();repairIdentityAudit196();ensureGlobalRosterAudit197();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();initializeProjectRewardBaselines();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
+ensureFirstAvengerRoster198();ensureGuardiansRoster197();normalizeCanonicalRoster196();normalizeRosterDuplicates197();applyArchiveYearCutoff();seedAllProjectRosters();repairCassieCassandra196();ensureCatalogAudit194();repairCanonicalStageIdentities195();ensureStageAndAffiliationAudit195();repairDuplicateIdentities190();repairDeadpoolWolverine191();repairExactIdentityDuplicates193();repairMovedCharacterIdentities();repairIdentityAudit196();ensureGlobalRosterAudit197();ensureCoreRosterAudit198();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();initializeProjectRewardBaselines();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
 if((DATA.identityRepairReport||[]).length&&!DATA.identityRepairNoticeV1){
   DATA.identityRepairNoticeV1=true;saveData();
   setTimeout(()=>toast(`REPARACIÓN DE IDENTIDADES · ${DATA.identityRepairReport.length} CASO${DATA.identityRepairReport.length===1?"":"S"} CORREGIDO${DATA.identityRepairReport.length===1?"":"S"}`),450);
