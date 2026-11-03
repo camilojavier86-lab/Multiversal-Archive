@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.9.5.5 HOTFIX</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.9.6 FINAL</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -1998,10 +1998,15 @@ function repairDeadpoolWolverine170(){
   ensureArchiveUniverse("41578","TIERRA-41578","CONTINUIDAD X-MEN LEGACY","OFICIAL");
   ensureArchiveUniverse("unknown-origin","ORIGEN DESCONOCIDO","REALIDAD DE ORIGEN NO CONFIRMADA","DESCONOCIDO",true);
   const pid="deadpoolwolverine",specs=PROJECT_ROSTER_SEEDS[pid]||[],oldIds=projectAllCastIds(pid);
-  // Laura/X-23 was seeded under 10005 in older builds although this identity belongs to Earth-17315. Move that same record in place so its photo and Logan appearance are preserved.
-  const lauraOld=(DATA.characters||[]).find(c=>c.earth==="10005"&&norm(c.real)===norm("LAURA KINNEY"));
-  const lauraCorrect=(DATA.characters||[]).find(c=>c.earth==="17315"&&norm(c.real)===norm("LAURA KINNEY"));
-  if(lauraOld&&!lauraCorrect){lauraOld.earth="17315";Object.values(DATA.appearances||{}).forEach(a=>{if(a.characterId===lauraOld.id)a.characterEarth="17315"})}
+  // Laura/X-23 de Deadpool & Wolverine es la misma Laura de Logan.
+  // En el esquema de este álbum toda esa continuidad usa Tierra-10005.
+  const laura10005=(DATA.characters||[]).find(c=>c.earth==="10005"&&norm(c.real)===norm("LAURA KINNEY"));
+  const laura17315=(DATA.characters||[]).find(c=>c.earth==="17315"&&norm(c.real)===norm("LAURA KINNEY"));
+  if(laura17315&&!laura10005){
+    laura17315.earth="10005";
+    Object.values(DATA.appearances||{}).forEach(a=>{if(a.characterId===laura17315.id)a.characterEarth="10005"});
+    Object.values(DATA.images||{}).forEach(a=>{if(a.characterId===laura17315.id)a.characterEarth="10005"});
+  }
   // Keep the user's existing characters/photos. Remove only their incorrect link to this project before relinking correct identities.
   oldIds.forEach(id=>{const c=fastCharacter(id);if(!c)return;const key=`${id}|${pid}`;if(DATA.projectCast?.[pid])["heroes","villains","anti","allies","cameos"].forEach(r=>DATA.projectCast[pid][r]=(DATA.projectCast[pid][r]||[]).filter(x=>x!==id));if(DATA.appearances)delete DATA.appearances[key];if(DATA.images)delete DATA.images[key];c.projects=(c.projects||[]).filter(x=>x!==pid)});
   specs.forEach(row=>{
@@ -2423,6 +2428,203 @@ function mergeCharacterData190(target,source){
   (DATA.relationships||[]).forEach(r=>{if(r.a===source.id)r.a=target.id;if(r.b===source.id)r.b=target.id});
   DATA.characters=DATA.characters.filter(c=>c.id!==source.id);
   return target;
+}
+
+/* ===== AUDITORÍA GLOBAL 1.9.6 · IDENTIDAD CANÓNICA =====
+   Regla: una ubicación (EL VACÍO / TVA) no crea una Tierra.
+   Los alias compartidos no se fusionan; solo equivalencias investigadas y confirmadas. */
+function normalizeCanonicalRoster196(){
+  const rewrite=(pid,fromReal,toReal,toAlias=null,toEarth=undefined,toAff=null)=>{
+    PROJECT_ROSTER_SEEDS[pid]=(PROJECT_ROSTER_SEEDS[pid]||[]).map(row=>{
+      if(norm(row?.[0])!==norm(fromReal))return row;
+      const copy=[...row];
+      copy[0]=toReal;
+      if(toAlias!==null)copy[1]=toAlias;
+      if(toEarth!==undefined)copy[5]=toEarth;
+      if(toAff){
+        copy[4]=uniqueTranslatedList([...(copy[4]||[]),...toAff]);
+      }
+      return copy;
+    });
+  };
+  const ensureRow=(pid,row)=>{
+    PROJECT_ROSTER_SEEDS[pid]=PROJECT_ROSTER_SEEDS[pid]||[];
+    const earth=row[5]||fastProject(pid)?.earth||"";
+    const exists=PROJECT_ROSTER_SEEDS[pid].some(x=>
+      norm(x?.[0])===norm(row[0]) && (x?.[5]||fastProject(pid)?.earth||"")===earth
+    );
+    if(!exists)PROJECT_ROSTER_SEEDS[pid].push(row);
+  };
+
+  // Misma identidad, nombres distintos.
+  ["dp1","dp2"].forEach(pid=>rewrite(pid,"BLIND AL","ALTHEA","BLIND AL"));
+  rewrite("dp2","SHATTERSTAR","RUSTY","SHATTERSTAR",undefined,["X-FORCE"]);
+  rewrite("ghostrider2","ROARKE","MEPHISTOPHELES","ROARKE");
+  ["xfirstclass","dofp","apocalypse","darkphoenix"].forEach(pid=>rewrite(pid,"HANK MCCOY","HENRY MCCOY","BEAST"));
+  rewrite("apocalypse","ANGEL","WARREN WORTHINGTON III","ARCHANGEL");
+  rewrite("bravenewworld","BETTY ROSS","ELIZABETH ROSS","BETTY ROSS");
+  rewrite("endgame","PEPPER POTTS","VIRGINIA POTTS","RESCUE");
+  ["ant1","ant2","endgame","ant3"].forEach(pid=>rewrite(pid,"CASSIE LANG","CASSANDRA LANG","CASSIE LANG"));
+
+  // Deadpool & Wolverine: origen del personaje ≠ ubicación EL VACÍO.
+  rewrite("deadpoolwolverine","CASSANDRA NOVA","CASSANDRA NOVA","CASSANDRA NOVA","unknown-origin");
+  rewrite("deadpoolwolverine","LAURA KINNEY","LAURA KINNEY","X-23","10005");
+  rewrite("deadpoolwolverine","VICTOR CREED","VICTOR CREED","SABRETOOTH","10005");
+  rewrite("deadpoolwolverine","JOHN ALLERDYCE","JOHN ALLERDYCE","PYRO","10005");
+  rewrite("deadpoolwolverine","SHATTERSTAR","RUSTY","SHATTERSTAR","10005",["X-FORCE"]);
+  rewrite("deadpoolwolverine","RUSTY","RUSTY","SHATTERSTAR","10005",["X-FORCE"]);
+  rewrite("deadpoolwolverine","BLIND AL","ALTHEA","BLIND AL","10005");
+  rewrite("deadpoolwolverine","ALTHEA","ALTHEA","BLIND AL","10005");
+
+  // Peter W. / Peter Wisdom ya estaba en D&W; faltaba su primera aparición de Deadpool 2.
+  ensureRow("dp2",["PETER WISDOM","PETER","HUMANO","heroes",["X-FORCE"],"10005",""]);
+
+  // Etapas/manifestaciones de una misma identidad.
+  APPEARANCE_STAGE_SEEDS_195["10005|LAURA KINNEY"]={logan:["NIÑA"],deadpoolwolverine:["JOVEN"]};
+  APPEARANCE_STAGE_SEEDS_195["10005|JOHN ALLERDYCE"]={x2:["ETAPA ORIGINAL"],x3:["ETAPA ORIGINAL"],deadpoolwolverine:["ETAPA ACTUAL"]};
+  APPEARANCE_STAGE_SEEDS_195["10005|VICTOR CREED"]={xmen1:["ETAPA ORIGINAL"],deadpoolwolverine:["ETAPA ACTUAL"]};
+  APPEARANCE_STAGE_SEEDS_195["121347|MEPHISTOPHELES"]={ghostrider1:["MEPHISTOPHELES"],ghostrider2:["ROARKE"]};
+}
+
+function repairIdentityAudit196(){
+  if((DATA.identityAuditVersion196||0)>=196)return;
+  DATA.appearances=DATA.appearances||{};
+  DATA.images=DATA.images||{};
+  const report=[];
+
+  const refreshCharacterEarth=c=>{
+    if(!c)return;
+    Object.values(DATA.appearances||{}).forEach(a=>{if(a.characterId===c.id)a.characterEarth=c.earth});
+    Object.values(DATA.images||{}).forEach(a=>{if(a.characterId===c.id)a.characterEarth=c.earth});
+  };
+
+  const mergeNames=(earth,targetName,sourceNames,alias,extraAliases=[])=>{
+    let target=(DATA.characters||[]).find(c=>c.earth===earth&&norm(c.real)===norm(targetName));
+    const sources=(DATA.characters||[]).filter(c=>c.earth===earth&&sourceNames.some(n=>norm(c.real)===norm(n))&&(!target||c.id!==target.id));
+    if(!target&&sources.length){
+      target=sources.shift();
+      target.real=targetName;
+    }
+    if(!target)return null;
+    for(const source of [...sources]){
+      if(source.id===target.id)continue;
+      target=mergeCharacterData190(target,source);
+      report.push(targetName+" · identidad duplicada consolidada");
+    }
+    target.real=targetName;
+    if(alias)target.alias=alias;
+    target.aliases=[...new Set([alias,...extraAliases,...(target.aliases||[])].filter(Boolean))];
+    refreshCharacterEarth(target);
+    return target;
+  };
+
+  const mergeAcrossEarths=(targetEarth,targetName,earths,alias,stageFromEarth={})=>{
+    let target=(DATA.characters||[]).find(c=>c.earth===targetEarth&&norm(c.real)===norm(targetName));
+    let all=(DATA.characters||[]).filter(c=>earths.includes(c.earth)&&norm(c.real)===norm(targetName));
+    if(!target&&all.length){
+      target=all.sort((a,b)=>characterRichness190(b)-characterRichness190(a))[0];
+      target.earth=targetEarth;
+      refreshCharacterEarth(target);
+    }
+    if(!target)return null;
+    target.stageMedia=target.stageMedia||{};
+    all=(DATA.characters||[]).filter(c=>earths.includes(c.earth)&&norm(c.real)===norm(targetName));
+    for(const source of [...all]){
+      if(source.id===target.id)continue;
+      const stage=stageFromEarth[source.earth];
+      if(stage&&source.masterMediaKey&&!target.stageMedia[stage])target.stageMedia[stage]=source.masterMediaKey;
+      target=mergeCharacterData190(target,source);
+      report.push(targetName+" · Tierra/origen duplicado consolidado");
+    }
+    target.earth=targetEarth;
+    if(alias)target.alias=alias;
+    target.aliases=[...new Set([alias,...(target.aliases||[])].filter(Boolean))];
+    refreshCharacterEarth(target);
+    return target;
+  };
+
+  // 1–8: equivalencias de nombre canónico.
+  const althea=mergeNames("10005","ALTHEA",["BLIND AL"],"BLIND AL",["ALTHEA"]);
+  if(althea){
+    ["dp1","dp2"].forEach(pid=>linkCharacterToProject(althea.id,pid,"allies","",""));
+    linkCharacterToProject(althea.id,"deadpoolwolverine","allies","","");
+  }
+
+  const shatter=mergeNames("10005","RUSTY",["SHATTERSTAR"],"SHATTERSTAR",["RUSTY"]);
+  if(shatter){
+    shatter.aff=uniqueTranslatedList([...(shatter.aff||[]),"X-FORCE"]);
+    linkCharacterToProject(shatter.id,"dp2","heroes","X-FORCE","");
+    linkCharacterToProject(shatter.id,"deadpoolwolverine","allies","X-FORCE","");
+  }
+
+  mergeNames("10005","HENRY MCCOY",["HANK MCCOY"],"BEAST",["HANK MCCOY"]);
+  mergeNames("10005","WARREN WORTHINGTON III",["ANGEL"],"ARCHANGEL",["ANGEL"]);
+  mergeNames("616","CASSANDRA LANG",["CASSIE LANG"],"CASSIE LANG",["STATURE","STINGER"]);
+  mergeNames("616","ELIZABETH ROSS",["BETTY ROSS"],"BETTY ROSS",["BETTY ROSS"]);
+  mergeNames("616","VIRGINIA POTTS",["PEPPER POTTS"],"PEPPER POTTS",["RESCUE"]);
+
+  const mephisto=mergeNames("121347","MEPHISTOPHELES",["ROARKE"],"MEPHISTO",["ROARKE","MEPHISTOPHELES"]);
+  if(mephisto){
+    linkCharacterToProject(mephisto.id,"ghostrider1","villains","","",["MEPHISTOPHELES"]);
+    linkCharacterToProject(mephisto.id,"ghostrider2","villains","","",["ROARKE"]);
+  }
+
+  // 9: Cassandra Nova — una sola identidad live action; El Vacío es ubicación.
+  const cassandra=mergeAcrossEarths("unknown-origin","CASSANDRA NOVA",["unknown-origin","10005","void"],"CASSANDRA NOVA");
+  if(cassandra)linkCharacterToProject(cassandra.id,"deadpoolwolverine","villains","","EL VACÍO");
+
+  // 10: Laura de D&W es la misma Laura de Logan dentro del esquema Tierra-10005 del álbum.
+  const laura=mergeAcrossEarths("10005","LAURA KINNEY",["10005","17315"],"X-23",{"17315":"JOVEN"});
+  if(laura){
+    laura.stageMedia=laura.stageMedia||{};
+    if(laura.masterMediaKey&&!laura.stageMedia["NIÑA"])laura.stageMedia["NIÑA"]=laura.masterMediaKey;
+    linkCharacterToProject(laura.id,"logan","heroes","","",["NIÑA"]);
+    linkCharacterToProject(laura.id,"deadpoolwolverine","cameos","","EL VACÍO",["JOVEN"]);
+  }
+
+  // 11–12: mismos Pyro y Sabretooth que regresan de la rama X-Men del álbum.
+  const pyro=mergeAcrossEarths("10005","JOHN ALLERDYCE",["10005","41578"],"PYRO",{"41578":"ETAPA ACTUAL"});
+  if(pyro)linkCharacterToProject(pyro.id,"deadpoolwolverine","villains","","EL VACÍO",["ETAPA ACTUAL"]);
+
+  const sabretooth=mergeAcrossEarths("10005","VICTOR CREED",["10005","41578"],"SABRETOOTH",{"41578":"ETAPA ACTUAL"});
+  if(sabretooth)linkCharacterToProject(sabretooth.id,"deadpoolwolverine","villains","","EL VACÍO",["ETAPA ACTUAL"]);
+
+  // Aparición faltante: Peter W. / Peter Wisdom en Deadpool 2 y D&W.
+  let peter=(DATA.characters||[]).find(c=>c.earth==="10005"&&norm(c.real)===norm("PETER WISDOM"));
+  if(!peter){
+    peter={id:stableSeedId("10005","PETER WISDOM"),earth:"10005",real:"PETER WISDOM",alias:"PETER",aliases:["PETER","PETERPOOL"],nature:"HUMANO",status:"VIVO",aff:["X-FORCE"],relations:[],projects:[],outfits:[],source:"CATALOG"};
+    DATA.characters.push(peter);
+    report.push("PETER WISDOM · aparición faltante restaurada");
+  }
+  peter.alias="PETER";
+  peter.aliases=[...new Set(["PETER","PETERPOOL",...(peter.aliases||[])])];
+  peter.aff=uniqueTranslatedList([...(peter.aff||[]),"X-FORCE"]);
+  linkCharacterToProject(peter.id,"dp2","heroes","X-FORCE","");
+  linkCharacterToProject(peter.id,"deadpoolwolverine","allies","","");
+
+  // Los villanos recasteados del Vacío permanecen como ORIGEN DESCONOCIDO:
+  // no hay evidencia suficiente para fusionarlos con sus homónimos Tierra-10005.
+  Object.values(DATA.projectCast||{}).forEach(cast=>{
+    ["heroes","villains","anti","allies","cameos"].forEach(role=>{
+      cast[role]=[...new Set(cast[role]||[])];
+    });
+  });
+  (DATA.characters||[]).forEach(normalizeCharacterProjectLinks);
+  dedupeRelationshipEdges();
+
+  // Oculta ramas auxiliares que quedaron sin proyectos/personajes tras la consolidación.
+  ["17315","41578"].forEach(eid=>{
+    const hasProject=(DATA.productions||[]).some(p=>p.earth===eid);
+    const hasCharacter=(DATA.characters||[]).some(c=>c.earth===eid);
+    const u=(DATA.universes||[]).find(x=>x.id===eid);
+    if(u&&!hasProject&&!hasCharacter)u.hiddenFromMap=true;
+  });
+
+  DATA.identityAuditVersion196=196;
+  DATA.identityAuditReport196=report;
+  runtimeIndexesDirty=true;
+  saveData();
+  rebuildLibraryCatalog();
 }
 
 function repairCanonicalStageIdentities195(){
@@ -6074,7 +6276,7 @@ try{
 let peopleLetter="ALL";
 let selectedGeneralCharacters=new Set();
 
-applyArchiveYearCutoff();seedAllProjectRosters();repairCassieCassandra196();ensureCatalogAudit194();repairCanonicalStageIdentities195();ensureStageAndAffiliationAudit195();repairDuplicateIdentities190();repairDeadpoolWolverine191();repairExactIdentityDuplicates193();repairMovedCharacterIdentities();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();initializeProjectRewardBaselines();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
+normalizeCanonicalRoster196();applyArchiveYearCutoff();seedAllProjectRosters();repairCassieCassandra196();ensureCatalogAudit194();repairCanonicalStageIdentities195();ensureStageAndAffiliationAudit195();repairDuplicateIdentities190();repairDeadpoolWolverine191();repairExactIdentityDuplicates193();repairMovedCharacterIdentities();repairIdentityAudit196();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();initializeProjectRewardBaselines();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
 if((DATA.identityRepairReport||[]).length&&!DATA.identityRepairNoticeV1){
   DATA.identityRepairNoticeV1=true;saveData();
   setTimeout(()=>toast(`REPARACIÓN DE IDENTIDADES · ${DATA.identityRepairReport.length} CASO${DATA.identityRepairReport.length===1?"":"S"} CORREGIDO${DATA.identityRepairReport.length===1?"":"S"}`),450);
@@ -6720,7 +6922,9 @@ function possibleDuplicateGroups(){
   for(let i=0;i<chars.length;i++)for(let j=i+1;j<chars.length;j++){
     const a=chars[i],b=chars[j];
     if(a.earth===b.earth&&norm(a.real)===norm(b.real))add(a,b,"MISMO NOMBRE + TIERRA");
-    if(a.earth===b.earth&&norm(a.alias||a.real)===norm(b.alias||b.real))add(a,b,"MISMO ALIAS + TIERRA");
+    const sharedMantles=new Set(["BLACK WIDOW","HAWKEYE","CAPTAIN AMERICA","FALCON","ANT MAN","WASP","BLACK PANTHER","GREEN GOBLIN","SPIDER WOMAN","VENOM","RIOT","CARNAGE"]);
+    const aliasA=norm(a.alias||a.real),aliasB=norm(b.alias||b.real);
+    if(a.earth===b.earth&&aliasA===aliasB&&!sharedMantles.has(aliasA))add(a,b,"MISMO ALIAS + TIERRA");
     if(a.earth===b.earth&&(norm(a.real)===norm(b.alias)||norm(b.real)===norm(a.alias)))add(a,b,"NOMBRE / ALIAS COINCIDENTE");
     const contextEarths=new Set(["void","unknown-origin"]);
     if(a.earth!==b.earth&&norm(a.real)===norm(b.real)&&norm(a.alias||a.real)===norm(b.alias||b.real)&&(contextEarths.has(a.earth)||contextEarths.has(b.earth)))add(a,b,"MISMA IDENTIDAD · ORIGEN/CONTEXTO DISTINTO");
