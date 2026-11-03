@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.9.9 SAFE</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.10.0 ALIAS</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -1621,7 +1621,7 @@ const GROUP_TRANSLATIONS={
   "NEW MUTANTS":"NUEVOS MUTANTES",
   "HELLFIRE CLUB":"CLUB FUEGO INFERNAL",
   "BROTHERHOOD OF MUTANTS":"HERMANDAD DE MUTANTES",
-  "BROTHERHOOD OF EVIL MUTANTS":"HERMANDAD DE MUTANTES"
+  "BROTHERHOOD OF EVIL MUTANTS":"HERMANDAD DE MUTANTES","FOUR HORSEMEN":"CUATRO JINETES DEL APOCALIPSIS"
 };
 const GROUP_CANONICAL_ALIASES={
   "AVENGER":"VENGADORES","AVENGERS":"VENGADORES","THE AVENGERS":"VENGADORES","VENGADOR":"VENGADORES","VENGADORES":"VENGADORES",
@@ -1632,7 +1632,7 @@ const GROUP_CANONICAL_ALIASES={
   "YOUNG AVENGERS":"JÓVENES VENGADORES","JOVENES VENGADORES":"JÓVENES VENGADORES",
   "TEN RINGS":"DIEZ ANILLOS","THE TEN RINGS":"DIEZ ANILLOS","DIEZ ANILLOS":"DIEZ ANILLOS",
   "RAVAGERS":"DEVASTADORES","DEVASTADORES":"DEVASTADORES","ILLUMINATI":"ILLUMINATI","DORA MILAJE":"DORA MILAJE",
-  "TVA":"TVA","KREE":"KREE","BLACK ORDER":"ORDEN NEGRA","ORDEN NEGRA":"ORDEN NEGRA"
+  "TVA":"TVA","KREE":"KREE","BLACK ORDER":"ORDEN NEGRA","ORDEN NEGRA":"ORDEN NEGRA","FOUR HORSEMEN":"CUATRO JINETES DEL APOCALIPSIS","CUATRO JINETES DEL APOCALIPSIS":"CUATRO JINETES DEL APOCALIPSIS"
 };
 const CUSTOM_GROUP_ALIASES={};
 function groupAliasKey(value){return norm(value).replace(/[^A-Z0-9]+/g," ").trim()}
@@ -2603,6 +2603,21 @@ function normalizeDefendersSource199(){
     (rows||[]).forEach(row=>{if(!row[5]||row[5]==="tv-defenders")row[5]="616"});
   });
 }
+function ensureAliasIdentityModel110(){
+  if((DATA.aliasIdentityModel110||0)>=110)return;
+  const setAppearance=(earth,real,pid,alias,aff=[])=>{
+    const c=(DATA.characters||[]).find(x=>x.earth===earth&&norm(x.real)===norm(real));if(!c)return;
+    const key=c.id+"|"+pid,app=DATA.appearances?.[key]||DATA.images?.[key];if(!app)return;
+    app.alias=String(alias||c.alias||c.real).toUpperCase();DATA.appearances[key]={...(DATA.appearances[key]||{}),...app};DATA.images[key]={...(DATA.images[key]||{}),...app};
+    c.aliases=[...new Set([...(c.aliases||[c.alias]),app.alias].filter(Boolean))];if(aff.length)c.aff=uniqueTranslatedList([...(c.aff||[]),...aff]);
+  };
+  setAppearance("616","SAM WILSON","bravenewworld","CAPTAIN AMERICA");
+  setAppearance("616","CLINT BARTON","endgame","RONIN");
+  setAppearance("10005","WARREN WORTHINGTON III","x3","ANGEL");
+  setAppearance("10005","WARREN WORTHINGTON III","apocalypse","ARCHANGEL",["CUATRO JINETES DEL APOCALIPSIS"]);
+  DATA.aliasIdentityModel110=110;runtimeIndexesDirty=true;saveData();rebuildLibraryCatalog();
+}
+
 function ensureSafeContinuityAndAffiliation199(){
   if((DATA.safeContinuityAffiliation199||0)>=199)return;
   normalizeDefendersSource199();
@@ -4522,6 +4537,17 @@ function characterStageMediaKey(c,stage){
   const key=normalizeStageLabel(stage);
   return key?(c?.stageMedia?.[key]||""):"";
 }
+function appearanceAliasChanged(c,appearance){
+  const shown=String(appearance?.alias||c?.alias||c?.real||"").trim();
+  const base=String(c?.alias||c?.real||"").trim();
+  return !!shown&&!!base&&norm(shown)!==norm(base);
+}
+function appearanceDisplayMediaKey(c,appearance,stage=""){
+  if(appearance?.mediaKey)return appearance.mediaKey;
+  if(appearanceAliasChanged(c,appearance))return "";
+  const stageKey=stage?characterStageMediaKey(c,stage):"";
+  return stageKey||(c?.masterMediaKey||"");
+}
 function appearancePrimaryStage(appearance){
   const stages=appearanceStageList(appearance);
   const explicit=normalizeStageLabel(appearance?.primaryStage||"");
@@ -4540,8 +4566,8 @@ function figureProgressForProject(pid){
   const slots=projectFigureSlots(pid);
   let done=0;
   slots.forEach(slot=>{
-    const c=runtimeCharacterById.get(slot.id);
-    const mediaKey=slot.stage?(characterStageMediaKey(c,slot.stage)||c?.masterMediaKey):c?.masterMediaKey;
+    const c=runtimeCharacterById.get(slot.id),appearance=appearanceFor(slot.id,pid)||{};
+    const mediaKey=appearanceDisplayMediaKey(c,appearance,slot.stage);
     if(mediaKey)done++;
   });
   const result={done,total:slots.length,percent:slots.length?Math.round(done*100/slots.length):0};
@@ -4551,14 +4577,9 @@ function figureProgressForProject(pid){
 function globalFigureProgress(){
   ensureRuntimeIndexes();
   if(runtimeGlobalProgressCache)return runtimeGlobalProgressCache;
-  const ids=new Set();
-  (DATA.productions||[]).forEach(p=>projectAllCastIds(p.id).forEach(id=>ids.add(id)));
-  let done=0;
-  ids.forEach(id=>{
-    const c=runtimeCharacterById.get(id);
-    if(c?.masterMediaKey||Object.values(c?.stageMedia||{}).some(Boolean))done++;
-  });
-  runtimeGlobalProgressCache={done,total:ids.size,percent:ids.size?Math.round(done*100/ids.size):0};
+  const entries=visualAliasIdentityEntries();
+  const done=entries.filter(e=>!!e.mediaKey).length;
+  runtimeGlobalProgressCache={done,total:entries.length,percent:entries.length?Math.round(done*100/entries.length):0};
   return runtimeGlobalProgressCache;
 }
 function renderGlobalProgress(){
@@ -4747,6 +4768,7 @@ async function renderProduction(){
   $$("#castRoot [data-character]").forEach(b=>b.onclick=()=>openCharacter(b.dataset.character,b.dataset.characterStage||""));
   $$("#castRoot [data-project-faction]").forEach(b=>b.onclick=()=>showProjectFaction(p.id,b.dataset.projectFaction));
   $$("#castRoot [data-add-image-character]").forEach(b=>b.onclick=()=>openMissingCharacterPhotoPicker(b.dataset.addImageCharacter,b.dataset.projectContext));
+  $$("#castRoot [data-add-appearance-image-character]").forEach(b=>b.onclick=()=>openMissingCharacterAppearancePhotoPicker(b.dataset.addAppearanceImageCharacter,b.dataset.projectContext));
   $$("#castRoot [data-add-stage-image-character]").forEach(b=>b.onclick=()=>openMissingCharacterStagePhotoPicker(b.dataset.addStageImageCharacter,b.dataset.stageLabel,b.dataset.projectContext));
   $$("#castRoot [data-repair-pending]").forEach(b=>b.onclick=()=>{
     const pid=b.dataset.projectContext||currentProduction,id=b.dataset.repairPending||"";
@@ -4793,23 +4815,28 @@ function charCard(id,projectId,index=0,overrideColors=[]){
   const theme=projectTheme(fastProject(projectId),overrideColors);
   const renderOne=(stage,subIndex)=>{
     const label=normalizeStageLabel(stage);
+    const aliasChanged=appearanceAliasChanged(c,appearance);
     const stageMediaKey=label?characterStageMediaKey(c,label):"";
-    const mediaKey=stageMediaKey||(c.masterMediaKey||"");
-    const needsStagePhoto=!!label&&!stageMediaKey;
+    const mediaKey=appearanceDisplayMediaKey(c,appearance,label);
+    const needsStagePhoto=!aliasChanged&&!!label&&!stageMediaKey;
+    const needsAliasPhoto=aliasChanged&&!appearance.mediaKey;
     const openAttrs=mediaKey
       ? 'data-character="'+escapeHTMLAttr(id)+'" data-character-stage="'+escapeHTMLAttr(label)+'"'
-      : label
-        ? 'data-add-stage-image-character="'+escapeHTMLAttr(id)+'" data-stage-label="'+escapeHTMLAttr(label)+'"'
-        : 'data-add-image-character="'+escapeHTMLAttr(id)+'"';
+      : needsAliasPhoto
+        ? 'data-add-appearance-image-character="'+escapeHTMLAttr(id)+'"'
+        : label
+          ? 'data-add-stage-image-character="'+escapeHTMLAttr(id)+'" data-stage-label="'+escapeHTMLAttr(label)+'"'
+          : 'data-add-image-character="'+escapeHTMLAttr(id)+'"';
     return '<div class="char-tile">'+
       '<button class="char-card '+(mediaKey?'has-portrait':'')+'" '+openAttrs+' data-project-context="'+escapeHTMLAttr(projectId)+'" style="--halo1:'+theme[0]+';--halo2:'+theme[1]+';--halo3:'+theme[2]+';--ignite-delay:'+Math.min(index+subIndex,8)*55+'ms">'+
         '<span class="status-light '+statusClass(c.status)+'" title="'+escapeHTMLAttr(c.status)+'"></span>'+
-        '<span class="portrait '+(mediaKey?'has-image':'')+'" data-character-media="'+escapeHTMLAttr(mediaKey)+'" data-character-fallback-media="'+escapeHTMLAttr(label&&stageMediaKey?(c.masterMediaKey||""):"")+'">'+
-          (mediaKey?'<img class="hidden" alt="'+escapeHTMLAttr(c.real+(label?' · '+label:''))+'">':'<span class="char-empty"><span><b>＋</b>'+(label?'FOTO DE ETAPA':'CARGAR FOTO')+'</span></span>')+
+        '<span class="portrait '+(mediaKey?'has-image':'')+'" data-character-media="'+escapeHTMLAttr(mediaKey)+'">'+
+          (mediaKey?'<img class="hidden" alt="'+escapeHTMLAttr(c.real+' · '+(shownAlias||""))+'">':'<span class="char-empty"><span><b>＋</b>'+(needsAliasPhoto?'FOTO DE '+escapeHTML(shownAlias||"ALIAS"):(label?'FOTO DE ETAPA':'CARGAR FOTO'))+'</span></span>')+
         '</span>'+
       '</button>'+
       '<div class="char-label"><strong>'+escapeHTML(c.real)+'</strong><span>'+escapeHTML(shownAlias||"")+'</span>'+
-        (label?'<span class="char-earth">ETAPA · '+escapeHTML(label)+(needsStagePhoto?' · FOTO MAESTRA TEMPORAL':'')+'</span>':'')+
+        (needsAliasPhoto?'<span class="char-earth">IDENTIDAD · '+escapeHTML(shownAlias||"")+' · FOTO PENDIENTE</span>':'')+
+        (label&&!aliasChanged?'<span class="char-earth">ETAPA · '+escapeHTML(label)+(needsStagePhoto?' · FOTO MAESTRA TEMPORAL':'')+'</span>':'')+
         (needsStagePhoto?'<button class="stage-photo-mini" type="button" data-add-stage-image-character="'+escapeHTMLAttr(id)+'" data-stage-label="'+escapeHTMLAttr(label)+'" data-project-context="'+escapeHTMLAttr(projectId)+'">＋ FOTO DE ETAPA</button>':'')+
         '<span class="char-earth">'+escapeHTML(fastUniverse(c.earth)?.name||c.earth||"ORIGEN DESCONOCIDO")+(appearance.location?' · '+escapeHTML(appearance.location):'')+'</span></div>'+
     '</div>';
@@ -4920,7 +4947,7 @@ async function renderCharacter(){
   const photo=$("#profilePhoto");photo.className="profile-photo"+(c.status==="MUERTO"?" dead":(["DESAPARECIDO","DESCONOCIDO"].includes(c.status)?" unknown":""));
   photo.innerHTML="";
   currentFullImageURL=null;
-  const profileMediaKey=currentCharacterStage?(characterStageMediaKey(c,currentCharacterStage)||c.masterMediaKey||""):(c.masterMediaKey||"");
+  const profileMediaKey=appearanceDisplayMediaKey(c,currentApp,currentCharacterStage);
   if(profileMediaKey){
     const url=await getMediaURL(profileMediaKey);
     if(url){photo.innerHTML=`<img src="${url}" alt="${c.real}${currentCharacterStage?` · ${currentCharacterStage}`:""}">`;applyStoredMediaFrame(photo,profileMediaKey,"portrait");currentFullImageURL=url}
@@ -4937,8 +4964,9 @@ async function renderCharacter(){
   }
   const photoMenu=$("#profilePhotoMenu");
   if(photoMenu){
+    const aliasSpecific=appearanceAliasChanged(c,currentApp);
     const hasSpecificStagePhoto=!currentCharacterStage||!!characterStageMediaKey(c,currentCharacterStage);
-    photoMenu.classList.toggle("hidden",!profileMediaKey||!hasSpecificStagePhoto);
+    photoMenu.classList.toggle("hidden",!profileMediaKey||(!aliasSpecific&&!hasSpecificStagePhoto));
     photoMenu.onclick=e=>{
       e.stopPropagation();
       openCharacterPhotoMenu(c.id,currentProduction,currentCharacterStage);
@@ -5787,29 +5815,18 @@ async function saveCharacterEditor(charId){
 
 function openCharacterPhotoMenu(charId,projectId,stage=""){
   const c=DATA.characters.find(x=>x.id===charId);if(!c)return;
-  const label=normalizeStageLabel(stage),mediaKey=label?characterStageMediaKey(c,label):(c.masterMediaKey||"");
+  const app=appearanceFor(charId,projectId)||{},label=normalizeStageLabel(stage),aliasSpecific=appearanceAliasChanged(c,app);
+  const mediaKey=appearanceDisplayMediaKey(c,app,label),shownAlias=app.alias||c.alias||c.real;
   $("#addModal .modal-card").innerHTML=
-    '<h2>FOTO · '+escapeHTML(c.real)+(label?' · '+escapeHTML(label):'')+'</h2>'+
-    '<p>'+(label?'ESTA FOTO PERTENECE A LA ETAPA '+escapeHTML(label)+' Y SE REUTILIZA SOLO DONDE ESA ETAPA ESTÁ REGISTRADA.':'ESTA ES LA IMAGEN MAESTRA Y SE REUTILIZA EN LAS APARICIONES SIN ETAPA ESPECÍFICA.')+'</p>'+
-    '<div class="choice-grid">'+
-      '<button class="choice" id="adjustCharacterPhoto" type="button">AJUSTAR ENCUADRE</button>'+
-      '<button class="choice" id="replaceCharacterPhoto" type="button">CAMBIAR FOTO</button>'+
-      '<button class="choice" id="deleteCharacterPhoto" type="button">ELIMINAR FOTO</button>'+
-    '</div><div class="action-row"><button class="btn" id="closePhotoMenu">CERRAR</button></div>';
+    '<h2>FOTO · '+escapeHTML(c.real)+(aliasSpecific?' · '+escapeHTML(shownAlias):(label?' · '+escapeHTML(label):''))+'</h2>'+
+    '<p>'+(aliasSpecific?'ESTA FOTO PERTENECE A LA IDENTIDAD '+escapeHTML(shownAlias)+' EN ESTE PROYECTO. NO REEMPLAZA LA FOTO DE OTROS ALIAS.':label?'ESTA FOTO PERTENECE A LA ETAPA '+escapeHTML(label)+' Y SE REUTILIZA SOLO DONDE ESA ETAPA ESTÁ REGISTRADA.':'ESTA ES LA IMAGEN MAESTRA DEL ALIAS BASE Y SE REUTILIZA DONDE NO HAY OTRA IDENTIDAD VISUAL.')+'</p>'+
+    '<div class="choice-grid"><button class="choice" id="adjustCharacterPhoto" type="button">AJUSTAR ENCUADRE</button><button class="choice" id="replaceCharacterPhoto" type="button">CAMBIAR FOTO</button><button class="choice" id="deleteCharacterPhoto" type="button">ELIMINAR FOTO</button></div><div class="action-row"><button class="btn" id="closePhotoMenu">CERRAR</button></div>';
   $("#addModal").classList.add("show");
   $("#closePhotoMenu").onclick=()=>{restoreAddModal();$("#addModal").classList.remove("show")};
-  $("#adjustCharacterPhoto").onclick=()=>{restoreAddModal();$("#addModal").classList.remove("show");openExistingMediaFrame(mediaKey,"portrait","AJUSTAR · "+c.real+(label?" · "+label:""),()=>{if(currentCharacter===charId)renderCharacter();if(currentProduction)renderProduction();renderLibraryResults()})};
-  $("#replaceCharacterPhoto").onclick=()=>{
-    restoreAddModal();$("#addModal").classList.remove("show");
-    pickImageFromGallery(file=>label?replaceCharacterStagePhoto(charId,label,file,projectId):replaceCharacterMasterPhoto(charId,file,projectId));
-  };
-  $("#deleteCharacterPhoto").onclick=async()=>{
-    if(!confirm(label?"ELIMINAR LA FOTO DE ETAPA "+label+" DE "+c.real+"?":"ELIMINAR LA FOTO MAESTRA DE "+c.real+"?"))return;
-    restoreAddModal();$("#addModal").classList.remove("show");
-    if(label)await removeCharacterStagePhoto(charId,label,projectId);else await removeCharacterMasterPhoto(charId,projectId);
-  };
+  $("#adjustCharacterPhoto").onclick=()=>{restoreAddModal();$("#addModal").classList.remove("show");openExistingMediaFrame(mediaKey,"portrait","AJUSTAR · "+c.real+(aliasSpecific?" · "+shownAlias:(label?" · "+label:"")),()=>{if(currentCharacter===charId)renderCharacter();if(currentProduction)renderProduction();renderLibraryResults()})};
+  $("#replaceCharacterPhoto").onclick=()=>{restoreAddModal();$("#addModal").classList.remove("show");pickImageFromGallery(file=>aliasSpecific?replaceCharacterAppearancePhoto(charId,projectId,file):label?replaceCharacterStagePhoto(charId,label,file,projectId):replaceCharacterMasterPhoto(charId,file,projectId))};
+  $("#deleteCharacterPhoto").onclick=async()=>{if(!confirm("ELIMINAR ESTA FOTO DE "+c.real+"?"))return;restoreAddModal();$("#addModal").classList.remove("show");if(aliasSpecific)await removeCharacterAppearancePhoto(charId,projectId);else if(label)await removeCharacterStagePhoto(charId,label,projectId);else await removeCharacterMasterPhoto(charId,projectId)};
 }
-
 async function replaceCharacterStagePhoto(charId,stage,file,projectId){
   const c=fastCharacter(charId),label=normalizeStageLabel(stage);if(!c||!label||!file)return;
   c.stageMedia=c.stageMedia||{};
@@ -6210,6 +6227,46 @@ function pickImageFromGallery(onFile){
   document.body.appendChild(input);
   input.click();
 }
+function openMissingCharacterAppearancePhotoPicker(charId,projectId){
+  const c=fastCharacter(charId),app=appearanceFor(charId,projectId);if(!c||!app)return;
+  pickImageFromGallery(file=>replaceCharacterAppearancePhoto(charId,projectId,file));
+}
+async function replaceCharacterAppearancePhoto(charId,projectId,file){
+  const c=fastCharacter(charId),app=appearanceFor(charId,projectId);if(!c||!app||!file)return;
+  const key=charId+"|"+projectId,oldKey=app.mediaKey||"";
+  const safe=String(app.alias||c.alias||c.real||"alias").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"");
+  const newKey="appearance-alias:"+charId+":"+projectId+":"+safe+":"+Date.now();
+  try{
+    await putMedia(newKey,file);
+    app.mediaKey=newKey;DATA.appearances[key]=app;DATA.images[key]={...(DATA.images[key]||{}),...app};
+    setMediaFrame(newKey,{x:50,y:50,zoom:1},"portrait",false);saveData();
+    setUndoAction({label:"CAMBIAR FOTO DE ALIAS",characterId:charId,cleanup:oldKey?()=>deleteMediaKey(oldKey):null,undo:async()=>{
+      const target=appearanceFor(charId,projectId);if(!target)return;
+      if(oldKey)target.mediaKey=oldKey;else delete target.mediaKey;
+      DATA.appearances[key]=target;DATA.images[key]={...(DATA.images[key]||{}),...target};saveData();await deleteMediaKey(newKey);
+    }});
+    renderGlobalProgress();renderTimeline();await checkProjectProgressReward(projectId,{allowCelebration:true});
+    if(currentProduction===projectId)await renderProduction();
+    if(currentCharacter===charId)await renderCharacter();
+    renderLibraryResults();toast("FOTO DE "+String(app.alias||c.alias||"ALIAS").toUpperCase()+" ACTUALIZADA");
+    const url=await getMediaURL(newKey);
+    if(url)openMediaFrameEditor({key:newKey,url,kind:"portrait",title:"AJUSTAR · "+c.real+" · "+(app.alias||c.alias||""),onSave:()=>{if(currentProduction===projectId)renderProduction();if(currentCharacter===charId)renderCharacter();renderLibraryResults()}});
+  }catch(e){toast("NO SE PUDO GUARDAR LA FOTO DE ESTA IDENTIDAD")}
+}
+async function removeCharacterAppearancePhoto(charId,projectId){
+  const app=appearanceFor(charId,projectId);if(!app?.mediaKey)return;
+  const key=charId+"|"+projectId,oldKey=app.mediaKey;delete app.mediaKey;
+  DATA.appearances[key]=app;DATA.images[key]={...(DATA.images[key]||{}),...app};saveData();
+  setUndoAction({label:"ELIMINAR FOTO DE ALIAS",characterId:charId,undo:async()=>{
+    const target=appearanceFor(charId,projectId);if(!target)return;
+    target.mediaKey=oldKey;DATA.appearances[key]=target;DATA.images[key]={...(DATA.images[key]||{}),...target};saveData();
+  }});
+  renderGlobalProgress();renderTimeline();
+  if(currentProduction===projectId)await renderProduction();
+  if(currentCharacter===charId)await renderCharacter();
+  renderLibraryResults();toast("FOTO DE IDENTIDAD ELIMINADA · PUEDES DESHACER");
+}
+
 function openMissingCharacterPhotoPicker(charId,projectId){
   const c=fastCharacter(charId);if(!c)return;
   pickImageFromGallery(file=>replaceCharacterMasterPhoto(charId,file,projectId));
@@ -6303,29 +6360,35 @@ async function registerImage(){
     DATA.projectCast[pid][role].push(charId);
   }
 
-  // One global master image per character. Existing image is reusable, so a new upload is not required.
+  const appearanceAlias=($("#imageAlias").value||c.alias||c.real).toUpperCase();
+  const aliasChanged=norm(appearanceAlias)!==norm(c.alias||c.real);
+  let uploadedAppearanceKey="";
   if(file||draft.hasMedia){
-    const masterKey=`character-master:${charId}:${Date.now()}`;
+    const safeAlias=appearanceAlias.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"");
+    const mediaKey=aliasChanged?`appearance-alias:${charId}:${pid}:${safeAlias}:${Date.now()}`:`character-master:${charId}:${Date.now()}`;
     try{
-      if(file)await putMedia(masterKey,file);
-      else if(!(await cloneMediaKey(DRAFT_IMAGE_MEDIA,masterKey)))throw new Error("SIN IMAGEN");
-      c.masterMediaKey=masterKey;
+      if(file)await putMedia(mediaKey,file);
+      else if(!(await cloneMediaKey(DRAFT_IMAGE_MEDIA,mediaKey)))throw new Error("SIN IMAGEN");
+      if(aliasChanged)uploadedAppearanceKey=mediaKey;else c.masterMediaKey=mediaKey;
+      setMediaFrame(mediaKey,{x:50,y:50,zoom:1},"portrait",false);
     }catch(e){toast("NO SE PUDO GUARDAR LA IMAGEN DEL PERSONAJE");return}
   }
-  if(!c.masterMediaKey){toast("CARGA LA IMAGEN MAESTRA DEL PERSONAJE");return}
+  if(aliasChanged&&!uploadedAppearanceKey&&!previous?.mediaKey){toast("CARGA LA FOTO CORRESPONDIENTE A "+appearanceAlias);return}
+  if(!aliasChanged&&!c.masterMediaKey){toast("CARGA LA IMAGEN MAESTRA DEL PERSONAJE");return}
 
   const project=fastProject(pid);
   const appearance={
     ...(previous||{}),
     characterId:charId,projectId:pid,earth:project?.earth||c.earth,characterEarth:c.earth,
-    alias:$("#imageAlias").value||c.alias,status:$("#imageStatus").value,
+    alias:appearanceAlias,status:$("#imageStatus").value,
     nature:$("#imageNature").value,role,faction:faction||previous?.faction||"",notes:$("#imageNotes").value.trim()
   };
-  // No per-project media is stored from now on.
-  delete appearance.mediaKey;
+  if(aliasChanged)appearance.mediaKey=uploadedAppearanceKey||previous?.mediaKey||"";
+  else if(previous?.mediaKey&&norm(previous.alias||"")===norm(appearanceAlias))appearance.mediaKey=previous.mediaKey;
+  else delete appearance.mediaKey;
   delete appearance.outfit;
   DATA.appearances[key]=appearance;
-  DATA.images[key]={...appearance}; // keep old reader compatibility, without duplicate media
+  DATA.images[key]={...appearance};
 
   seedKnownRelationships();saveData();rebuildLibraryCatalog();renderGlobalProgress();renderTimeline();if(pid===currentProduction)renderProjectProgress(pid);await checkProjectProgressReward(pid,{allowCelebration:true});clearDraft(IMAGE_DRAFT_KEY);
   toast(previous?"APARICIÓN ACTUALIZADA":"PERSONAJE VINCULADO AL PROYECTO");
@@ -6590,7 +6653,7 @@ try{
 let peopleLetter="ALL";
 let selectedGeneralCharacters=new Set();
 
-normalizeDefendersSource199();ensureFirstAvengerRoster198();ensureGuardiansRoster197();normalizeCanonicalRoster196();normalizeRosterDuplicates197();applyArchiveYearCutoff();seedAllProjectRosters();repairCassieCassandra196();ensureCatalogAudit194();repairCanonicalStageIdentities195();ensureStageAndAffiliationAudit195();repairDuplicateIdentities190();repairDeadpoolWolverine191();repairExactIdentityDuplicates193();repairMovedCharacterIdentities();repairIdentityAudit196();ensureGlobalRosterAudit197();ensureCoreRosterAudit198();ensureSafeContinuityAndAffiliation199();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();initializeProjectRewardBaselines();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
+normalizeDefendersSource199();ensureFirstAvengerRoster198();ensureGuardiansRoster197();normalizeCanonicalRoster196();normalizeRosterDuplicates197();applyArchiveYearCutoff();seedAllProjectRosters();repairCassieCassandra196();ensureCatalogAudit194();repairCanonicalStageIdentities195();ensureStageAndAffiliationAudit195();repairDuplicateIdentities190();repairDeadpoolWolverine191();repairExactIdentityDuplicates193();repairMovedCharacterIdentities();repairIdentityAudit196();ensureGlobalRosterAudit197();ensureCoreRosterAudit198();ensureSafeContinuityAndAffiliation199();ensureAliasIdentityModel110();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();initializeProjectRewardBaselines();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
 if((DATA.identityRepairReport||[]).length&&!DATA.identityRepairNoticeV1){
   DATA.identityRepairNoticeV1=true;saveData();
   setTimeout(()=>toast(`REPARACIÓN DE IDENTIDADES · ${DATA.identityRepairReport.length} CASO${DATA.identityRepairReport.length===1?"":"S"} CORREGIDO${DATA.identityRepairReport.length===1?"":"S"}`),450);
@@ -7022,8 +7085,26 @@ function renderPeopleAlphabet(){
   }
   root.querySelectorAll("[data-people-letter]").forEach(b=>b.classList.toggle("active",b.dataset.peopleLetter===peopleLetter));
 }
+function visualAliasIdentityEntries(){
+  const out=[];
+  (DATA.characters||[]).forEach(c=>{
+    const baseAlias=String(c.alias||c.real||"").trim();
+    out.push({key:"base:"+c.id,characterId:c.id,projectId:"",alias:baseAlias,real:c.real,earth:c.earth,mediaKey:c.masterMediaKey||"",character:c});
+    const byAlias=new Map();
+    characterAppearanceIds(c.id).forEach(pid=>{
+      const app=appearanceFor(c.id,pid);if(!app)return;
+      const alias=String(app.alias||baseAlias).trim();if(!alias||norm(alias)===norm(baseAlias))return;
+      const k=norm(alias),existing=byAlias.get(k);
+      const candidate={key:"alias:"+c.id+":"+k,characterId:c.id,projectId:pid,alias,real:c.real,earth:c.earth,mediaKey:app.mediaKey||"",character:c};
+      if(!existing||(!existing.mediaKey&&candidate.mediaKey))byAlias.set(k,candidate);
+    });
+    out.push(...byAlias.values());
+  });
+  return out;
+}
+
 function peoplePhotoStats(){
-  const total=(DATA.characters||[]).length,done=(DATA.characters||[]).filter(c=>!!c.masterMediaKey).length;
+  const entries=visualAliasIdentityEntries(),total=entries.length,done=entries.filter(e=>!!e.mediaKey).length;
   return {done,total,missing:Math.max(0,total-done),percent:total?Math.round(done*100/total):0};
 }
 function personStatusVisual(c){
@@ -7032,29 +7113,17 @@ function personStatusVisual(c){
 }
 function filteredPeople(){
   const q=norm($("#librarySearch")?.value||"");
-  const photo=$("#peoplePhotoFilter")?.value||"ALL";
-  const status=$("#peopleStatusFilter")?.value||"ALL";
-  const team=$("#peopleTeamFilter")?.value||"ALL";
-  const earth=$("#peopleEarthFilter")?.value||"ALL",nature=$("#peopleNatureFilter")?.value||"ALL",completion=$("#peopleCompletionFilter")?.value||"ALL";
-  const sort=$("#peopleSort")?.value||"AZ";
-  let arr=[...(DATA.characters||[])];
-  if(q)arr=arr.filter(c=>peopleSearchKey(c).includes(q));
-  if(photo==="WITH")arr=arr.filter(c=>!!c.masterMediaKey);
-  if(photo==="WITHOUT")arr=arr.filter(c=>!c.masterMediaKey);
-  if(status!=="ALL")arr=arr.filter(c=>c.status===status);
-  if(team!=="ALL")arr=arr.filter(c=>(c.aff||[]).some(a=>norm(translateGroup(a))===norm(team)));
-  if(earth!=="ALL")arr=arr.filter(c=>c.earth===earth);
-  if(nature!=="ALL")arr=arr.filter(c=>c.nature===nature);
-  if(completion==="COMPLETE")arr=arr.filter(c=>characterCompletionPercent(c)>=100);
-  if(completion==="INCOMPLETE")arr=arr.filter(c=>characterCompletionPercent(c)<100);
-  if(peopleLetter!=="ALL")arr=arr.filter(c=>(norm(c.alias||c.real).charAt(0)||"#").toUpperCase()===peopleLetter);
-  arr.sort((a,b)=>{
-    if(sort==="MISSING"){
-      const pa=a.masterMediaKey?1:0,pb=b.masterMediaKey?1:0;
-      if(pa!==pb)return pa-pb;
-    }
-    return String(a.alias||a.real).localeCompare(String(b.alias||b.real),"es") || a.real.localeCompare(b.real,"es") || String(fastUniverse(a.earth)?.name||a.earth).localeCompare(String(fastUniverse(b.earth)?.name||b.earth),"es");
-  });
+  const photo=$("#peoplePhotoFilter")?.value||"ALL",status=$("#peopleStatusFilter")?.value||"ALL",team=$("#peopleTeamFilter")?.value||"ALL";
+  const earth=$("#peopleEarthFilter")?.value||"ALL",nature=$("#peopleNatureFilter")?.value||"ALL",completion=$("#peopleCompletionFilter")?.value||"ALL",sort=$("#peopleSort")?.value||"AZ";
+  let arr=visualAliasIdentityEntries();
+  if(q)arr=arr.filter(e=>norm([e.alias,e.real,...(e.character.aliases||[])].join(" ")).includes(q));
+  if(photo==="WITH")arr=arr.filter(e=>!!e.mediaKey);if(photo==="WITHOUT")arr=arr.filter(e=>!e.mediaKey);
+  if(status!=="ALL")arr=arr.filter(e=>e.character.status===status);
+  if(team!=="ALL")arr=arr.filter(e=>(e.character.aff||[]).some(a=>norm(translateGroup(a))===norm(team)));
+  if(earth!=="ALL")arr=arr.filter(e=>e.earth===earth);if(nature!=="ALL")arr=arr.filter(e=>e.character.nature===nature);
+  if(completion==="COMPLETE")arr=arr.filter(e=>characterCompletionPercent(e.character)>=100);if(completion==="INCOMPLETE")arr=arr.filter(e=>characterCompletionPercent(e.character)<100);
+  if(peopleLetter!=="ALL")arr=arr.filter(e=>(norm(e.alias||e.real).charAt(0)||"#").toUpperCase()===peopleLetter);
+  arr.sort((a,b)=>{if(sort==="MISSING"){const pa=a.mediaKey?1:0,pb=b.mediaKey?1:0;if(pa!==pb)return pa-pb}return String(a.alias||a.real).localeCompare(String(b.alias||b.real),"es")||String(a.real).localeCompare(String(b.real),"es")||String(fastUniverse(a.earth)?.name||a.earth).localeCompare(String(fastUniverse(b.earth)?.name||b.earth),"es")});
   return arr;
 }
 function updatePeopleSelectionBar(){
@@ -7067,8 +7136,7 @@ function toggleGeneralCharacterSelection(id,forceOn=false){
   if(forceOn)selectedGeneralCharacters.add(id);
   else if(selectedGeneralCharacters.has(id))selectedGeneralCharacters.delete(id);
   else selectedGeneralCharacters.add(id);
-  const card=document.querySelector(`[data-person-card="${CSS.escape(id)}"]`);
-  if(card)card.classList.toggle("selected",selectedGeneralCharacters.has(id));
+  document.querySelectorAll(`[data-person-character="${CSS.escape(id)}"]`).forEach(card=>card.classList.toggle("selected",selectedGeneralCharacters.has(id)));
   updatePeopleSelectionBar();
 }
 function hydratePeopleCards(){
@@ -7078,54 +7146,13 @@ function hydratePeopleCards(){
 }
 function renderLibraryResults(){
   const root=$("#libraryResults");if(!root)return;
-  const stats=peoplePhotoStats();
-  $("#peoplePhotoProgress").textContent=`${stats.done} / ${stats.total}`;
-  $("#peoplePhotoProgressFill").style.width=`${stats.percent}%`;
-  $("#peoplePhotoProgressText").textContent=`${stats.done} FOTOS CARGADAS · ${stats.missing} PENDIENTES · ${stats.percent}%`;
+  const stats=peoplePhotoStats();$("#peoplePhotoProgress").textContent=`${stats.done} / ${stats.total}`;$("#peoplePhotoProgressFill").style.width=`${stats.percent}%`;$("#peoplePhotoProgressText").textContent=`${stats.done} FOTOS CARGADAS · ${stats.missing} PENDIENTES · ${stats.percent}%`;
   refreshPeopleTeamFilter();refreshPeopleMetaFilters();renderPeopleAlphabet();
-
-  const arr=filteredPeople();
-  let lastLetter="";
+  const arr=filteredPeople();let lastLetter="";
   if(lazyMediaObserver)root.querySelectorAll("[data-lazy-media-key]").forEach(el=>lazyMediaObserver.unobserve(el));
-  root.innerHTML=arr.map(c=>{
-    const letter=(norm(c.alias||c.real).charAt(0)||"#").toUpperCase();
-    const header=peopleLetter==="ALL"&&letter!==lastLetter?`<div class="people-letter" id="letter-${letter}">${letter}</div>`:"";
-    lastLetter=letter;
-    const earth=fastUniverse(c.earth)?.name||c.earth||"TIERRA POR DEFINIR";
-    const selected=selectedGeneralCharacters.has(c.id);
-    return `${header}<div class="person-card ${selected?"selected":""}" role="button" tabindex="0" data-person-card="${c.id}">
-      <span class="selected-mark">✓</span>
-      <span class="person-visual">
-        <span class="person-photo ${personStatusVisual(c)}" data-person-media="${c.masterMediaKey||""}">${c.masterMediaKey?"":`<span class="no-photo">FOTO<br>PENDIENTE</span>`}</span>
-        <span class="person-earth">${earth}</span>
-      </span>
-      <span class="person-copy">
-        <strong>${c.alias||c.real||"SIN ALIAS"}</strong>
-        <span class="person-alias">${c.real||"NOMBRE POR DEFINIR"}</span>
-        <span class="person-affiliations">${affiliationIconsHTML(c)}</span>
-      </span>
-    </div>`;
-  }).join("")||`<div class="relation" style="grid-column:1/-1">SIN PERSONAJES EN ESTE FILTRO.</div>`;
-
-  root.querySelectorAll("[data-person-card]").forEach(card=>{
-    const id=card.dataset.personCard;
-    let holdTimer=null,held=false;
-    card.addEventListener("contextmenu",e=>e.preventDefault());
-    card.addEventListener("pointerdown",e=>{
-      held=false;
-      holdTimer=setTimeout(()=>{held=true;toggleGeneralCharacterSelection(id,true)},520);
-    });
-    ["pointerup","pointercancel","pointerleave"].forEach(ev=>card.addEventListener(ev,()=>{if(holdTimer)clearTimeout(holdTimer)}));
-    card.addEventListener("click",e=>{
-      if(held){held=false;return}
-      if(selectedGeneralCharacters.size){toggleGeneralCharacterSelection(id);return}
-      openCharacter(id);
-    });
-    card.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();if(selectedGeneralCharacters.size)toggleGeneralCharacterSelection(id);else openCharacter(id)}});
-  });
-  hydratePeopleCards();
-  hydrateAffiliationIcons(root);
-  updatePeopleSelectionBar();
+  root.innerHTML=arr.map(e=>{const c=e.character,letter=(norm(e.alias||e.real).charAt(0)||"#").toUpperCase(),header=peopleLetter==="ALL"&&letter!==lastLetter?`<div class="people-letter" id="letter-${letter}">${letter}</div>`:"";lastLetter=letter;const earth=fastUniverse(e.earth)?.name||e.earth||"TIERRA POR DEFINIR",selected=selectedGeneralCharacters.has(c.id),project=e.projectId?fastProject(e.projectId):null;return `${header}<div class="person-card ${selected?"selected":""}" role="button" tabindex="0" data-person-key="${escapeHTMLAttr(e.key)}" data-person-character="${escapeHTMLAttr(c.id)}" data-person-project="${escapeHTMLAttr(e.projectId||"")}"><span class="selected-mark">✓</span><span class="person-visual"><span class="person-photo ${personStatusVisual(c)}" data-person-media="${escapeHTMLAttr(e.mediaKey||"")}">${e.mediaKey?"":`<span class="no-photo">FOTO<br>PENDIENTE</span>`}</span><span class="person-earth">${escapeHTML(earth)}</span></span><span class="person-copy"><strong>${escapeHTML(e.alias||e.real||"SIN ALIAS")}</strong><span class="person-alias">${escapeHTML(e.real||"NOMBRE POR DEFINIR")}</span>${project?`<span class="person-alias">${escapeHTML(project.title)}</span>`:""}<span class="person-affiliations">${affiliationIconsHTML(c)}</span></span></div>`}).join("")||`<div class="relation" style="grid-column:1/-1">SIN PERSONAJES EN ESTE FILTRO.</div>`;
+  root.querySelectorAll("[data-person-character]").forEach(card=>{const id=card.dataset.personCharacter,pid=card.dataset.personProject||"";let holdTimer=null,held=false;card.addEventListener("contextmenu",e=>e.preventDefault());card.addEventListener("pointerdown",()=>{held=false;holdTimer=setTimeout(()=>{held=true;toggleGeneralCharacterSelection(id,true)},520)});["pointerup","pointercancel","pointerleave"].forEach(ev=>card.addEventListener(ev,()=>{if(holdTimer)clearTimeout(holdTimer)}));const open=()=>{if(held){held=false;return}if(selectedGeneralCharacters.size){toggleGeneralCharacterSelection(id);return}if(pid)currentProduction=pid;openCharacter(id)};card.addEventListener("click",open);card.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open()}})});
+  hydratePeopleCards();hydrateAffiliationIcons(root);updatePeopleSelectionBar();
 }
 function openBulkTeamModal(mode){
   if(!selectedGeneralCharacters.size)return;
