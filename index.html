@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.9.5.1 HOTFIX</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.9.5.2 HOTFIX</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -1102,10 +1102,6 @@ input:focus,select:focus,textarea:focus{
       <button class="btn primary hidden" id="installAppBtn" type="button">INSTALAR APP</button>
       <button class="btn hidden" id="reloadAppBtn" type="button">ACTUALIZAR AHORA</button>
     </div>
-  </div>
-  <div class="migration-banner">
-    <strong>DATOS DE VERSIONES ANTERIORES</strong>
-    ESTA VERSIÓN CONSERVA LA MISMA BASE Y MIGRA LAS FOTOS ANTERIORES A UNA IMAGEN MAESTRA POR PERSONAJE. SI LOS DATOS NO APARECEN, USA ＋ → RESTAURAR RESPALDO.
   </div>
   <div class="hero">
     <div class="hero-copy">
@@ -4242,8 +4238,15 @@ function removeOrphanCastSlot(pid,id){
 }
 let orphanRepairContext=null;
 function hydrateCharacterCards(){
-  $$("[data-character-media]").forEach(el=>{
-    if(el.dataset.characterMedia)scheduleLazyMedia(el,el.dataset.characterMedia,"img");
+  $("#castRoot [data-character-media]").forEach(el=>{
+    const key=el.dataset.characterMedia;
+    if(!key)return;
+    // Retratos del proyecto: carga inmediata para evitar que Android/PWA
+    // deje IntersectionObserver pendiente cuando la pantalla aún estaba oculta.
+    el.dataset.lazyMediaKey=key;
+    el.dataset.lazyMediaKind="img";
+    el.dataset.mediaLoaded="0";
+    loadLazyMedia(el).catch(()=>{});
   });
 }
 
