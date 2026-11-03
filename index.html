@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.9.5.3 HOTFIX</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.9.5.4 HOTFIX</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -4174,10 +4174,10 @@ async function renderProduction(){
         <div class="cast-row">${ids.map((id,i)=>charCard(id,p.id,i,groupColors)).join("")}</div>
       </div>`).join("")+
     `<div class="project-add-character"><button class="btn primary" data-add-project="${p.id}">＋ AÑADIR PERSONAJE / CAMEO</button></div>`;
-  $("#castRoot [data-character]").forEach(b=>b.onclick=()=>openCharacter(b.dataset.character,b.dataset.characterStage||""));
+  $$("#castRoot [data-character]").forEach(b=>b.onclick=()=>openCharacter(b.dataset.character,b.dataset.characterStage||""));
   $$("#castRoot [data-project-faction]").forEach(b=>b.onclick=()=>showProjectFaction(p.id,b.dataset.projectFaction));
-  $("#castRoot [data-add-image-character]").forEach(b=>b.onclick=()=>openMissingCharacterPhotoPicker(b.dataset.addImageCharacter,b.dataset.projectContext));
-  $("#castRoot [data-add-stage-image-character]").forEach(b=>b.onclick=()=>openMissingCharacterStagePhotoPicker(b.dataset.addStageImageCharacter,b.dataset.stageLabel,b.dataset.projectContext));
+  $$("#castRoot [data-add-image-character]").forEach(b=>b.onclick=()=>openMissingCharacterPhotoPicker(b.dataset.addImageCharacter,b.dataset.projectContext));
+  $$("#castRoot [data-add-stage-image-character]").forEach(b=>b.onclick=()=>openMissingCharacterStagePhotoPicker(b.dataset.addStageImageCharacter,b.dataset.stageLabel,b.dataset.projectContext));
   $$("#castRoot [data-repair-pending]").forEach(b=>b.onclick=()=>{
     const pid=b.dataset.projectContext||currentProduction,id=b.dataset.repairPending||"";
     orphanRepairContext={pid,id,role:orphanCastRole(pid,id)};
