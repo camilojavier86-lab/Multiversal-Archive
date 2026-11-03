@@ -4238,7 +4238,7 @@ function removeOrphanCastSlot(pid,id){
 }
 let orphanRepairContext=null;
 function hydrateCharacterCards(){
-  $("#castRoot [data-character-media]").forEach(el=>{
+  document.querySelectorAll("#castRoot [data-character-media]").forEach(el=>{
     const key=el.dataset.characterMedia;
     if(!key)return;
     // Retratos del proyecto: carga inmediata para evitar que Android/PWA
