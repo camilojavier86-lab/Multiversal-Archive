@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.9.6 FINAL</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.9.7 FINAL</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -2430,6 +2430,91 @@ function mergeCharacterData190(target,source){
   return target;
 }
 
+/* ===== AUDITORÍA GLOBAL 1.9.7 · REPARTOS, EQUIPOS Y FIGURA PRINCIPAL ===== */
+function addRosterRows197(pid,rows){
+  PROJECT_ROSTER_SEEDS[pid]=PROJECT_ROSTER_SEEDS[pid]||[];
+  rows.forEach(row=>{
+    const p=fastProject(pid);
+    const earth=row[5]||p?.earth||"";
+    const exists=PROJECT_ROSTER_SEEDS[pid].some(x=>
+      norm(x?.[0])===norm(row[0]) && (x?.[5]||p?.earth||"")===earth
+    );
+    if(!exists)PROJECT_ROSTER_SEEDS[pid].push(row);
+    else{
+      const current=PROJECT_ROSTER_SEEDS[pid].find(x=>
+        norm(x?.[0])===norm(row[0]) && (x?.[5]||p?.earth||"")===earth
+      );
+      if(current){
+        current[4]=uniqueTranslatedList([...(current[4]||[]),...(row[4]||[])]);
+        if(row[1]&&!current[1])current[1]=row[1];
+      }
+    }
+  });
+}
+function normalizeRosterDuplicates197(){
+  Object.entries(PROJECT_ROSTER_SEEDS||{}).forEach(([pid,rows])=>{
+    const p=fastProject(pid),seen=new Map(),out=[];
+    (rows||[]).forEach(row=>{
+      const earth=row?.[5]||p?.earth||"";
+      const key=earth+"|"+norm(row?.[0]||"");
+      if(!seen.has(key)){
+        const copy=[...row];
+        copy[4]=uniqueTranslatedList(copy[4]||[]);
+        seen.set(key,copy);out.push(copy);return;
+      }
+      const keep=seen.get(key);
+      keep[4]=uniqueTranslatedList([...(keep[4]||[]),...(row?.[4]||[])]);
+      if(!keep[1]&&row?.[1])keep[1]=row[1];
+      if(!keep[6]&&row?.[6])keep[6]=row[6];
+    });
+    PROJECT_ROSTER_SEEDS[pid]=out;
+  });
+}
+function ensureGuardiansRoster197(){
+  const classic=["DEVASTADORES","GUARDIANES DE LA GALAXIA ORIGINALES"];
+  addRosterRows197("gotg1",[
+    ["KRAGLIN OBFONTERI","KRAGLIN","EXTRATERRESTRE","allies",["DEVASTADORES"],"616",""],
+    ["MEREDITH QUILL","MEREDITH QUILL","HUMANO","cameos",[],"616",""]
+  ]);
+  addRosterRows197("gotg2",[
+    ["KRAGLIN OBFONTERI","KRAGLIN","EXTRATERRESTRE","allies",["DEVASTADORES"],"616",""],
+    ["MEREDITH QUILL","MEREDITH QUILL","HUMANO","cameos",[],"616",""],
+    ["HOWARD THE DUCK","HOWARD THE DUCK","EXTRATERRESTRE","cameos",[],"616",""],
+    ["STAKAR OGORD","STARHAWK","EXTRATERRESTRE","allies",classic,"616",""],
+    ["ALETA OGORD","ALETA","EXTRATERRESTRE","cameos",classic,"616",""],
+    ["CHARLIE-27","CHARLIE-27","EXTRATERRESTRE","cameos",classic,"616",""],
+    ["MARTINEX T'NAGA","MARTINEX","EXTRATERRESTRE","cameos",classic,"616",""],
+    ["MAINFRAME","MAINFRAME","SINTÉTICO / ANDROIDE","cameos",classic,"616",""],
+    ["KRUGARR","KRUGARR","EXTRATERRESTRE","cameos",classic,"616",""]
+  ]);
+  PROJECT_ROSTER_SEEDS.gotg2=(PROJECT_ROSTER_SEEDS.gotg2||[]).map(row=>{
+    if(norm(row?.[0])!==norm("YONDU UDONTA"))return row;
+    const copy=[...row];
+    copy[4]=uniqueTranslatedList([...(copy[4]||[]),...classic]);
+    return copy;
+  });
+  addRosterRows197("endgame",[
+    ["KRAGLIN OBFONTERI","KRAGLIN","EXTRATERRESTRE","cameos",["DEVASTADORES"],"616",""]
+  ]);
+  addRosterRows197("thor4",[
+    ["KRAGLIN OBFONTERI","KRAGLIN","EXTRATERRESTRE","allies",["GUARDIANES DE LA GALAXIA","DEVASTADORES"],"616",""]
+  ]);
+  addRosterRows197("gotgholiday",[
+    ["KRAGLIN OBFONTERI","KRAGLIN","EXTRATERRESTRE","allies",["GUARDIANES DE LA GALAXIA","DEVASTADORES"],"616",""]
+  ]);
+  addRosterRows197("gotg3",[
+    ["KRAGLIN OBFONTERI","KRAGLIN","EXTRATERRESTRE","heroes",["GUARDIANES DE LA GALAXIA","DEVASTADORES"],"616",""],
+    ["AYESHA","AYESHA","EXTRATERRESTRE","villains",["SOBERANOS"],"616",""],
+    ["HOWARD THE DUCK","HOWARD THE DUCK","EXTRATERRESTRE","cameos",[],"616",""],
+    ["YONDU UDONTA","YONDU","EXTRATERRESTRE","cameos",["DEVASTADORES","GUARDIANES DE LA GALAXIA ORIGINALES"],"616",""],
+    ["STAKAR OGORD","STARHAWK","EXTRATERRESTRE","allies",classic,"616",""],
+    ["MARTINEX T'NAGA","MARTINEX","EXTRATERRESTRE","allies",classic,"616",""],
+    ["MAINFRAME","MAINFRAME","SINTÉTICO / ANDROIDE","allies",classic,"616",""],
+    ["KRUGARR","KRUGARR","EXTRATERRESTRE","allies",classic,"616",""]
+  ]);
+  normalizeRosterDuplicates197();
+}
+
 /* ===== AUDITORÍA GLOBAL 1.9.6 · IDENTIDAD CANÓNICA =====
    Regla: una ubicación (EL VACÍO / TVA) no crea una Tierra.
    Los alias compartidos no se fusionan; solo equivalencias investigadas y confirmadas. */
@@ -2484,6 +2569,73 @@ function normalizeCanonicalRoster196(){
   APPEARANCE_STAGE_SEEDS_195["10005|JOHN ALLERDYCE"]={x2:["ETAPA ORIGINAL"],x3:["ETAPA ORIGINAL"],deadpoolwolverine:["ETAPA ACTUAL"]};
   APPEARANCE_STAGE_SEEDS_195["10005|VICTOR CREED"]={xmen1:["ETAPA ORIGINAL"],deadpoolwolverine:["ETAPA ACTUAL"]};
   APPEARANCE_STAGE_SEEDS_195["121347|MEPHISTOPHELES"]={ghostrider1:["MEPHISTOPHELES"],ghostrider2:["ROARKE"]};
+}
+
+function ensureGlobalRosterAudit197(){
+  if((DATA.globalRosterAudit197||0)>=197)return;
+  ensureGuardiansRoster197();
+  DATA.appearances=DATA.appearances||{};
+  DATA.images=DATA.images||{};
+
+  Object.entries(PROJECT_ROSTER_SEEDS||{}).forEach(([pid,rows])=>{
+    const p=fastProject(pid);if(!p)return;
+    (rows||[]).forEach(row=>{
+      const earth=row[5]||p.earth;
+      const {c,role}=ensureSeedCharacter(earth,row);
+      c.aff=uniqueTranslatedList([...(c.aff||[]),...(row[4]||[])]);
+      c.projects=[...new Set([...(c.projects||[]),pid])];
+      if(!castRolesFor(pid,c.id).length)linkCharacterToProject(c.id,pid,role||"allies","",row[6]||"");
+      const key=c.id+"|"+pid;
+      const app=DATA.appearances[key]||DATA.images[key];
+      if(app){
+        app.alias=app.alias||row[1]||c.alias;
+        app.characterEarth=c.earth;
+        if(row[6]&&!app.location)app.location=row[6];
+        DATA.appearances[key]={...(DATA.appearances[key]||{}),...app};
+        DATA.images[key]={...(DATA.images[key]||{}),...app};
+      }
+    });
+  });
+
+  const primary={
+    "10005|CHARLES XAVIER|dofp":"JOVEN",
+    "10005|ERIK LEHNSHERR|dofp":"JOVEN",
+    "616|HENRY PYM|ant1":"ADULTO",
+    "616|T'CHAKA|bp":"ADULTO"
+  };
+  Object.entries(primary).forEach(([key,stage])=>{
+    const parts=key.split("|"),earth=parts[0],real=parts[1],pid=parts[2];
+    const c=(DATA.characters||[]).find(x=>x.earth===earth&&norm(x.real)===norm(real));
+    if(!c)return;
+    const akey=c.id+"|"+pid;
+    [DATA.appearances,DATA.images].forEach(bucket=>{
+      if(bucket?.[akey])bucket[akey].primaryStage=stage;
+    });
+  });
+
+  const groups=new Map();
+  (DATA.characters||[]).forEach(c=>{
+    const key=c.earth+"|"+norm(c.real);
+    if(!groups.has(key))groups.set(key,[]);
+    groups.get(key).push(c);
+  });
+  for(const group of groups.values()){
+    if(group.length<2)continue;
+    const sorted=[...group].sort((a,b)=>characterRichness190(b)-characterRichness190(a));
+    let keep=sorted[0];
+    for(const dup of sorted.slice(1))keep=mergeCharacterData190(keep,dup);
+  }
+
+  Object.values(DATA.projectCast||{}).forEach(cast=>{
+    ["heroes","villains","anti","allies","cameos"].forEach(role=>{
+      cast[role]=[...new Set(cast[role]||[])];
+    });
+  });
+
+  DATA.globalRosterAudit197=197;
+  runtimeIndexesDirty=true;
+  saveData();
+  rebuildLibraryCatalog();
 }
 
 function repairIdentityAudit196(){
@@ -4234,14 +4386,16 @@ function characterStageMediaKey(c,stage){
   const key=normalizeStageLabel(stage);
   return key?(c?.stageMedia?.[key]||""):"";
 }
+function appearancePrimaryStage(appearance){
+  const stages=appearanceStageList(appearance);
+  const explicit=normalizeStageLabel(appearance?.primaryStage||"");
+  return explicit||(stages[0]||"");
+}
 function projectFigureSlots(pid){
-  const out=[];
-  projectAllCastIds(pid).forEach(id=>{
-    const stages=appearanceStageList(appearanceFor(id,pid));
-    if(stages.length)stages.forEach(stage=>out.push({id,stage}));
-    else out.push({id,stage:""});
-  });
-  return out;
+  return projectAllCastIds(pid).map(id=>({
+    id,
+    stage:appearancePrimaryStage(appearanceFor(id,pid))
+  }));
 }
 
 function figureProgressForProject(pid){
@@ -4524,8 +4678,8 @@ function charCard(id,projectId,index=0,overrideColors=[]){
         '<span class="char-earth">'+escapeHTML(fastUniverse(c.earth)?.name||c.earth||"ORIGEN DESCONOCIDO")+(appearance.location?' · '+escapeHTML(appearance.location):'')+'</span></div>'+
     '</div>';
   };
-  if(stages.length)return stages.map((stage,i)=>renderOne(stage,i)).join("");
-  return renderOne("",0);
+  const primaryStage=appearancePrimaryStage(appearance);
+  return renderOne(primaryStage,0);
 }
 function pendingCard(id,projectId){
   return `<div class="char-tile orphan-cast-tile">
@@ -5211,7 +5365,7 @@ function linkCharacterToProject(charId,pid,role,faction="",location="",stages=[]
   c.projects=[...new Set([...(c.projects||[]),pid])];
   const key=`${charId}|${pid}`,previous=appearanceFor(charId,pid)||{};
   const cleanStages=[...new Set((stages||[]).map(normalizeStageLabel).filter(Boolean))];
-  const appearance={...previous,characterId:charId,projectId:pid,earth:p.earth,characterEarth:c.earth,role:validRole,alias:previous.alias||c.alias,status:previous.status||c.status,nature:previous.nature||c.nature,faction:canonicalFaction||faction||previous.faction||"",location:location||previous.location||"",stages:cleanStages.length?cleanStages:(previous.stages||[])};
+  const appearance={...previous,characterId:charId,projectId:pid,earth:p.earth,characterEarth:c.earth,role:validRole,alias:previous.alias||c.alias,status:previous.status||c.status,nature:previous.nature||c.nature,faction:canonicalFaction||faction||previous.faction||"",location:location||previous.location||"",stages:cleanStages.length?cleanStages:(previous.stages||[]),primaryStage:cleanStages.length?cleanStages[0]:(previous.primaryStage||"")};
   DATA.appearances=DATA.appearances||{};DATA.images=DATA.images||{};
   DATA.appearances[key]=appearance;
   DATA.images[key]={...(DATA.images[key]||{}),...appearance};
@@ -6276,7 +6430,7 @@ try{
 let peopleLetter="ALL";
 let selectedGeneralCharacters=new Set();
 
-normalizeCanonicalRoster196();applyArchiveYearCutoff();seedAllProjectRosters();repairCassieCassandra196();ensureCatalogAudit194();repairCanonicalStageIdentities195();ensureStageAndAffiliationAudit195();repairDuplicateIdentities190();repairDeadpoolWolverine191();repairExactIdentityDuplicates193();repairMovedCharacterIdentities();repairIdentityAudit196();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();initializeProjectRewardBaselines();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
+ensureGuardiansRoster197();normalizeCanonicalRoster196();normalizeRosterDuplicates197();applyArchiveYearCutoff();seedAllProjectRosters();repairCassieCassandra196();ensureCatalogAudit194();repairCanonicalStageIdentities195();ensureStageAndAffiliationAudit195();repairDuplicateIdentities190();repairDeadpoolWolverine191();repairExactIdentityDuplicates193();repairMovedCharacterIdentities();repairIdentityAudit196();ensureGlobalRosterAudit197();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();initializeProjectRewardBaselines();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
 if((DATA.identityRepairReport||[]).length&&!DATA.identityRepairNoticeV1){
   DATA.identityRepairNoticeV1=true;saveData();
   setTimeout(()=>toast(`REPARACIÓN DE IDENTIDADES · ${DATA.identityRepairReport.length} CASO${DATA.identityRepairReport.length===1?"":"S"} CORREGIDO${DATA.identityRepairReport.length===1?"":"S"}`),450);
