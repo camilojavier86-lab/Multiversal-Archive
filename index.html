@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.9.8 FINAL</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.9.9 SAFE</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -369,13 +369,16 @@ body.character-layer-open{overflow:hidden;touch-action:none}
 .profile-photo img{width:100%;height:100%;object-fit:contain;background:transparent;filter:drop-shadow(0 10px 12px #0008)}
 .profile-photo.dead{filter:grayscale(1)}
 .profile-photo.unknown{filter:sepia(.85) saturate(.7)}
-.profile-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:9px}
-.profile-title-row h2{min-width:0}
-.profile-edit-actions{display:flex;gap:6px;flex:0 0 auto}
+.profile-title-row{display:block;min-width:0}
+.profile-title-row h2{min-width:0;overflow-wrap:anywhere}
+.profile-photo-actions{
+  position:absolute;z-index:13;left:5px;right:5px;bottom:5px;
+  display:flex;justify-content:space-between;align-items:center;pointer-events:none
+}
 .profile-edit-btn,.profile-undo-btn{
-  width:31px;height:31px;border:1px solid #ffffff24;border-radius:50%;
-  background:#0d1015c7;color:#e8ecf3c9;font-size:15px;line-height:1;padding:0;
-  backdrop-filter:blur(7px);opacity:.72
+  width:31px;height:31px;border:1px solid #ffffff2f;border-radius:50%;
+  background:#080a0dd9;color:#f1f4f9;font-size:15px;line-height:1;padding:0;
+  backdrop-filter:blur(8px);opacity:.92;pointer-events:auto;box-shadow:0 3px 10px #0007
 }
 .profile-edit-btn:active,.profile-undo-btn:active{opacity:1;transform:scale(.93)}
 .profile-undo-btn{font-size:17px}
@@ -400,6 +403,9 @@ body.character-layer-open{overflow:hidden;touch-action:none}
 
 
 .status{display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:7px 9px;border:1px solid var(--line);border-radius:999px;color:var(--silver)}
+.quick-status{appearance:none;-webkit-appearance:none;background:#11151bd9;cursor:pointer;min-height:34px}
+.quick-status b{font-size:12px;color:#8f98a6;margin-left:2px;font-weight:700}
+.quick-status:active{transform:scale(.97);border-color:#667080}
 .status i{width:8px;height:8px;border-radius:50%;background:#5b6069}
 .status i.alive{background:#54d77a;box-shadow:0 0 8px #54d77aaa}
 .status i.dead{background:#3a3d43;box-shadow:none}
@@ -1157,6 +1163,10 @@ input:focus,select:focus,textarea:focus{
       <div class="profile-photo-wrap">
         <button class="profile-photo" id="profilePhoto" title="VER IMAGEN COMPLETA"></button>
         <button class="profile-photo-menu hidden" id="profilePhotoMenu" type="button" title="OPCIONES DE FOTO">⋯</button>
+        <div class="profile-photo-actions">
+          <button class="profile-edit-btn" id="editCharacterBtn" type="button" title="EDITAR PERSONAJE" aria-label="EDITAR PERSONAJE">✎</button>
+          <button class="profile-undo-btn hidden" id="undoCharacterBtn" type="button" title="DESHACER ÚLTIMO CAMBIO" aria-label="DESHACER ÚLTIMO CAMBIO">↶</button>
+        </div>
       </div>
       <div class="profile-logo-wrap hidden" id="profileLogoWrap">
         <button class="profile-logo" id="profileLogo" type="button" title="VER LOGO / EMBLEMA"></button>
@@ -1164,13 +1174,9 @@ input:focus,select:focus,textarea:focus{
       <div>
         <div class="profile-title-row">
           <h2 id="charAlias"></h2>
-          <div class="profile-edit-actions">
-            <button class="profile-edit-btn" id="editCharacterBtn" type="button" title="EDITAR PERSONAJE">✎</button>
-            <button class="profile-undo-btn hidden" id="undoCharacterBtn" type="button" title="DESHACER ÚLTIMO CAMBIO">↶</button>
-          </div>
         </div>
         <div class="real" id="charReal"></div>
-        <div class="status"><i></i><span id="charStatus">VIVO</span></div>
+        <button class="status quick-status" id="quickStatusBtn" type="button" title="CAMBIAR ESTADO"><i></i><span id="charStatus">VIVO</span><b>⌄</b></button>
       </div>
     </div>
     <div class="chips" id="charChips"></div>
@@ -1621,7 +1627,7 @@ const GROUP_CANONICAL_ALIASES={
   "AVENGER":"VENGADORES","AVENGERS":"VENGADORES","THE AVENGERS":"VENGADORES","VENGADOR":"VENGADORES","VENGADORES":"VENGADORES",
   "GUARDIANS":"GUARDIANES DE LA GALAXIA","GUARDIANS OF THE GALAXY":"GUARDIANES DE LA GALAXIA","GUARDIANES":"GUARDIANES DE LA GALAXIA","GUARDIANES DE LA GALAXIA":"GUARDIANES DE LA GALAXIA",
   "SHIELD":"S.H.I.E.L.D.","S H I E L D":"S.H.I.E.L.D.","S.H.I.E.L.D":"S.H.I.E.L.D.","S.H.I.E.L.D.":"S.H.I.E.L.D.",
-  "HYDRA":"HYDRA","X MEN":"X-MEN","X-MEN":"X-MEN","DEFENDERS":"DEFENSORES","DEFENSORES":"DEFENSORES",
+  "HYDRA":"HYDRA","X MEN":"X-MEN","X-MEN":"X-MEN","X FORCE":"X-FORCE","XFORCE":"X-FORCE","X-FORCE":"X-FORCE","DEFENDERS":"DEFENSORES","DEFENSORES":"DEFENSORES",
   "FANTASTIC FOUR":"LOS 4 FANTÁSTICOS","LOS 4 FANTASTICOS":"LOS 4 FANTÁSTICOS","LOS CUATRO FANTASTICOS":"LOS 4 FANTÁSTICOS",
   "YOUNG AVENGERS":"JÓVENES VENGADORES","JOVENES VENGADORES":"JÓVENES VENGADORES",
   "TEN RINGS":"DIEZ ANILLOS","THE TEN RINGS":"DIEZ ANILLOS","DIEZ ANILLOS":"DIEZ ANILLOS",
@@ -2588,6 +2594,68 @@ function normalizeCanonicalRoster196(){
   APPEARANCE_STAGE_SEEDS_195["10005|JOHN ALLERDYCE"]={x2:["ETAPA ORIGINAL"],x3:["ETAPA ORIGINAL"],deadpoolwolverine:["ETAPA ACTUAL"]};
   APPEARANCE_STAGE_SEEDS_195["10005|VICTOR CREED"]={xmen1:["ETAPA ORIGINAL"],deadpoolwolverine:["ETAPA ACTUAL"]};
   APPEARANCE_STAGE_SEEDS_195["121347|MEPHISTOPHELES"]={ghostrider1:["MEPHISTOPHELES"],ghostrider2:["ROARKE"]};
+}
+
+function normalizeDefendersSource199(){
+  (EXTRA_PRODUCTIONS||[]).forEach(p=>{if(DEFENDERS_PROJECT_IDS.has(p.id))p.earth="616"});
+  Object.entries(PROJECT_ROSTER_SEEDS||{}).forEach(([pid,rows])=>{
+    if(!DEFENDERS_PROJECT_IDS.has(pid))return;
+    (rows||[]).forEach(row=>{if(!row[5]||row[5]==="tv-defenders")row[5]="616"});
+  });
+}
+function ensureSafeContinuityAndAffiliation199(){
+  if((DATA.safeContinuityAffiliation199||0)>=199)return;
+  normalizeDefendersSource199();
+  const canonicalReal=real=>norm(real)==="MATTHEW MURDOCK"?"MATT MURDOCK":String(real||"").trim().toUpperCase();
+  (DATA.productions||[]).forEach(p=>{if(DEFENDERS_PROJECT_IDS.has(p.id))p.earth="616"});
+  const legacy=[...(DATA.characters||[])].filter(c=>c.earth==="tv-defenders");
+  legacy.forEach(old=>{
+    const targetName=canonicalReal(old.real);
+    let target=(DATA.characters||[]).find(c=>c.id!==old.id&&c.earth==="616"&&norm(c.real)===norm(targetName));
+    if(target){
+      target=mergeCharacterData190(target,old);
+      target.real=targetName;
+    }else{
+      old.earth="616";old.real=targetName;
+      Object.values(DATA.appearances||{}).forEach(a=>{if(a.characterId===old.id)a.characterEarth="616"});
+      Object.values(DATA.images||{}).forEach(a=>{if(a.characterId===old.id)a.characterEarth="616"});
+    }
+  });
+  Object.values(DATA.appearances||{}).forEach(a=>{
+    const p=fastProject(a.projectId);if(p&&DEFENDERS_PROJECT_IDS.has(p.id))a.earth="616";
+    const c=fastCharacter(a.characterId);if(c)a.characterEarth=c.earth;
+  });
+  Object.values(DATA.images||{}).forEach(a=>{
+    const p=fastProject(a.projectId);if(p&&DEFENDERS_PROJECT_IDS.has(p.id))a.earth="616";
+    const c=fastCharacter(a.characterId);if(c)a.characterEarth=c.earth;
+  });
+
+  DATA.affiliationAliases=DATA.affiliationAliases||{};
+  DATA.affiliationNames=DATA.affiliationNames||{};
+  DATA.affiliationLogos=DATA.affiliationLogos||{};
+  DATA.affiliationAliases["X FORCE"]="X-FORCE";
+  DATA.affiliationAliases["XFORCE"]="X-FORCE";
+  CUSTOM_GROUP_ALIASES["X FORCE"]="X-FORCE";
+  CUSTOM_GROUP_ALIASES["XFORCE"]="X-FORCE";
+  const xTarget="X-FORCE";
+  ["X FORCE","XFORCE","X-FORCE"].forEach(oldKey=>{
+    const media=DATA.affiliationLogos[oldKey];
+    if(media&&!DATA.affiliationLogos[xTarget])DATA.affiliationLogos[xTarget]=media;
+    if(oldKey!==xTarget)delete DATA.affiliationLogos[oldKey];
+    if(oldKey!==xTarget)delete DATA.affiliationNames[oldKey];
+  });
+  DATA.affiliationNames[xTarget]="X-FORCE";
+  (DATA.characters||[]).forEach(c=>c.aff=uniqueTranslatedList(c.aff||[]));
+  Object.values(PROJECT_ROSTER_SEEDS||{}).forEach(rows=>(rows||[]).forEach(row=>row[4]=uniqueTranslatedList(row[4]||[])));
+
+  const oldU=(DATA.universes||[]).find(u=>u.id==="tv-defenders");
+  if(oldU){
+    const hasProject=(DATA.productions||[]).some(p=>p.earth==="tv-defenders");
+    const hasCharacter=(DATA.characters||[]).some(c=>c.earth==="tv-defenders");
+    if(!hasProject&&!hasCharacter)oldU.hiddenFromMap=true;
+  }
+  DATA.safeContinuityAffiliation199=199;
+  runtimeIndexesDirty=true;saveData();rebuildLibraryCatalog();
 }
 
 function ensureCoreRosterAudit198(){
@@ -4800,11 +4868,35 @@ function openCharacter(id,stage=""){
   renderCharacter();
   go("character");
 }
+function openQuickStatusPicker(charId){
+  const c=fastCharacter(charId);if(!c)return;
+  const statuses=["VIVO","MUERTO","DESAPARECIDO","DESCONOCIDO"];
+  $("#addModal").classList.add("team-modal");
+  $("#addModal .modal-card").innerHTML=`<h2>ESTADO ACTUAL</h2><p>CAMBIA EL ESTADO DE <strong>${escapeHTML(c.alias||c.real)}</strong> SIN ABRIR EL EDITOR COMPLETO.</p>
+    <div class="choice-grid quick-status-grid">${statuses.map(status=>`<button class="choice ${status===c.status?"active":""}" type="button" data-quick-status="${status}">${status}</button>`).join("")}</div>
+    <div class="action-row"><button class="btn" id="cancelQuickStatus">CANCELAR</button></div>`;
+  $("#addModal").classList.add("show");
+  $("#cancelQuickStatus").onclick=()=>{restoreAddModal();$("#addModal").classList.remove("show")};
+  $$("[data-quick-status]").forEach(b=>b.onclick=async()=>{
+    const next=b.dataset.quickStatus;if(!next||next===c.status){restoreAddModal();$("#addModal").classList.remove("show");return}
+    const previous=c.status||"DESCONOCIDO";
+    c.status=next;saveData();
+    setUndoAction({label:"CAMBIAR ESTADO",characterId:c.id,undo:async()=>{const target=fastCharacter(c.id);if(target){target.status=previous;saveData()}}});
+    restoreAddModal();$("#addModal").classList.remove("show");
+    rebuildLibraryCatalog();renderGlobalProgress();
+    if(currentProduction)await renderProduction();
+    if(currentCharacter===c.id)await renderCharacter();
+    if(activeScreenId()==="library")renderLibraryResults();
+    toast("ESTADO ACTUALIZADO");
+  });
+}
+
 async function renderCharacter(){
   const c=fastCharacter(currentCharacter);if(!c)return;
   updateUndoButton();
   const editBtn=$("#editCharacterBtn");if(editBtn)editBtn.onclick=()=>openCharacterEditor(c.id);
   const undoBtn=$("#undoCharacterBtn");if(undoBtn)undoBtn.onclick=performLastUndo;
+  const quickStatusBtn=$("#quickStatusBtn");if(quickStatusBtn)quickStatusBtn.onclick=()=>openQuickStatusPicker(c.id);
   const addAppearanceBtn=$("#addAppearanceBtn");if(addAppearanceBtn)addAppearanceBtn.onclick=()=>openQuickAppearance({characterId:c.id});
   const removeAppearanceBtn=$("#removeCurrentAppearanceBtn");
   const canRemoveCurrent=characterParentScreen==="production"&&characterHasProjectAppearance(c.id,currentProduction);
@@ -6498,7 +6590,7 @@ try{
 let peopleLetter="ALL";
 let selectedGeneralCharacters=new Set();
 
-ensureFirstAvengerRoster198();ensureGuardiansRoster197();normalizeCanonicalRoster196();normalizeRosterDuplicates197();applyArchiveYearCutoff();seedAllProjectRosters();repairCassieCassandra196();ensureCatalogAudit194();repairCanonicalStageIdentities195();ensureStageAndAffiliationAudit195();repairDuplicateIdentities190();repairDeadpoolWolverine191();repairExactIdentityDuplicates193();repairMovedCharacterIdentities();repairIdentityAudit196();ensureGlobalRosterAudit197();ensureCoreRosterAudit198();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();initializeProjectRewardBaselines();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
+normalizeDefendersSource199();ensureFirstAvengerRoster198();ensureGuardiansRoster197();normalizeCanonicalRoster196();normalizeRosterDuplicates197();applyArchiveYearCutoff();seedAllProjectRosters();repairCassieCassandra196();ensureCatalogAudit194();repairCanonicalStageIdentities195();ensureStageAndAffiliationAudit195();repairDuplicateIdentities190();repairDeadpoolWolverine191();repairExactIdentityDuplicates193();repairMovedCharacterIdentities();repairIdentityAudit196();ensureGlobalRosterAudit197();ensureCoreRosterAudit198();ensureSafeContinuityAndAffiliation199();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();initializeProjectRewardBaselines();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
 if((DATA.identityRepairReport||[]).length&&!DATA.identityRepairNoticeV1){
   DATA.identityRepairNoticeV1=true;saveData();
   setTimeout(()=>toast(`REPARACIÓN DE IDENTIDADES · ${DATA.identityRepairReport.length} CASO${DATA.identityRepairReport.length===1?"":"S"} CORREGIDO${DATA.identityRepairReport.length===1?"":"S"}`),450);
@@ -7101,24 +7193,46 @@ function mergeCandidateScore(source,target){
 }
 function openCharacterMergeTool(sourceId){
   const source=fastCharacter(sourceId);if(!source)return;
-  const candidates=(DATA.characters||[]).filter(c=>c.id!==sourceId).sort((a,b)=>mergeCandidateScore(source,b)-mergeCandidateScore(source,a)||String(a.alias||a.real).localeCompare(String(b.alias||b.real),"es"));
+  const allCandidates=(DATA.characters||[]).filter(c=>c.id!==sourceId);
+  const earthOptions=[...new Map((DATA.universes||[]).map(u=>[u.id,u])).values()]
+    .sort((a,b)=>String(a.name||a.id).localeCompare(String(b.name||b.id),"es"));
   $("#addModal").classList.add("team-modal");
-  $("#addModal .modal-card").innerHTML=`<h2>FUSIONAR PERSONAJE</h2><p><strong>${escapeHTML(source.alias||source.real)}</strong> SERÁ ABSORBIDO POR EL PERSONAJE QUE ELIJAS. SUS APARICIONES Y DATOS SE CONSERVAN.</p>
-    <div class="field full"><label>PERSONAJE QUE SE CONSERVA</label><select id="mergeCharacterTarget"><option value="">SELECCIONAR</option>${candidates.map(c=>`<option value="${escapeHTMLAttr(c.id)}">${escapeHTML(c.alias||c.real)} · ${escapeHTML(c.real)} · ${escapeHTML(fastUniverse(c.earth)?.name||c.earth||"ORIGEN DESCONOCIDO")} · ${characterAppearanceIds(c.id).length} APAR.</option>`).join("")}</select></div>
+  $("#addModal .modal-card").innerHTML=`<h2>FUSIONAR PERSONAJE</h2><p><strong>${escapeHTML(source.alias||source.real)}</strong> SERÁ ABSORBIDO POR LA IDENTIDAD QUE ELIJAS. REVISA NOMBRE Y TIERRA ANTES DE CONFIRMAR.</p>
+    <div class="form-grid">
+      <div class="field full"><label>BUSCAR POR NOMBRE O ALIAS</label><input id="mergeCharacterSearch" type="search" autocomplete="off" placeholder="ESCRIBE AL MENOS PARTE DEL NOMBRE" value="${escapeHTMLAttr(source.real||"")}"></div>
+      <div class="field full"><label>FILTRAR POR TIERRA</label><select id="mergeCharacterEarth"><option value="ALL">TODAS LAS TIERRAS</option>${earthOptions.map(u=>`<option value="${escapeHTMLAttr(u.id)}" ${u.id===source.earth?"selected":""}>${escapeHTML(u.name||u.id)}</option>`).join("")}</select></div>
+      <div class="field full"><label>PERSONAJE QUE SE CONSERVA</label><select id="mergeCharacterTarget"><option value="">SELECCIONAR</option></select><div class="library-status" id="mergeCharacterStatus"></div></div>
+    </div>
     <div class="action-row"><button class="btn" id="cancelCharacterMerge">CANCELAR</button><button class="btn primary" id="confirmCharacterMerge">FUSIONAR</button></div>`;
   $("#addModal").classList.add("show");
+
+  const search=$("#mergeCharacterSearch"),earth=$("#mergeCharacterEarth"),targetSelect=$("#mergeCharacterTarget"),status=$("#mergeCharacterStatus");
+  const refresh=()=>{
+    const q=norm(search?.value||""),earthId=earth?.value||"ALL";
+    let list=allCandidates.filter(c=>earthId==="ALL"||c.earth===earthId);
+    if(q){
+      list=list.filter(c=>{
+        const hay=[c.real,c.alias,...(c.aliases||[])].map(norm).join(" | ");
+        return hay.includes(q);
+      });
+    }
+    list.sort((a,b)=>mergeCandidateScore(source,b)-mergeCandidateScore(source,a)||String(a.alias||a.real).localeCompare(String(b.alias||b.real),"es"));
+    const limited=list.slice(0,60);
+    targetSelect.innerHTML=`<option value="">SELECCIONAR</option>${limited.map(c=>`<option value="${escapeHTMLAttr(c.id)}">${escapeHTML(c.alias||c.real)} · ${escapeHTML(c.real)} · ${escapeHTML(fastUniverse(c.earth)?.name||c.earth||"ORIGEN DESCONOCIDO")} · ${characterAppearanceIds(c.id).length} APAR.</option>`).join("")}`;
+    status.textContent=list.length?`${list.length} COINCIDENCIA${list.length===1?"":"S"}${list.length>60?" · MOSTRANDO LAS 60 MÁS RELEVANTES":""}`:"SIN COINCIDENCIAS";
+  };
+  search.oninput=refresh;earth.onchange=refresh;refresh();
+
   $("#cancelCharacterMerge").onclick=()=>{restoreAddModal();$("#addModal").classList.remove("show")};
   $("#confirmCharacterMerge").onclick=async()=>{
-    const targetId=$("#mergeCharacterTarget").value,target=fastCharacter(targetId);if(!target){toast("SELECCIONA EL PERSONAJE QUE SE CONSERVA");return}
+    const targetId=targetSelect.value,target=fastCharacter(targetId);if(!target){toast("SELECCIONA EL PERSONAJE QUE SE CONSERVA");return}
     const appearances=characterAppearanceLabel(sourceId);
     const msg=`FUSIONAR ${source.alias||source.real} CON ${target.alias||target.real}?\n\nSE CONSERVARÁ: ${target.alias||target.real} · ${fastUniverse(target.earth)?.name||target.earth}.\nSE MOVERÁN ${appearances.length} APARICIONES Y LOS DATOS ÚTILES DEL DUPLICADO.`;
     if(!confirm(msg))return;
-    const sourceMaster=source.masterMediaKey||"",sourceLogo=source.logoMediaKey||"";
     mergeCharacterData190(target,source);dedupeRelationshipEdges();normalizeCharacterProjectLinks(target);saveData();rebuildLibraryCatalog();
     currentCharacter=target.id;
     restoreAddModal();$("#addModal").classList.remove("show");
     await renderCharacter();renderLibraryResults();toast("PERSONAJES FUSIONADOS");
-    // Media is deliberately not deleted here. If both records had distinct photos, mergeCharacterData190 preserves the secondary key as legacy.
   };
 }
 async function attemptDeleteCharacter(id){
