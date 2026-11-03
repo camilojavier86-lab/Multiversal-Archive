@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.9.5.2 HOTFIX</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.9.5.3 HOTFIX</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -3487,22 +3487,43 @@ function invalidateMediaUrl(key){
   if(cached&&String(cached).startsWith("blob:"))try{URL.revokeObjectURL(cached)}catch(e){}
   mediaUrlCache.delete(key);mediaUrlPending.delete(key);
 }
+function mediaValueToURL(value){
+  if(!value)return null;
+  try{
+    if(value instanceof Blob)return URL.createObjectURL(value);
+    if(typeof value==="string"){
+      const s=value.trim();
+      if(/^data:image\//i.test(s)||/^blob:/i.test(s)||/^https?:\/\//i.test(s))return s;
+      return null;
+    }
+    if(value instanceof ArrayBuffer)return URL.createObjectURL(new Blob([value]));
+    if(ArrayBuffer.isView(value))return URL.createObjectURL(new Blob([value.buffer]));
+    if(typeof value==="object"){
+      if(value.blob instanceof Blob)return URL.createObjectURL(value.blob);
+      for(const k of ["dataURL","url","data","src"]){
+        const v=value[k];
+        if(typeof v==="string"&&(/^data:image\//i.test(v)||/^blob:/i.test(v)||/^https?:\/\//i.test(v)))return v;
+      }
+    }
+  }catch(e){}
+  return null;
+}
 async function getMediaURL(key){
   if(!key)return null;
   if(mediaUrlCache.has(key))return mediaUrlCache.get(key);
   if(mediaUrlPending.has(key))return mediaUrlPending.get(key);
   const pending=(async()=>{
-    const blob=await getMediaBlob(key);
     let url=null;
-    if(blob)url=URL.createObjectURL(blob);
-    else{
-      url=DATA.mediaFallback?.[key]||null;
-      if(url&&String(key).startsWith("character-master:")){
-        const repaired=await repairLegacyCharacterFallback(url);
-        if(repaired&&repaired!==url){
-          url=repaired;DATA.mediaFallback[key]=repaired;
-          try{localStorage.setItem(STORAGE_KEY,JSON.stringify(DATA))}catch(e){}
-        }
+    try{
+      const stored=await getMediaBlob(key);
+      url=mediaValueToURL(stored);
+    }catch(e){}
+    if(!url)url=DATA.mediaFallback?.[key]||null;
+    if(url&&String(key).startsWith("character-master:")&&/^data:image\/(?:jpeg|jpg)/i.test(String(url))){
+      const repaired=await repairLegacyCharacterFallback(url);
+      if(repaired&&repaired!==url){
+        url=repaired;DATA.mediaFallback[key]=repaired;
+        try{localStorage.setItem(STORAGE_KEY,JSON.stringify(DATA))}catch(e){}
       }
     }
     if(url)mediaUrlCache.set(key,url);
@@ -3510,6 +3531,7 @@ async function getMediaURL(key){
   })();
   mediaUrlPending.set(key,pending);
   try{return await pending}
+  catch(e){return DATA.mediaFallback?.[key]||null}
   finally{mediaUrlPending.delete(key)}
 }
 async function cloneMediaKey(sourceKey,destKey){
@@ -3548,7 +3570,15 @@ async function loadLazyMedia(el){
   if(!el||el.dataset.mediaLoaded==="1")return;
   const key=el.dataset.lazyMediaKey;if(!key)return;
   el.dataset.mediaLoaded="1";
-  const url=await getMediaURL(key);
+  let url=null;
+  try{url=await getMediaURL(key)}catch(e){url=null}
+  if(!url&&el.dataset.characterFallbackMedia){
+    try{
+      const fallbackKey=el.dataset.characterFallbackMedia;
+      url=await getMediaURL(fallbackKey);
+      if(url)el.dataset.lazyMediaKey=fallbackKey;
+    }catch(e){}
+  }
   if(!url){
     const kind=el.dataset.lazyMediaKind||"background";
     if(kind==="img"){
@@ -3575,7 +3605,17 @@ async function loadLazyMedia(el){
   const kind=el.dataset.lazyMediaKind||"background";
   if(kind==="img"){
     const img=el.querySelector("img");
-    if(img){img.src=url;img.classList.remove("hidden");applyStoredMediaFrame(el,key,"portrait")}
+    if(img){
+      img.onerror=()=>{
+        el.dataset.mediaLoaded="0";
+        el.classList.add("media-unavailable");
+        el.classList.remove("has-image");
+        el.innerHTML='<span class="char-empty"><span><b>＋</b>CARGAR FOTO</span></span>';
+        const btn=el.closest(".char-card");
+        if(btn)btn.classList.remove("has-portrait");
+      };
+      img.src=url;img.classList.remove("hidden");applyStoredMediaFrame(el,el.dataset.lazyMediaKey||key,"portrait")
+    }
   }else if(kind==="person"){
     el.innerHTML=`<img src="${url}" alt="" loading="lazy" decoding="async">`;applyStoredMediaFrame(el,key,"portrait");
   }else{
@@ -4194,7 +4234,7 @@ function charCard(id,projectId,index=0,overrideColors=[]){
     return '<div class="char-tile">'+
       '<button class="char-card '+(mediaKey?'has-portrait':'')+'" '+openAttrs+' data-project-context="'+escapeHTMLAttr(projectId)+'" style="--halo1:'+theme[0]+';--halo2:'+theme[1]+';--halo3:'+theme[2]+';--ignite-delay:'+Math.min(index+subIndex,8)*55+'ms">'+
         '<span class="status-light '+statusClass(c.status)+'" title="'+escapeHTMLAttr(c.status)+'"></span>'+
-        '<span class="portrait '+(mediaKey?'has-image':'')+'" data-character-media="'+escapeHTMLAttr(mediaKey)+'">'+
+        '<span class="portrait '+(mediaKey?'has-image':'')+'" data-character-media="'+escapeHTMLAttr(mediaKey)+'" data-character-fallback-media="'+escapeHTMLAttr(label&&stageMediaKey?(c.masterMediaKey||""):"")+'">'+
           (mediaKey?'<img class="hidden" alt="'+escapeHTMLAttr(c.real+(label?' · '+label:''))+'">':'<span class="char-empty"><span><b>＋</b>'+(label?'FOTO DE ETAPA':'CARGAR FOTO')+'</span></span>')+
         '</span>'+
       '</button>'+
