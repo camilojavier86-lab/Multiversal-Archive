@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.10.0 ALIAS</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.10.1 AUDIT</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -2314,7 +2314,7 @@ Object.assign(PROJECT_ROSTER_SEEDS,{
   ],
   visionquest:[
     ["VISION","VISION","SINTÉTICO / ANDROIDE","heroes",["VENGADORES"]],
-    ["THOMAS SHEPHERD","TOMMY","HUMANO MEJORADO","heroes",[]],
+    ["TOMMY MAXIMOFF","SPEED","HUMANO MEJORADO","heroes",[]],
     ["ULTRON","ULTRON","SINTÉTICO / ANDROIDE","villains",[]],
     ["PALADIN","PALADIN","HUMANO","villains",[]],
     ["JOCASTA","JOCASTA","SINTÉTICO / ANDROIDE","villains",[]],
@@ -2603,6 +2603,91 @@ function normalizeDefendersSource199(){
     (rows||[]).forEach(row=>{if(!row[5]||row[5]==="tv-defenders")row[5]="616"});
   });
 }
+function normalizeVisionQuestRoster1101(){
+  PROJECT_ROSTER_SEEDS.visionquest=(PROJECT_ROSTER_SEEDS.visionquest||[]).map(row=>{
+    const real=norm(row?.[0]);
+    if(real!=="THOMAS SHEPHERD"&&real!=="THOMAS SHEPARD"&&real!=="TOMMY MAXIMOFF")return row;
+    const copy=[...row];copy[0]="TOMMY MAXIMOFF";copy[1]="SPEED";copy[5]=copy[5]||"616";return copy;
+  });
+  const seen=new Set();
+  PROJECT_ROSTER_SEEDS.visionquest=(PROJECT_ROSTER_SEEDS.visionquest||[]).filter(row=>{
+    const k=(row[5]||"616")+"|"+norm(row[0]);if(seen.has(k))return false;seen.add(k);return true;
+  });
+}
+
+function ensureProjectRosterRepair1101(){
+  if((DATA.projectRosterRepair1101||0)>=1101)return;
+
+  // Days of Future Past: revalida el reparto visible confirmado. No borra ni duplica identidades.
+  const dofpRows=[
+    ["ROBERT DRAKE","ICEMAN","MUTANTE","heroes",["X-MEN"],"10005",""],
+    ["PIOTR RASPUTIN","COLOSSUS","MUTANTE","heroes",["X-MEN"],"10005",""],
+    ["ROBERTO DA COSTA","SUNSPOT","MUTANTE","heroes",["X-MEN"],"10005",""],
+    ["JAMES PROUDSTAR","WARPATH","MUTANTE","heroes",["X-MEN"],"10005",""],
+    ["WILLIAM STRYKER","WILLIAM STRYKER","HUMANO","villains",[],"10005",""],
+    ["ALEX SUMMERS","HAVOK","MUTANTE","cameos",["X-MEN"],"10005",""],
+    ["MORTIMER TOYNBEE","TOAD","MUTANTE","cameos",[],"10005",""],
+    ["ERIC GITTER","INK","MUTANTE","cameos",[],"10005",""],
+    ["MARIE","ROGUE","MUTANTE","cameos",["X-MEN"],"10005",""],
+    ["EN SABAH NUR","APOCALYPSE","MUTANTE","cameos",[],"10005",""]
+  ];
+  addRosterRows197("dofp",dofpRows);
+
+  const seedRows=(pid,rows)=>{
+    const p=fastProject(pid);if(!p)return;
+    DATA.projectCast[pid]=DATA.projectCast[pid]||{heroes:[],villains:[],anti:[],allies:[],cameos:[]};
+    rows.forEach(row=>{
+      const earth=row[5]||p.earth;
+      let c=(DATA.characters||[]).find(x=>x.earth===earth&&norm(x.real)===norm(row[0]));
+      if(!c){
+        const seeded=ensureSeedCharacter(earth,row);c=seeded.c;
+      }
+      if(!c)return;
+      c.aliases=[...new Set([...(c.aliases||[c.alias]),row[1]||c.alias].filter(Boolean))];
+      c.aff=uniqueTranslatedList([...(c.aff||[]),...(row[4]||[])]);
+      c.projects=[...new Set([...(c.projects||[]),pid])];
+      const existingRoles=castRolesFor(pid,c.id);
+      if(!existingRoles.length)DATA.projectCast[pid][row[3]||"allies"].push(c.id);
+      const key=c.id+"|"+pid,old=appearanceFor(c.id,pid)||{};
+      const app={...old,characterId:c.id,projectId:pid,earth:p.earth,characterEarth:c.earth,alias:row[1]||old.alias||c.alias,role:existingRoles[0]||row[3]||"allies",location:row[6]||old.location||""};
+      DATA.appearances[key]=app;DATA.images[key]={...(DATA.images[key]||{}),...app};
+    });
+  };
+  seedRows("dofp",dofpRows);
+
+  // VisionQuest: Tommy Maximoff / Thomas Shepherd / Tommy = una sola persona, Speed.
+  const vq=fastProject("visionquest");
+  if(vq){
+    const candidates=(DATA.characters||[]).filter(c=>c.earth==="616"&&[
+      "TOMMY MAXIMOFF","THOMAS SHEPHERD","THOMAS SHEPARD"
+    ].includes(norm(c.real)));
+    let keep=candidates.find(c=>norm(c.real)==="TOMMY MAXIMOFF")||candidates[0]||null;
+    if(!keep){
+      const row=["TOMMY MAXIMOFF","SPEED","HUMANO MEJORADO","heroes",[],"616",""];
+      keep=ensureSeedCharacter("616",row).c;
+    }
+    if(keep){
+      keep.real="TOMMY MAXIMOFF";keep.alias="SPEED";
+      keep.aliases=[...new Set([...(keep.aliases||[]),"SPEED","TOMMY","THOMAS SHEPHERD"].filter(Boolean))];
+      for(const dup of candidates){
+        if(dup.id===keep.id)continue;
+        keep=mergeCharacterData190(keep,dup);
+        keep.real="TOMMY MAXIMOFF";keep.alias="SPEED";
+      }
+      keep.projects=[...new Set([...(keep.projects||[]),"visionquest"])];
+      DATA.projectCast.visionquest=DATA.projectCast.visionquest||{heroes:[],villains:[],anti:[],allies:[],cameos:[]};
+      ["heroes","villains","anti","allies","cameos"].forEach(role=>DATA.projectCast.visionquest[role]=(DATA.projectCast.visionquest[role]||[]).filter(id=>id!==keep.id));
+      DATA.projectCast.visionquest.heroes.push(keep.id);
+      const key=keep.id+"|visionquest",old=appearanceFor(keep.id,"visionquest")||{};
+      const app={...old,characterId:keep.id,projectId:"visionquest",earth:"616",characterEarth:"616",alias:"SPEED",role:"heroes"};
+      DATA.appearances[key]=app;DATA.images[key]={...(DATA.images[key]||{}),...app};
+    }
+  }
+
+  Object.values(DATA.projectCast||{}).forEach(cast=>["heroes","villains","anti","allies","cameos"].forEach(role=>cast[role]=[...new Set(cast[role]||[])]));
+  DATA.projectRosterRepair1101=1101;runtimeIndexesDirty=true;saveData();rebuildLibraryCatalog();
+}
+
 function ensureAliasIdentityModel110(){
   if((DATA.aliasIdentityModel110||0)>=110)return;
   const setAppearance=(earth,real,pid,alias,aff=[])=>{
@@ -3294,7 +3379,9 @@ addRosterRows195("dofp",[
   ["WILLIAM STRYKER","WILLIAM STRYKER","HUMANO","villains",[]],
   ["ALEX SUMMERS","HAVOK","MUTANTE","cameos",["X-MEN"]],
   ["MORTIMER TOYNBEE","TOAD","MUTANTE","cameos",[]],
-  ["ERIC GITTER","INK","MUTANTE","cameos",[]]
+  ["ERIC GITTER","INK","MUTANTE","cameos",[]],
+  ["MARIE","ROGUE","MUTANTE","cameos",["X-MEN"]],
+  ["EN SABAH NUR","APOCALYPSE","MUTANTE","cameos",[]]
 ]);
 addRosterRows195("apocalypse",[
   ["ALEX SUMMERS","HAVOK","MUTANTE","heroes",["X-MEN"]],
@@ -6653,7 +6740,7 @@ try{
 let peopleLetter="ALL";
 let selectedGeneralCharacters=new Set();
 
-normalizeDefendersSource199();ensureFirstAvengerRoster198();ensureGuardiansRoster197();normalizeCanonicalRoster196();normalizeRosterDuplicates197();applyArchiveYearCutoff();seedAllProjectRosters();repairCassieCassandra196();ensureCatalogAudit194();repairCanonicalStageIdentities195();ensureStageAndAffiliationAudit195();repairDuplicateIdentities190();repairDeadpoolWolverine191();repairExactIdentityDuplicates193();repairMovedCharacterIdentities();repairIdentityAudit196();ensureGlobalRosterAudit197();ensureCoreRosterAudit198();ensureSafeContinuityAndAffiliation199();ensureAliasIdentityModel110();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();initializeProjectRewardBaselines();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
+normalizeDefendersSource199();ensureFirstAvengerRoster198();ensureGuardiansRoster197();normalizeCanonicalRoster196();normalizeRosterDuplicates197();applyArchiveYearCutoff();seedAllProjectRosters();repairCassieCassandra196();ensureCatalogAudit194();repairCanonicalStageIdentities195();ensureStageAndAffiliationAudit195();repairDuplicateIdentities190();repairDeadpoolWolverine191();repairExactIdentityDuplicates193();repairMovedCharacterIdentities();repairIdentityAudit196();ensureGlobalRosterAudit197();ensureCoreRosterAudit198();ensureSafeContinuityAndAffiliation199();normalizeVisionQuestRoster1101();ensureProjectRosterRepair1101();ensureAliasIdentityModel110();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();initializeProjectRewardBaselines();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
 if((DATA.identityRepairReport||[]).length&&!DATA.identityRepairNoticeV1){
   DATA.identityRepairNoticeV1=true;saveData();
   setTimeout(()=>toast(`REPARACIÓN DE IDENTIDADES · ${DATA.identityRepairReport.length} CASO${DATA.identityRepairReport.length===1?"":"S"} CORREGIDO${DATA.identityRepairReport.length===1?"":"S"}`),450);
