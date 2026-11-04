@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.10.1 AUDIT</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.10.2 TIMELINE</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -2603,6 +2603,19 @@ function normalizeDefendersSource199(){
     (rows||[]).forEach(row=>{if(!row[5]||row[5]==="tv-defenders")row[5]="616"});
   });
 }
+function normalizeLegacyTimelineStageSeeds1102(){
+  const timelineValues=new Set(["LÍNEA ORIGINAL","LINEA ORIGINAL","LÍNEA REVISADA","LINEA REVISADA"]);
+  Object.entries(APPEARANCE_STAGE_SEEDS_195||{}).forEach(([identity,projects])=>{
+    Object.entries(projects||{}).forEach(([pid,stages])=>{
+      const clean=(stages||[]).filter(x=>!timelineValues.has(normalizeStageLabel(x)));
+      if(clean.length)projects[pid]=clean;else delete projects[pid];
+    });
+    if(!Object.keys(projects||{}).length)delete APPEARANCE_STAGE_SEEDS_195[identity];
+  });
+  const piotr=APPEARANCE_STAGE_SEEDS_195["10005|PIOTR RASPUTIN"];
+  if(piotr){delete piotr.x2;delete piotr.x3;delete piotr.dp1;delete piotr.dp2;if(!Object.keys(piotr).length)delete APPEARANCE_STAGE_SEEDS_195["10005|PIOTR RASPUTIN"];}
+}
+
 function normalizeVisionQuestRoster1101(){
   PROJECT_ROSTER_SEEDS.visionquest=(PROJECT_ROSTER_SEEDS.visionquest||[]).map(row=>{
     const real=norm(row?.[0]);
@@ -2686,6 +2699,54 @@ function ensureProjectRosterRepair1101(){
 
   Object.values(DATA.projectCast||{}).forEach(cast=>["heroes","villains","anti","allies","cameos"].forEach(role=>cast[role]=[...new Set(cast[role]||[])]));
   DATA.projectRosterRepair1101=1101;runtimeIndexesDirty=true;saveData();rebuildLibraryCatalog();
+}
+
+function ensureFoxTimelineModel1102(){
+  if((DATA.foxTimelineModel1102||0)>=1102)return;
+  DATA.appearances=DATA.appearances||{};DATA.images=DATA.images||{};
+
+  const setTimeline=(real,pid,timeline,visualVariant=true,earth="10005")=>{
+    const c=(DATA.characters||[]).find(x=>x.earth===earth&&norm(x.real)===norm(real));if(!c)return;
+    const key=c.id+"|"+pid,app=DATA.appearances[key]||DATA.images[key];if(!app)return;
+    const normalized=normalizeTimelineLabel(timeline);
+    app.timeline=normalized;app.visualVariant=!!visualVariant;
+    c.stageMedia=c.stageMedia||{};
+    const legacyKeys=normalized==="ORIGINAL"?["LÍNEA ORIGINAL","LINEA ORIGINAL"]:["LÍNEA REVISADA","LINEA REVISADA"];
+    if(!app.mediaKey){
+      const legacy=legacyKeys.map(k=>c.stageMedia[k]).find(Boolean);
+      if(legacy)app.mediaKey=legacy;
+    }
+    if(Array.isArray(app.stages)){
+      app.stages=app.stages.filter(x=>!["LÍNEA ORIGINAL","LINEA ORIGINAL","LÍNEA REVISADA","LINEA REVISADA"].includes(normalizeStageLabel(x)));
+      if(!app.stages.length)delete app.stages;
+    }
+    DATA.appearances[key]={...(DATA.appearances[key]||{}),...app};
+    DATA.images[key]={...(DATA.images[key]||{}),...app};
+  };
+
+  setTimeline("ROBERTO DA COSTA","dofp","ORIGINAL",true);
+  setTimeline("ROBERTO DA COSTA","newmutants","REVISADA",true);
+  setTimeline("PIOTR RASPUTIN","x2","ORIGINAL",false);
+  setTimeline("PIOTR RASPUTIN","x3","ORIGINAL",false);
+  setTimeline("PIOTR RASPUTIN","dofp","ORIGINAL",false);
+  setTimeline("PIOTR RASPUTIN","dp1","REVISADA",true);
+  setTimeline("PIOTR RASPUTIN","dp2","REVISADA",true);
+  setTimeline("CAIN MARKO","x3","ORIGINAL",false);
+  setTimeline("CAIN MARKO","dp2","REVISADA",true);
+  setTimeline("WADE WILSON","xorigw","ORIGINAL",true);
+  setTimeline("WADE WILSON","dp1","REVISADA",true);
+  setTimeline("WADE WILSON","dp2","REVISADA",true);
+  setTimeline("WARREN WORTHINGTON III","x3","ORIGINAL",true);
+  setTimeline("WARREN WORTHINGTON III","apocalypse","REVISADA",true);
+  setTimeline("FRED DUKES","xorigw","ORIGINAL",false);
+  setTimeline("FRED DUKES","apocalypse","REVISADA",true);
+  setTimeline("JUBILATION LEE","xmen1","ORIGINAL",false);
+  setTimeline("JUBILATION LEE","x2","ORIGINAL",false);
+  setTimeline("JUBILATION LEE","apocalypse","REVISADA",true);
+  setTimeline("PSYLOCKE","x3","ORIGINAL",false);
+  setTimeline("PSYLOCKE","apocalypse","REVISADA",true);
+
+  DATA.foxTimelineModel1102=1102;runtimeIndexesDirty=true;saveData();rebuildLibraryCatalog();
 }
 
 function ensureAliasIdentityModel110(){
@@ -4629,9 +4690,15 @@ function appearanceAliasChanged(c,appearance){
   const base=String(c?.alias||c?.real||"").trim();
   return !!shown&&!!base&&norm(shown)!==norm(base);
 }
+function normalizeTimelineLabel(value){
+  return String(value||"").trim().toUpperCase().replace(/^LÍNEA\s+/,"").replace(/^LINEA\s+/,"").replace(/\s+/g," ");
+}
+function appearanceRequiresOwnMedia(c,appearance){
+  return appearanceAliasChanged(c,appearance)||appearance?.visualVariant===true;
+}
 function appearanceDisplayMediaKey(c,appearance,stage=""){
   if(appearance?.mediaKey)return appearance.mediaKey;
-  if(appearanceAliasChanged(c,appearance))return "";
+  if(appearanceRequiresOwnMedia(c,appearance))return "";
   const stageKey=stage?characterStageMediaKey(c,stage):"";
   return stageKey||(c?.masterMediaKey||"");
 }
@@ -4902,14 +4969,15 @@ function charCard(id,projectId,index=0,overrideColors=[]){
   const theme=projectTheme(fastProject(projectId),overrideColors);
   const renderOne=(stage,subIndex)=>{
     const label=normalizeStageLabel(stage);
-    const aliasChanged=appearanceAliasChanged(c,appearance);
+    const aliasChanged=appearanceAliasChanged(c,appearance),ownMedia=appearanceRequiresOwnMedia(c,appearance);
+    const timeline=normalizeTimelineLabel(appearance.timeline||"");
     const stageMediaKey=label?characterStageMediaKey(c,label):"";
     const mediaKey=appearanceDisplayMediaKey(c,appearance,label);
-    const needsStagePhoto=!aliasChanged&&!!label&&!stageMediaKey;
-    const needsAliasPhoto=aliasChanged&&!appearance.mediaKey;
+    const needsStagePhoto=!ownMedia&&!!label&&!stageMediaKey;
+    const needsOwnPhoto=ownMedia&&!appearance.mediaKey;
     const openAttrs=mediaKey
       ? 'data-character="'+escapeHTMLAttr(id)+'" data-character-stage="'+escapeHTMLAttr(label)+'"'
-      : needsAliasPhoto
+      : needsOwnPhoto
         ? 'data-add-appearance-image-character="'+escapeHTMLAttr(id)+'"'
         : label
           ? 'data-add-stage-image-character="'+escapeHTMLAttr(id)+'" data-stage-label="'+escapeHTMLAttr(label)+'"'
@@ -4918,12 +4986,13 @@ function charCard(id,projectId,index=0,overrideColors=[]){
       '<button class="char-card '+(mediaKey?'has-portrait':'')+'" '+openAttrs+' data-project-context="'+escapeHTMLAttr(projectId)+'" style="--halo1:'+theme[0]+';--halo2:'+theme[1]+';--halo3:'+theme[2]+';--ignite-delay:'+Math.min(index+subIndex,8)*55+'ms">'+
         '<span class="status-light '+statusClass(c.status)+'" title="'+escapeHTMLAttr(c.status)+'"></span>'+
         '<span class="portrait '+(mediaKey?'has-image':'')+'" data-character-media="'+escapeHTMLAttr(mediaKey)+'">'+
-          (mediaKey?'<img class="hidden" alt="'+escapeHTMLAttr(c.real+' · '+(shownAlias||""))+'">':'<span class="char-empty"><span><b>＋</b>'+(needsAliasPhoto?'FOTO DE '+escapeHTML(shownAlias||"ALIAS"):(label?'FOTO DE ETAPA':'CARGAR FOTO'))+'</span></span>')+
+          (mediaKey?'<img class="hidden" alt="'+escapeHTMLAttr(c.real+' · '+(shownAlias||""))+'">':'<span class="char-empty"><span><b>＋</b>'+(needsOwnPhoto?(aliasChanged?'FOTO DE '+escapeHTML(shownAlias||"ALIAS"):'FOTO DE APARICIÓN'):(label?'FOTO DE ETAPA':'CARGAR FOTO'))+'</span></span>')+
         '</span>'+
       '</button>'+
       '<div class="char-label"><strong>'+escapeHTML(c.real)+'</strong><span>'+escapeHTML(shownAlias||"")+'</span>'+
-        (needsAliasPhoto?'<span class="char-earth">IDENTIDAD · '+escapeHTML(shownAlias||"")+' · FOTO PENDIENTE</span>':'')+
-        (label&&!aliasChanged?'<span class="char-earth">ETAPA · '+escapeHTML(label)+(needsStagePhoto?' · FOTO MAESTRA TEMPORAL':'')+'</span>':'')+
+        (timeline?'<span class="char-earth">LÍNEA · '+escapeHTML(timeline)+'</span>':'')+
+        (needsOwnPhoto?'<span class="char-earth">'+(aliasChanged?'IDENTIDAD · '+escapeHTML(shownAlias||""):'APARICIÓN')+' · FOTO PENDIENTE</span>':'')+
+        (label&&!ownMedia?'<span class="char-earth">ETAPA · '+escapeHTML(label)+(needsStagePhoto?' · FOTO MAESTRA TEMPORAL':'')+'</span>':'')+
         (needsStagePhoto?'<button class="stage-photo-mini" type="button" data-add-stage-image-character="'+escapeHTMLAttr(id)+'" data-stage-label="'+escapeHTMLAttr(label)+'" data-project-context="'+escapeHTMLAttr(projectId)+'">＋ FOTO DE ETAPA</button>':'')+
         '<span class="char-earth">'+escapeHTML(fastUniverse(c.earth)?.name||c.earth||"ORIGEN DESCONOCIDO")+(appearance.location?' · '+escapeHTML(appearance.location):'')+'</span></div>'+
     '</div>';
@@ -5051,9 +5120,9 @@ async function renderCharacter(){
   }
   const photoMenu=$("#profilePhotoMenu");
   if(photoMenu){
-    const aliasSpecific=appearanceAliasChanged(c,currentApp);
+    const ownMediaSpecific=appearanceRequiresOwnMedia(c,currentApp);
     const hasSpecificStagePhoto=!currentCharacterStage||!!characterStageMediaKey(c,currentCharacterStage);
-    photoMenu.classList.toggle("hidden",!profileMediaKey||(!aliasSpecific&&!hasSpecificStagePhoto));
+    photoMenu.classList.toggle("hidden",!profileMediaKey||(!ownMediaSpecific&&!hasSpecificStagePhoto));
     photoMenu.onclick=e=>{
       e.stopPropagation();
       openCharacterPhotoMenu(c.id,currentProduction,currentCharacterStage);
@@ -5064,6 +5133,7 @@ async function renderCharacter(){
   $("#charChips").innerHTML=`
     ${earthNode?`<button class="node-link" data-char-earth="${earthNode.id}">${earthNode.name}</button>`:""}
     ${currentCharacterStage?`<span class="chip">ETAPA: ${currentCharacterStage}</span>`:""}
+    ${currentApp.timeline?`<span class="chip">LÍNEA: ${normalizeTimelineLabel(currentApp.timeline)}</span>`:""}
     <button class="node-link" data-char-nature="${c.nature||"POR DEFINIR"}">TIPO: ${c.nature||"POR DEFINIR"}</button>
     ${firstProject?`<button class="node-link" data-char-first-project="${firstProject.id}">PRIMERA APARICIÓN: ${firstProject.title}</button>`:`<span class="chip">PRIMERA APARICIÓN: ${firstAppearance?.label||"POR DEFINIR"}</span>`}
     <span class="source-chip">${c.source==="USER"?"REGISTRADO POR TI":"CATÁLOGO BASE"}</span>
@@ -5902,17 +5972,17 @@ async function saveCharacterEditor(charId){
 
 function openCharacterPhotoMenu(charId,projectId,stage=""){
   const c=DATA.characters.find(x=>x.id===charId);if(!c)return;
-  const app=appearanceFor(charId,projectId)||{},label=normalizeStageLabel(stage),aliasSpecific=appearanceAliasChanged(c,app);
-  const mediaKey=appearanceDisplayMediaKey(c,app,label),shownAlias=app.alias||c.alias||c.real;
+  const app=appearanceFor(charId,projectId)||{},label=normalizeStageLabel(stage),aliasSpecific=appearanceAliasChanged(c,app),ownMediaSpecific=appearanceRequiresOwnMedia(c,app);
+  const mediaKey=appearanceDisplayMediaKey(c,app,label),shownAlias=app.alias||c.alias||c.real,timeline=normalizeTimelineLabel(app.timeline||"");
   $("#addModal .modal-card").innerHTML=
-    '<h2>FOTO · '+escapeHTML(c.real)+(aliasSpecific?' · '+escapeHTML(shownAlias):(label?' · '+escapeHTML(label):''))+'</h2>'+
-    '<p>'+(aliasSpecific?'ESTA FOTO PERTENECE A LA IDENTIDAD '+escapeHTML(shownAlias)+' EN ESTE PROYECTO. NO REEMPLAZA LA FOTO DE OTROS ALIAS.':label?'ESTA FOTO PERTENECE A LA ETAPA '+escapeHTML(label)+' Y SE REUTILIZA SOLO DONDE ESA ETAPA ESTÁ REGISTRADA.':'ESTA ES LA IMAGEN MAESTRA DEL ALIAS BASE Y SE REUTILIZA DONDE NO HAY OTRA IDENTIDAD VISUAL.')+'</p>'+
+    '<h2>FOTO · '+escapeHTML(c.real)+(aliasSpecific?' · '+escapeHTML(shownAlias):(timeline?' · LÍNEA '+escapeHTML(timeline):(label?' · '+escapeHTML(label):'')))+'</h2>'+
+    '<p>'+(aliasSpecific?'ESTA FOTO PERTENECE A LA IDENTIDAD '+escapeHTML(shownAlias)+' EN ESTE PROYECTO. NO REEMPLAZA LA FOTO DE OTROS ALIAS.':timeline?'ESTA FOTO PERTENECE A ESTA APARICIÓN DE LA LÍNEA '+escapeHTML(timeline)+'. NO REEMPLAZA LA FOTO DE LA OTRA LÍNEA TEMPORAL.':label?'ESTA FOTO PERTENECE A LA ETAPA '+escapeHTML(label)+' Y SE REUTILIZA SOLO DONDE ESA ETAPA ESTÁ REGISTRADA.':'ESTA ES LA IMAGEN MAESTRA DEL ALIAS BASE Y SE REUTILIZA DONDE NO HAY OTRA IDENTIDAD VISUAL.')+'</p>'+
     '<div class="choice-grid"><button class="choice" id="adjustCharacterPhoto" type="button">AJUSTAR ENCUADRE</button><button class="choice" id="replaceCharacterPhoto" type="button">CAMBIAR FOTO</button><button class="choice" id="deleteCharacterPhoto" type="button">ELIMINAR FOTO</button></div><div class="action-row"><button class="btn" id="closePhotoMenu">CERRAR</button></div>';
   $("#addModal").classList.add("show");
   $("#closePhotoMenu").onclick=()=>{restoreAddModal();$("#addModal").classList.remove("show")};
   $("#adjustCharacterPhoto").onclick=()=>{restoreAddModal();$("#addModal").classList.remove("show");openExistingMediaFrame(mediaKey,"portrait","AJUSTAR · "+c.real+(aliasSpecific?" · "+shownAlias:(label?" · "+label:"")),()=>{if(currentCharacter===charId)renderCharacter();if(currentProduction)renderProduction();renderLibraryResults()})};
-  $("#replaceCharacterPhoto").onclick=()=>{restoreAddModal();$("#addModal").classList.remove("show");pickImageFromGallery(file=>aliasSpecific?replaceCharacterAppearancePhoto(charId,projectId,file):label?replaceCharacterStagePhoto(charId,label,file,projectId):replaceCharacterMasterPhoto(charId,file,projectId))};
-  $("#deleteCharacterPhoto").onclick=async()=>{if(!confirm("ELIMINAR ESTA FOTO DE "+c.real+"?"))return;restoreAddModal();$("#addModal").classList.remove("show");if(aliasSpecific)await removeCharacterAppearancePhoto(charId,projectId);else if(label)await removeCharacterStagePhoto(charId,label,projectId);else await removeCharacterMasterPhoto(charId,projectId)};
+  $("#replaceCharacterPhoto").onclick=()=>{restoreAddModal();$("#addModal").classList.remove("show");pickImageFromGallery(file=>ownMediaSpecific?replaceCharacterAppearancePhoto(charId,projectId,file):label?replaceCharacterStagePhoto(charId,label,file,projectId):replaceCharacterMasterPhoto(charId,file,projectId))};
+  $("#deleteCharacterPhoto").onclick=async()=>{if(!confirm("ELIMINAR ESTA FOTO DE "+c.real+"?"))return;restoreAddModal();$("#addModal").classList.remove("show");if(ownMediaSpecific)await removeCharacterAppearancePhoto(charId,projectId);else if(label)await removeCharacterStagePhoto(charId,label,projectId);else await removeCharacterMasterPhoto(charId,projectId)};
 }
 async function replaceCharacterStagePhoto(charId,stage,file,projectId){
   const c=fastCharacter(charId),label=normalizeStageLabel(stage);if(!c||!label||!file)return;
@@ -6449,19 +6519,20 @@ async function registerImage(){
 
   const appearanceAlias=($("#imageAlias").value||c.alias||c.real).toUpperCase();
   const aliasChanged=norm(appearanceAlias)!==norm(c.alias||c.real);
+  const ownAppearanceMedia=aliasChanged||previous?.visualVariant===true;
   let uploadedAppearanceKey="";
   if(file||draft.hasMedia){
     const safeAlias=appearanceAlias.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"");
-    const mediaKey=aliasChanged?`appearance-alias:${charId}:${pid}:${safeAlias}:${Date.now()}`:`character-master:${charId}:${Date.now()}`;
+    const mediaKey=ownAppearanceMedia?`appearance-alias:${charId}:${pid}:${safeAlias}:${Date.now()}`:`character-master:${charId}:${Date.now()}`;
     try{
       if(file)await putMedia(mediaKey,file);
       else if(!(await cloneMediaKey(DRAFT_IMAGE_MEDIA,mediaKey)))throw new Error("SIN IMAGEN");
-      if(aliasChanged)uploadedAppearanceKey=mediaKey;else c.masterMediaKey=mediaKey;
+      if(ownAppearanceMedia)uploadedAppearanceKey=mediaKey;else c.masterMediaKey=mediaKey;
       setMediaFrame(mediaKey,{x:50,y:50,zoom:1},"portrait",false);
     }catch(e){toast("NO SE PUDO GUARDAR LA IMAGEN DEL PERSONAJE");return}
   }
-  if(aliasChanged&&!uploadedAppearanceKey&&!previous?.mediaKey){toast("CARGA LA FOTO CORRESPONDIENTE A "+appearanceAlias);return}
-  if(!aliasChanged&&!c.masterMediaKey){toast("CARGA LA IMAGEN MAESTRA DEL PERSONAJE");return}
+  if(ownAppearanceMedia&&!uploadedAppearanceKey&&!previous?.mediaKey){toast("CARGA LA FOTO CORRESPONDIENTE A ESTA APARICIÓN");return}
+  if(!ownAppearanceMedia&&!c.masterMediaKey){toast("CARGA LA IMAGEN MAESTRA DEL PERSONAJE");return}
 
   const project=fastProject(pid);
   const appearance={
@@ -6470,7 +6541,7 @@ async function registerImage(){
     alias:appearanceAlias,status:$("#imageStatus").value,
     nature:$("#imageNature").value,role,faction:faction||previous?.faction||"",notes:$("#imageNotes").value.trim()
   };
-  if(aliasChanged)appearance.mediaKey=uploadedAppearanceKey||previous?.mediaKey||"";
+  if(ownAppearanceMedia)appearance.mediaKey=uploadedAppearanceKey||previous?.mediaKey||"";
   else if(previous?.mediaKey&&norm(previous.alias||"")===norm(appearanceAlias))appearance.mediaKey=previous.mediaKey;
   else delete appearance.mediaKey;
   delete appearance.outfit;
@@ -6740,7 +6811,7 @@ try{
 let peopleLetter="ALL";
 let selectedGeneralCharacters=new Set();
 
-normalizeDefendersSource199();ensureFirstAvengerRoster198();ensureGuardiansRoster197();normalizeCanonicalRoster196();normalizeRosterDuplicates197();applyArchiveYearCutoff();seedAllProjectRosters();repairCassieCassandra196();ensureCatalogAudit194();repairCanonicalStageIdentities195();ensureStageAndAffiliationAudit195();repairDuplicateIdentities190();repairDeadpoolWolverine191();repairExactIdentityDuplicates193();repairMovedCharacterIdentities();repairIdentityAudit196();ensureGlobalRosterAudit197();ensureCoreRosterAudit198();ensureSafeContinuityAndAffiliation199();normalizeVisionQuestRoster1101();ensureProjectRosterRepair1101();ensureAliasIdentityModel110();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();initializeProjectRewardBaselines();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
+normalizeDefendersSource199();ensureFirstAvengerRoster198();ensureGuardiansRoster197();normalizeCanonicalRoster196();normalizeRosterDuplicates197();applyArchiveYearCutoff();seedAllProjectRosters();repairCassieCassandra196();ensureCatalogAudit194();repairCanonicalStageIdentities195();normalizeLegacyTimelineStageSeeds1102();ensureStageAndAffiliationAudit195();repairDuplicateIdentities190();repairDeadpoolWolverine191();repairExactIdentityDuplicates193();repairMovedCharacterIdentities();repairIdentityAudit196();ensureGlobalRosterAudit197();ensureCoreRosterAudit198();ensureSafeContinuityAndAffiliation199();normalizeVisionQuestRoster1101();ensureProjectRosterRepair1101();ensureAliasIdentityModel110();ensureFoxTimelineModel1102();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();initializeProjectRewardBaselines();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
 if((DATA.identityRepairReport||[]).length&&!DATA.identityRepairNoticeV1){
   DATA.identityRepairNoticeV1=true;saveData();
   setTimeout(()=>toast(`REPARACIÓN DE IDENTIDADES · ${DATA.identityRepairReport.length} CASO${DATA.identityRepairReport.length===1?"":"S"} CORREGIDO${DATA.identityRepairReport.length===1?"":"S"}`),450);
