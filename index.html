@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.10.4 PALMER</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.10.5 GROOT</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -2596,6 +2596,29 @@ function normalizeCanonicalRoster196(){
   APPEARANCE_STAGE_SEEDS_195["121347|MEPHISTOPHELES"]={ghostrider1:["MEPHISTOPHELES"],ghostrider2:["ROARKE"]};
 }
 
+function normalizeGrootGenerations1105(){
+  const secondGenerationProjects=new Set(["gotg2","iw","endgame","thor4","gotgholiday","gotg3"]);
+  Object.entries(PROJECT_ROSTER_SEEDS||{}).forEach(([pid,rows])=>{
+    PROJECT_ROSTER_SEEDS[pid]=(rows||[]).map(row=>{
+      if(!secondGenerationProjects.has(pid)||norm(row?.[0])!=="GROOT")return row;
+      const copy=[...row];
+      copy[0]="GROOT II";
+      copy[1]=pid==="gotg2"?"BABY GROOT":"GROOT";
+      copy[5]=copy[5]||"616";
+      return copy;
+    });
+  });
+  APPEARANCE_STAGE_SEEDS_195["616|GROOT"]={gotg1:["ADULTO"]};
+  APPEARANCE_STAGE_SEEDS_195["616|GROOT II"]={
+    gotg2:["BABY"],
+    iw:["ADOLESCENTE"],
+    endgame:["ADOLESCENTE"],
+    thor4:["ADOLESCENTE"],
+    gotgholiday:["JOVEN"],
+    gotg3:["ADULTO JOVEN"]
+  };
+}
+
 function normalizeDefendersSource199(){
   (EXTRA_PRODUCTIONS||[]).forEach(p=>{if(DEFENDERS_PROJECT_IDS.has(p.id))p.earth="616"});
   Object.entries(PROJECT_ROSTER_SEEDS||{}).forEach(([pid,rows])=>{
@@ -2699,6 +2722,88 @@ function ensureProjectRosterRepair1101(){
 
   Object.values(DATA.projectCast||{}).forEach(cast=>["heroes","villains","anti","allies","cameos"].forEach(role=>cast[role]=[...new Set(cast[role]||[])]));
   DATA.projectRosterRepair1101=1101;runtimeIndexesDirty=true;saveData();rebuildLibraryCatalog();
+}
+
+function ensureGrootGenerationsRepair1105(){
+  if((DATA.grootGenerationsRepair1105||0)>=1105)return;
+  DATA.appearances=DATA.appearances||{};DATA.images=DATA.images||{};
+
+  const earth="616";
+  const secondProjects=["gotg2","iw","endgame","thor4","gotgholiday","gotg3"];
+  const stages={gotg2:"BABY",iw:"ADOLESCENTE",endgame:"ADOLESCENTE",thor4:"ADOLESCENTE",gotgholiday:"JOVEN",gotg3:"ADULTO JOVEN"};
+
+  let original=(DATA.characters||[]).find(c=>c.earth===earth&&norm(c.real)==="GROOT");
+  let child=(DATA.characters||[]).find(c=>c.earth===earth&&norm(c.real)==="GROOT II");
+
+  if(!child){
+    const row=["GROOT II","GROOT","EXTRATERRESTRE","heroes",["GUARDIANES DE LA GALAXIA"],earth,""];
+    child=ensureSeedCharacter(earth,row).c;
+  }
+
+  if(original){
+    original.real="GROOT";
+    original.alias="GROOT";
+    original.aliases=[...new Set(["GROOT",...(original.aliases||[])].filter(Boolean))];
+    original.status="MUERTO";
+    original.projects=[...new Set((original.projects||[]).filter(pid=>!secondProjects.includes(pid)).concat(["gotg1"]))];
+  }
+
+  if(child){
+    child.real="GROOT II";
+    child.alias="GROOT";
+    child.aliases=[...new Set(["GROOT","BABY GROOT",...(child.aliases||[])].filter(Boolean))];
+    child.status=child.status==="MUERTO"?"VIVO":(child.status||"VIVO");
+    if(child.status==="DESCONOCIDO")child.status="VIVO";
+    child.aff=uniqueTranslatedList([...(child.aff||[]),"GUARDIANES DE LA GALAXIA"]);
+    child.projects=[...new Set([...(child.projects||[]),...secondProjects])];
+
+    secondProjects.forEach(pid=>{
+      const p=fastProject(pid);if(!p)return;
+
+      if(original){
+        const roles=["heroes","villains","anti","allies","cameos"];
+        const cast=DATA.projectCast?.[pid];
+        if(cast){
+          roles.forEach(role=>{
+            cast[role]=[...new Set((cast[role]||[]).map(id=>id===original.id?child.id:id))];
+          });
+        }
+
+        ["appearances","images"].forEach(bucket=>{
+          const obj=DATA[bucket]||{},oldKey=original.id+"|"+pid,newKey=child.id+"|"+pid;
+          if(obj[oldKey]){
+            obj[newKey]=mergeAppearanceRecord(obj[newKey],obj[oldKey],child.id,pid);
+            delete obj[oldKey];
+          }
+        });
+      }
+
+      const key=child.id+"|"+pid;
+      const old=DATA.appearances[key]||DATA.images[key]||{};
+      const alias=pid==="gotg2"?"BABY GROOT":"GROOT";
+      const app={
+        ...old,characterId:child.id,projectId:pid,earth:p.earth,characterEarth:earth,
+        alias,role:existingCastRole(pid,child.id)||old.role||"heroes",
+        stages:[stages[pid]]
+      };
+      DATA.appearances[key]=app;
+      DATA.images[key]={...(DATA.images[key]||{}),...app};
+
+      // Preserve any project-specific photo already attached to the old combined Groot.
+      // If there was only one global master photo, do NOT guess which generation it depicts.
+      if(app.mediaKey&&!child.stageMedia?.[stages[pid]]&&pid!=="gotg2"){
+        child.stageMedia=child.stageMedia||{};
+        child.stageMedia[stages[pid]]=app.mediaKey;
+      }
+    });
+
+    child.firstAppearanceProjectId=child.firstAppearanceProjectId||"gotg2";
+  }
+
+  if(original)original.firstAppearanceProjectId=original.firstAppearanceProjectId||"gotg1";
+
+  DATA.grootGenerationsRepair1105=1105;
+  runtimeIndexesDirty=true;saveData();rebuildLibraryCatalog();
 }
 
 function ensureChristinePalmer838Repair1104(){
@@ -6878,7 +6983,7 @@ try{
 let peopleLetter="ALL";
 let selectedGeneralCharacters=new Set();
 
-normalizeDefendersSource199();ensureFirstAvengerRoster198();ensureGuardiansRoster197();normalizeCanonicalRoster196();normalizeRosterDuplicates197();applyArchiveYearCutoff();seedAllProjectRosters();repairCassieCassandra196();ensureCatalogAudit194();repairCanonicalStageIdentities195();normalizeLegacyTimelineStageSeeds1102();ensureStageAndAffiliationAudit195();repairDuplicateIdentities190();repairDeadpoolWolverine191();repairExactIdentityDuplicates193();repairMovedCharacterIdentities();repairIdentityAudit196();ensureGlobalRosterAudit197();ensureCoreRosterAudit198();ensureSafeContinuityAndAffiliation199();normalizeVisionQuestRoster1101();ensureProjectRosterRepair1101();ensureChristinePalmer838Repair1104();ensureAliasIdentityModel110();ensureFoxTimelineModel1102();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();initializeProjectRewardBaselines();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
+normalizeGrootGenerations1105();normalizeDefendersSource199();ensureFirstAvengerRoster198();ensureGuardiansRoster197();normalizeCanonicalRoster196();normalizeRosterDuplicates197();applyArchiveYearCutoff();seedAllProjectRosters();repairCassieCassandra196();ensureCatalogAudit194();repairCanonicalStageIdentities195();normalizeLegacyTimelineStageSeeds1102();ensureStageAndAffiliationAudit195();repairDuplicateIdentities190();repairDeadpoolWolverine191();repairExactIdentityDuplicates193();repairMovedCharacterIdentities();repairIdentityAudit196();ensureGlobalRosterAudit197();ensureCoreRosterAudit198();ensureSafeContinuityAndAffiliation199();normalizeVisionQuestRoster1101();ensureProjectRosterRepair1101();ensureGrootGenerationsRepair1105();ensureChristinePalmer838Repair1104();ensureAliasIdentityModel110();ensureFoxTimelineModel1102();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();initializeProjectRewardBaselines();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
 if((DATA.identityRepairReport||[]).length&&!DATA.identityRepairNoticeV1){
   DATA.identityRepairNoticeV1=true;saveData();
   setTimeout(()=>toast(`REPARACIÓN DE IDENTIDADES · ${DATA.identityRepairReport.length} CASO${DATA.identityRepairReport.length===1?"":"S"} CORREGIDO${DATA.identityRepairReport.length===1?"":"S"}`),450);
