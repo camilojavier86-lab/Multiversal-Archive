@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.10.8 GLOBAL AUDIT I</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.10.9 MARIA RAMBEAU REPAIR</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -1704,6 +1704,9 @@ function appendProjectRosterSeed1108(pid,rows){
 }
 
 // AUDITORÍA GLOBAL 1.10.8 · faltantes confirmados y elegibles por cómic.
+appendProjectRosterSeed1108("cm",[
+  ["MARIA RAMBEAU","MARIA RAMBEAU","HUMANO","allies",[],"616"]
+]);
 appendProjectRosterSeed1108("moon1",[
   ["LAYLA EL-FAOULY","SCARLET SCARAB","HUMANO MEJORADO","heroes",[],"616"],
   ["AMMIT","AMMIT","DIOS / SER DIVINO","villains",[],"616"]
@@ -1728,8 +1731,7 @@ appendProjectRosterSeed1108("marvels",[
   ["YAN","PRINCE YAN","EXTRATERRESTRE","allies",[],"616"],
   ["KATE BISHOP","HAWKEYE","HUMANO","cameos",[],"616"],
   ["VALKYRIE","VALKYRIE","DIOS / SER DIVINO","cameos",[],"616"],
-  ["HENRY MCCOY","BEAST","MUTANTE","cameos",["X-MEN"],"unknown-origin","UNIVERSO PARALELO"],
-  ["MARIA RAMBEAU","BINARY","HUMANO MEJORADO","cameos",[],"unknown-origin","UNIVERSO PARALELO"]
+  ["HENRY MCCOY","BEAST","MUTANTE","cameos",["X-MEN"],"unknown-origin","UNIVERSO PARALELO"]
 ]);
 appendProjectRosterSeed1108("agatha1",[
   ["LILIA CALDERU","LILIA CALDERU","HUMANO","allies",[],"616"],
@@ -2899,8 +2901,7 @@ function ensureGlobalAudit1108(){
       ["YAN","PRINCE YAN","EXTRATERRESTRE","allies",[],"616"],
       ["KATE BISHOP","HAWKEYE","HUMANO","cameos",[],"616"],
       ["VALKYRIE","VALKYRIE","DIOS / SER DIVINO","cameos",[],"616"],
-      ["HENRY MCCOY","BEAST","MUTANTE","cameos",["X-MEN"],"unknown-origin","UNIVERSO PARALELO"],
-      ["MARIA RAMBEAU","BINARY","HUMANO MEJORADO","cameos",[],"unknown-origin","UNIVERSO PARALELO"]
+      ["HENRY MCCOY","BEAST","MUTANTE","cameos",["X-MEN"],"unknown-origin","UNIVERSO PARALELO"]
     ],
     agatha1:[
       ["LILIA CALDERU","LILIA CALDERU","HUMANO","allies",[],"616"],
@@ -2940,6 +2941,99 @@ function ensureGlobalAudit1108(){
   });
 
   DATA.globalAudit1108=1108;
+  runtimeIndexesDirty=true;
+  saveData();
+  rebuildLibraryCatalog();
+}
+
+
+function ensureMariaRambeauRepair1109(){
+  if((DATA.mariaRambeauRepair1109||0)>=1109)return;
+  DATA.appearances=DATA.appearances||{};
+  DATA.images=DATA.images||{};
+  DATA.projectCast=DATA.projectCast||{};
+
+  const realName="MARIA RAMBEAU";
+
+  // 1) Restore/preserve the native MCU Maria Rambeau on Earth-616 and link her to Captain Marvel.
+  let maria616=(DATA.characters||[]).find(c=>c.earth==="616"&&norm(c.real)===norm(realName));
+  if(!maria616){
+    maria616=ensureSeedCharacter("616",[realName,"MARIA RAMBEAU","HUMANO","allies",[],"616"]).c;
+  }
+  maria616.real=realName;
+  // Do not overwrite a user-selected alias; only repair bad Binary/Captain Marvel aliases on the 616 identity.
+  if(!maria616.alias||["BINARY","CAPTAIN MARVEL"].includes(norm(maria616.alias)))maria616.alias="MARIA RAMBEAU";
+  maria616.aliases=[...new Set([...(maria616.aliases||[]),"MARIA RAMBEAU","PHOTON"].filter(Boolean))];
+  maria616.projects=[...new Set([...(maria616.projects||[]),"cm"])];
+  DATA.projectCast.cm=DATA.projectCast.cm||{heroes:[],villains:[],anti:[],allies:[],cameos:[]};
+  ["heroes","villains","anti","allies","cameos"].forEach(role=>{
+    DATA.projectCast.cm[role]=(DATA.projectCast.cm[role]||[]).filter(id=>id!==maria616.id);
+  });
+  DATA.projectCast.cm.allies.push(maria616.id);
+  {
+    const key=maria616.id+"|cm",old=DATA.appearances[key]||DATA.images[key]||{};
+    const app={...old,characterId:maria616.id,projectId:"cm",earth:"616",characterEarth:"616",alias:"MARIA RAMBEAU",role:"allies"};
+    DATA.appearances[key]=app;
+    DATA.images[key]={...(DATA.images[key]||{}),...app};
+  }
+
+  // 2) The Marvels has one Binary Maria Rambeau. Consolidate the accidental unknown-origin duplicate
+  // into the already established X-Men-reality identity, preferring whichever record already has media.
+  let binaryCandidates=(DATA.characters||[]).filter(c=>
+    norm(c.real)===norm(realName) &&
+    ["marvels-x","unknown-origin"].includes(c.earth) &&
+    (norm(c.alias)==="BINARY" || (c.aliases||[]).some(a=>norm(a)==="BINARY") || (c.projects||[]).includes("marvels"))
+  );
+
+  let binary=binaryCandidates.find(c=>c.earth==="marvels-x"&&c.masterMediaKey)
+    || binaryCandidates.find(c=>c.earth==="marvels-x")
+    || binaryCandidates.find(c=>c.masterMediaKey)
+    || binaryCandidates[0];
+
+  if(binary){
+    if(binary.earth!=="marvels-x"){
+      binary.earth="marvels-x";
+      Object.values(DATA.appearances||{}).forEach(a=>{if(a.characterId===binary.id)a.characterEarth="marvels-x"});
+      Object.values(DATA.images||{}).forEach(a=>{if(a.characterId===binary.id)a.characterEarth="marvels-x"});
+    }
+    binaryCandidates=(DATA.characters||[]).filter(c=>
+      c.id!==binary.id && norm(c.real)===norm(realName) &&
+      ["marvels-x","unknown-origin"].includes(c.earth) &&
+      (norm(c.alias)==="BINARY" || (c.aliases||[]).some(a=>norm(a)==="BINARY") || (c.projects||[]).includes("marvels"))
+    );
+    for(const dup of binaryCandidates)binary=mergeCharacterData190(binary,dup);
+
+    binary.real=realName;
+    binary.alias="BINARY";
+    binary.aliases=[...new Set(["BINARY",...(binary.aliases||[])].filter(Boolean))];
+    binary.aff=uniqueTranslatedList([...(binary.aff||[]),"X-MEN"]);
+    binary.projects=[...new Set([...(binary.projects||[]),"marvels"])];
+    DATA.projectCast.marvels=DATA.projectCast.marvels||{heroes:[],villains:[],anti:[],allies:[],cameos:[]};
+    ["heroes","villains","anti","allies","cameos"].forEach(role=>{
+      DATA.projectCast.marvels[role]=(DATA.projectCast.marvels[role]||[]).filter(id=>id!==binary.id);
+    });
+    DATA.projectCast.marvels.cameos.push(binary.id);
+    const key=binary.id+"|marvels",old=DATA.appearances[key]||DATA.images[key]||{};
+    const app={...old,characterId:binary.id,projectId:"marvels",earth:"616",characterEarth:"marvels-x",alias:"BINARY",role:"cameos",location:"UNIVERSO PARALELO"};
+    DATA.appearances[key]=app;
+    DATA.images[key]={...(DATA.images[key]||{}),...app};
+  }
+
+  // Never allow the 616 and 838 identities to be merged with Binary.
+  const maria838=(DATA.characters||[]).find(c=>c.earth==="838"&&norm(c.real)===norm(realName));
+  if(maria838){
+    maria838.alias="CAPTAIN MARVEL";
+    maria838.aliases=[...new Set(["CAPTAIN MARVEL",...(maria838.aliases||[])].filter(Boolean))];
+  }
+
+  Object.values(DATA.projectCast||{}).forEach(cast=>{
+    const seen=new Set();
+    ["heroes","villains","anti","allies","cameos"].forEach(role=>{
+      cast[role]=[...new Set((cast[role]||[]).filter(id=>{if(seen.has(id))return false;seen.add(id);return true;}))];
+    });
+  });
+
+  DATA.mariaRambeauRepair1109=1109;
   runtimeIndexesDirty=true;
   saveData();
   rebuildLibraryCatalog();
@@ -7299,7 +7393,7 @@ try{
 let peopleLetter="ALL";
 let selectedGeneralCharacters=new Set();
 
-normalizeLokiVariantSource1106();normalizeGrootGenerations1105();normalizeDefendersSource199();ensureFirstAvengerRoster198();ensureGuardiansRoster197();normalizeCanonicalRoster196();normalizeRosterDuplicates197();applyArchiveYearCutoff();seedAllProjectRosters();repairCassieCassandra196();ensureCatalogAudit194();repairCanonicalStageIdentities195();normalizeLegacyTimelineStageSeeds1102();ensureStageAndAffiliationAudit195();repairDuplicateIdentities190();repairDeadpoolWolverine191();repairExactIdentityDuplicates193();repairMovedCharacterIdentities();repairIdentityAudit196();ensureGlobalRosterAudit197();ensureCoreRosterAudit198();ensureSafeContinuityAndAffiliation199();normalizeVisionQuestRoster1101();ensureProjectRosterRepair1101();ensureConfirmedBacklog1106();ensureGlobalAudit1108();ensureDominantProjectIdentity1107();ensureGrootGenerationsRepair1105();ensureChristinePalmer838Repair1104();ensureAliasIdentityModel110();ensureFoxTimelineModel1102();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();initializeProjectRewardBaselines();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
+normalizeLokiVariantSource1106();normalizeGrootGenerations1105();normalizeDefendersSource199();ensureFirstAvengerRoster198();ensureGuardiansRoster197();normalizeCanonicalRoster196();normalizeRosterDuplicates197();applyArchiveYearCutoff();seedAllProjectRosters();repairCassieCassandra196();ensureCatalogAudit194();repairCanonicalStageIdentities195();normalizeLegacyTimelineStageSeeds1102();ensureStageAndAffiliationAudit195();repairDuplicateIdentities190();repairDeadpoolWolverine191();repairExactIdentityDuplicates193();repairMovedCharacterIdentities();repairIdentityAudit196();ensureGlobalRosterAudit197();ensureCoreRosterAudit198();ensureSafeContinuityAndAffiliation199();normalizeVisionQuestRoster1101();ensureProjectRosterRepair1101();ensureConfirmedBacklog1106();ensureGlobalAudit1108();ensureMariaRambeauRepair1109();ensureDominantProjectIdentity1107();ensureGrootGenerationsRepair1105();ensureChristinePalmer838Repair1104();ensureAliasIdentityModel110();ensureFoxTimelineModel1102();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();initializeProjectRewardBaselines();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
 if((DATA.identityRepairReport||[]).length&&!DATA.identityRepairNoticeV1){
   DATA.identityRepairNoticeV1=true;saveData();
   setTimeout(()=>toast(`REPARACIÓN DE IDENTIDADES · ${DATA.identityRepairReport.length} CASO${DATA.identityRepairReport.length===1?"":"S"} CORREGIDO${DATA.identityRepairReport.length===1?"":"S"}`),450);
