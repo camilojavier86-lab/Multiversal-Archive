@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.10.13 ALIAS VS STAGE</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.10.14 MASTER STAGES</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -2786,6 +2786,7 @@ function ensureProjectRosterRepair1101(){
 
 const DOMINANT_PROJECT_ALIASES_1107={
   "616|WANDA MAXIMOFF":{
+    ca2:"WANDA",
     aou:"WANDA",
     cw:"WANDA",
     iw:"WANDA",
@@ -3039,6 +3040,81 @@ function ensureMariaRambeauRepair1109(){
 
 
 
+
+
+function ensureMasterStageRepair1114(){
+  if((DATA.masterStageRepair1114||0)>=1114)return;
+
+  const ensureApp=(c,pid,alias,stages)=>{
+    if(!c)return null;
+    const p=fastProject(pid);if(!p)return null;
+    const key=c.id+"|"+pid;
+    const old=DATA.appearances?.[key]||DATA.images?.[key]||{};
+    const app={...old,characterId:c.id,projectId:pid,earth:p.earth,characterEarth:c.earth,alias,stages:[...stages]};
+    DATA.appearances[key]=app;
+    DATA.images[key]={...(DATA.images[key]||{}),...app};
+    return app;
+  };
+
+  // WANDA MAXIMOFF 616: one identity. Master image = Scarlet Witch.
+  const wanda=(DATA.characters||[]).find(c=>c.earth==="616"&&norm(c.real)==="WANDA MAXIMOFF");
+  if(wanda){
+    wanda.alias="SCARLET WITCH";
+    wanda.aliases=[...new Set([...(wanda.aliases||[]),"WANDA","SCARLET WITCH"].filter(Boolean))];
+    wanda.stageMedia=wanda.stageMedia||{};
+
+    const early=[
+      ["ca2","WANDA","JOVEN"],
+      ["aou","WANDA","JOVEN"],
+      ["cw","WANDA","JOVEN"],
+      ["iw","WANDA","ADULTA"],
+      ["endgame","WANDA","ADULTA"]
+    ];
+    early.forEach(([pid,alias,stage])=>ensureApp(wanda,pid,alias,[stage]));
+    const wv=ensureApp(wanda,"wandavision","SCARLET WITCH",["SCARLET WITCH"]);
+    const ds2=ensureApp(wanda,"ds2","SCARLET WITCH",["SCARLET WITCH"]);
+
+    // Prefer an explicit Scarlet Witch appearance image as the master.
+    const scarletKey=wv?.mediaKey||ds2?.mediaKey||wanda.stageMedia["SCARLET WITCH"]||"";
+    const previousMaster=wanda.masterMediaKey||"";
+    if(scarletKey&&scarletKey!==previousMaster){
+      if(previousMaster&&!wanda.stageMedia["JOVEN"])wanda.stageMedia["JOVEN"]=previousMaster;
+      wanda.masterMediaKey=scarletKey;
+    }
+    if(wanda.masterMediaKey&&!wanda.stageMedia["SCARLET WITCH"])wanda.stageMedia["SCARLET WITCH"]=wanda.masterMediaKey;
+  }
+
+  // NICK FURY 616: one identity. Captain Marvel = young stage; master = adult Fury.
+  const fury=(DATA.characters||[]).find(c=>c.earth==="616"&&norm(c.real)==="NICHOLAS JOSEPH FURY");
+  if(fury){
+    fury.alias="NICK FURY";
+    fury.aliases=[...new Set([...(fury.aliases||[]),"NICK FURY"].filter(Boolean))];
+    fury.stageMedia=fury.stageMedia||{};
+
+    const young=ensureApp(fury,"cm","NICK FURY",["JOVEN"]);
+    const adultPids=["im1","im2","av1","ca2","aou","iw","endgame","aos1","secretinv","marvels"];
+    const adultApps=adultPids.map(pid=>ensureApp(fury,pid,"NICK FURY",["ADULTO"])).filter(Boolean);
+
+    // Preserve any explicit Captain Marvel photo as the young-stage photo.
+    if(young?.mediaKey&&!fury.stageMedia["JOVEN"])fury.stageMedia["JOVEN"]=young.mediaKey;
+
+    // If an adult appearance already has its own image, promote that to master.
+    const adultMedia=adultApps.find(a=>a.mediaKey)?.mediaKey||fury.stageMedia["ADULTO"]||"";
+    if(adultMedia&&adultMedia!==fury.masterMediaKey){
+      const previousMaster=fury.masterMediaKey||"";
+      if(previousMaster&&!fury.stageMedia["JOVEN"])fury.stageMedia["JOVEN"]=previousMaster;
+      fury.masterMediaKey=adultMedia;
+    }
+    if(fury.masterMediaKey&&!fury.stageMedia["ADULTO"]&&fury.masterMediaKey!==fury.stageMedia["JOVEN"]){
+      fury.stageMedia["ADULTO"]=fury.masterMediaKey;
+    }
+  }
+
+  DATA.masterStageRepair1114=1114;
+  runtimeIndexesDirty=true;
+  saveData();
+  rebuildLibraryCatalog();
+}
 
 function ensureAliasVsStageAndHorsemen1113(){
   if((DATA.aliasVsStageAndHorsemen1113||0)>=1113)return;
@@ -4204,7 +4280,11 @@ const APPEARANCE_STAGE_SEEDS_195={
   "616|BILLY MAXIMOFF":{wandavision:["NIÑO"],agatha1:["ADOLESCENTE"]},
   "616|TOMMY MAXIMOFF":{wandavision:["NIÑO"]},
   "616|PEGGY CARTER":{ca1:["JOVEN"],ant1:["ADULTA"],ca2:["ANCIANA"],endgame:["ADULTA"]},
-  "616|NICHOLAS JOSEPH FURY":{cm:["JOVEN"]},
+  "616|NICHOLAS JOSEPH FURY":{
+    cm:["JOVEN"],
+    im1:["ADULTO"],im2:["ADULTO"],av1:["ADULTO"],ca2:["ADULTO"],aou:["ADULTO"],
+    iw:["ADULTO"],endgame:["ADULTO"],aos1:["ADULTO"],secretinv:["ADULTO"],marvels:["ADULTO"]
+  },
   "616|PHIL COULSON":{cm:["JOVEN"]},
   "616|HENRY PYM":{ant1:["JOVEN","ADULTO"],ant2:["ADULTO"],endgame:["JOVEN"],ant3:["ADULTO"]},
   "616|JANET VAN DYNE":{ant1:["JOVEN"],ant2:["ADULTA"],ant3:["ADULTA"]},
@@ -4266,7 +4346,7 @@ function seedAllProjectRosters(){
       "TONY STARK":"TEAM IRON MAN","JAMES RHODES":"TEAM IRON MAN","NATASHA ROMANOFF":"TEAM IRON MAN","VISION":"TEAM IRON MAN","T'CHALLA":"TEAM IRON MAN","PETER PARKER":"TEAM IRON MAN",
       "SHARON CARTER":"OTROS PERSONAJES","HELMUT ZEMO":"OTROS PERSONAJES","BROCK RUMLOW":"OTROS PERSONAJES","EVERETT ROSS":"OTROS PERSONAJES"
     };
-    const cwAliases={"STEVE ROGERS": "CAPTAIN AMERICA", "JAMES BUCHANAN BARNES": "WINTER SOLDIER", "SAM WILSON": "FALCON", "WANDA MAXIMOFF": "SCARLET WITCH", "CLINT BARTON": "HAWKEYE", "SCOTT LANG": "ANT-MAN", "TONY STARK": "IRON MAN", "JAMES RHODES": "WAR MACHINE", "NATASHA ROMANOFF": "BLACK WIDOW", "VISION": "VISION", "T'CHALLA": "BLACK PANTHER", "PETER PARKER": "SPIDER-MAN"};
+    const cwAliases={"STEVE ROGERS": "CAPTAIN AMERICA", "JAMES BUCHANAN BARNES": "WINTER SOLDIER", "SAM WILSON": "FALCON", "WANDA MAXIMOFF": "WANDA", "CLINT BARTON": "HAWKEYE", "SCOTT LANG": "ANT-MAN", "TONY STARK": "IRON MAN", "JAMES RHODES": "WAR MACHINE", "NATASHA ROMANOFF": "BLACK WIDOW", "VISION": "VISION", "T'CHALLA": "BLACK PANTHER", "PETER PARKER": "SPIDER-MAN"};
     Object.entries(cwAliases).forEach(([real,alias])=>{
       const c=DATA.characters.find(x=>norm(x.real)===norm(real)&&projectAllCastIds("cw").includes(x.id));
       if(c){
@@ -5408,6 +5488,7 @@ function normalizeTimelineLabel(value){
   return String(value||"").trim().toUpperCase().replace(/^LÍNEA\s+/,"").replace(/^LINEA\s+/,"").replace(/\s+/g," ");
 }
 function appearanceRequiresOwnMedia(c,appearance){
+  if(c?.earth==="616"&&norm(c?.real)==="WANDA MAXIMOFF"&&norm(appearance?.alias)==="WANDA")return false;
   return appearanceAliasChanged(c,appearance)||appearance?.visualVariant===true;
 }
 function appearanceDisplayMediaKey(c,appearance,stage=""){
@@ -7529,7 +7610,7 @@ try{
 let peopleLetter="ALL";
 let selectedGeneralCharacters=new Set();
 
-normalizeLokiVariantSource1106();normalizeGrootGenerations1105();normalizeDefendersSource199();ensureFirstAvengerRoster198();ensureGuardiansRoster197();normalizeCanonicalRoster196();normalizeRosterDuplicates197();applyArchiveYearCutoff();seedAllProjectRosters();repairCassieCassandra196();ensureCatalogAudit194();repairCanonicalStageIdentities195();normalizeLegacyTimelineStageSeeds1102();ensureStageAndAffiliationAudit195();repairDuplicateIdentities190();repairDeadpoolWolverine191();repairExactIdentityDuplicates193();repairMovedCharacterIdentities();repairIdentityAudit196();ensureGlobalRosterAudit197();ensureCoreRosterAudit198();ensureSafeContinuityAndAffiliation199();normalizeVisionQuestRoster1101();ensureProjectRosterRepair1101();ensureConfirmedBacklog1106();ensureGlobalAudit1108();ensureMariaRambeauRepair1109();ensureBeastRepair1110();ensureWandaVisionChildren1111();ensureAliasVsStageAndHorsemen1113();ensureDominantProjectIdentity1107();ensureGrootGenerationsRepair1105();ensureChristinePalmer838Repair1104();ensureAliasIdentityModel110();ensureFoxTimelineModel1102();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();initializeProjectRewardBaselines();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
+normalizeLokiVariantSource1106();normalizeGrootGenerations1105();normalizeDefendersSource199();ensureFirstAvengerRoster198();ensureGuardiansRoster197();normalizeCanonicalRoster196();normalizeRosterDuplicates197();applyArchiveYearCutoff();seedAllProjectRosters();repairCassieCassandra196();ensureCatalogAudit194();repairCanonicalStageIdentities195();normalizeLegacyTimelineStageSeeds1102();ensureStageAndAffiliationAudit195();repairDuplicateIdentities190();repairDeadpoolWolverine191();repairExactIdentityDuplicates193();repairMovedCharacterIdentities();repairIdentityAudit196();ensureGlobalRosterAudit197();ensureCoreRosterAudit198();ensureSafeContinuityAndAffiliation199();normalizeVisionQuestRoster1101();ensureProjectRosterRepair1101();ensureConfirmedBacklog1106();ensureGlobalAudit1108();ensureMariaRambeauRepair1109();ensureBeastRepair1110();ensureWandaVisionChildren1111();ensureMasterStageRepair1114();ensureAliasVsStageAndHorsemen1113();ensureDominantProjectIdentity1107();ensureGrootGenerationsRepair1105();ensureChristinePalmer838Repair1104();ensureAliasIdentityModel110();ensureFoxTimelineModel1102();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();initializeProjectRewardBaselines();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
 if((DATA.identityRepairReport||[]).length&&!DATA.identityRepairNoticeV1){
   DATA.identityRepairNoticeV1=true;saveData();
   setTimeout(()=>toast(`REPARACIÓN DE IDENTIDADES · ${DATA.identityRepairReport.length} CASO${DATA.identityRepairReport.length===1?"":"S"} CORREGIDO${DATA.identityRepairReport.length===1?"":"S"}`),450);
