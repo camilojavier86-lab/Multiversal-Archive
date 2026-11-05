@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.10.12 WANDA SINGLE CARD</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.10.13 ALIAS VS STAGE</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -3039,6 +3039,33 @@ function ensureMariaRambeauRepair1109(){
 
 
 
+
+function ensureAliasVsStageAndHorsemen1113(){
+  if((DATA.aliasVsStageAndHorsemen1113||0)>=1113)return;
+
+  const addAff=(earth,real,team)=>{
+    const c=(DATA.characters||[]).find(x=>x.earth===earth&&norm(x.real)===norm(real));
+    if(!c)return;
+    c.aff=uniqueTranslatedList([...(c.aff||[]),team]);
+
+    const key=c.id+"|apocalypse";
+    const app=DATA.appearances?.[key]||DATA.images?.[key];
+    if(app){
+      app.aff=uniqueTranslatedList([...(app.aff||[]),team]);
+      DATA.appearances[key]={...(DATA.appearances[key]||{}),...app};
+      DATA.images[key]={...(DATA.images[key]||{}),...app};
+    }
+  };
+
+  ["ERIK LEHNSHERR","ORORO MUNROE","PSYLOCKE","WARREN WORTHINGTON III"]
+    .forEach(real=>addAff("10005",real,"CUATRO JINETES DEL APOCALIPSIS"));
+
+  DATA.aliasVsStageAndHorsemen1113=1113;
+  runtimeIndexesDirty=true;
+  saveData();
+  rebuildLibraryCatalog();
+}
+
 function ensureWandaVisionChildren1111(){
   if((DATA.wandaVisionChildren1111||0)>=1111)return;
   DATA.appearances=DATA.appearances||{};
@@ -4146,6 +4173,7 @@ function addSeedAff195(pid,real,teams){
 addSeedAff195("x2","JOHN ALLERDYCE",["HERMANDAD DE MUTANTES"]);
 ["JOHN ALLERDYCE","CAIN MARKO","JAMES MADROX","CALLISTO","PSYLOCKE","PHILIPPA SONTAG","QUILL"].forEach(n=>addSeedAff195("x3",n,["HERMANDAD DE MUTANTES"]));
 ["PETER MAXIMOFF","SCOTT SUMMERS","JEAN GREY","ORORO MUNROE","KURT WAGNER","HENRY MCCOY"].forEach(n=>addSeedAff195("apocalypse",n,["X-MEN"]));
+["ERIK LEHNSHERR","ORORO MUNROE","PSYLOCKE","WARREN WORTHINGTON III"].forEach(n=>addSeedAff195("apocalypse",n,["CUATRO JINETES DEL APOCALIPSIS"]));
 ["PETER MAXIMOFF","SCOTT SUMMERS","JEAN GREY","ORORO MUNROE","KURT WAGNER","HENRY MCCOY"].forEach(n=>addSeedAff195("darkphoenix",n,["X-MEN"]));
 ["WADE WILSON","NEENA THURMAN","JESSE AARONSON","SHATTERSTAR","AXEL CLUNY","VANISHER"].forEach(n=>addSeedAff195("dp2",n,["X-FORCE"]));
 
@@ -7501,7 +7529,7 @@ try{
 let peopleLetter="ALL";
 let selectedGeneralCharacters=new Set();
 
-normalizeLokiVariantSource1106();normalizeGrootGenerations1105();normalizeDefendersSource199();ensureFirstAvengerRoster198();ensureGuardiansRoster197();normalizeCanonicalRoster196();normalizeRosterDuplicates197();applyArchiveYearCutoff();seedAllProjectRosters();repairCassieCassandra196();ensureCatalogAudit194();repairCanonicalStageIdentities195();normalizeLegacyTimelineStageSeeds1102();ensureStageAndAffiliationAudit195();repairDuplicateIdentities190();repairDeadpoolWolverine191();repairExactIdentityDuplicates193();repairMovedCharacterIdentities();repairIdentityAudit196();ensureGlobalRosterAudit197();ensureCoreRosterAudit198();ensureSafeContinuityAndAffiliation199();normalizeVisionQuestRoster1101();ensureProjectRosterRepair1101();ensureConfirmedBacklog1106();ensureGlobalAudit1108();ensureMariaRambeauRepair1109();ensureBeastRepair1110();ensureWandaVisionChildren1111();ensureDominantProjectIdentity1107();ensureGrootGenerationsRepair1105();ensureChristinePalmer838Repair1104();ensureAliasIdentityModel110();ensureFoxTimelineModel1102();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();initializeProjectRewardBaselines();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
+normalizeLokiVariantSource1106();normalizeGrootGenerations1105();normalizeDefendersSource199();ensureFirstAvengerRoster198();ensureGuardiansRoster197();normalizeCanonicalRoster196();normalizeRosterDuplicates197();applyArchiveYearCutoff();seedAllProjectRosters();repairCassieCassandra196();ensureCatalogAudit194();repairCanonicalStageIdentities195();normalizeLegacyTimelineStageSeeds1102();ensureStageAndAffiliationAudit195();repairDuplicateIdentities190();repairDeadpoolWolverine191();repairExactIdentityDuplicates193();repairMovedCharacterIdentities();repairIdentityAudit196();ensureGlobalRosterAudit197();ensureCoreRosterAudit198();ensureSafeContinuityAndAffiliation199();normalizeVisionQuestRoster1101();ensureProjectRosterRepair1101();ensureConfirmedBacklog1106();ensureGlobalAudit1108();ensureMariaRambeauRepair1109();ensureBeastRepair1110();ensureWandaVisionChildren1111();ensureAliasVsStageAndHorsemen1113();ensureDominantProjectIdentity1107();ensureGrootGenerationsRepair1105();ensureChristinePalmer838Repair1104();ensureAliasIdentityModel110();ensureFoxTimelineModel1102();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();initializeProjectRewardBaselines();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
 if((DATA.identityRepairReport||[]).length&&!DATA.identityRepairNoticeV1){
   DATA.identityRepairNoticeV1=true;saveData();
   setTimeout(()=>toast(`REPARACIÓN DE IDENTIDADES · ${DATA.identityRepairReport.length} CASO${DATA.identityRepairReport.length===1?"":"S"} CORREGIDO${DATA.identityRepairReport.length===1?"":"S"}`),450);
@@ -7941,7 +7969,7 @@ function visualAliasIdentityEntries(){
     const byAlias=new Map();
     characterAppearanceIds(c.id).forEach(pid=>{
       const app=appearanceFor(c.id,pid);if(!app)return;
-      const alias=String(app.alias||baseAlias).trim();if(!alias||norm(alias)===norm(baseAlias))return;
+      const alias=String(app.alias||baseAlias).trim();if(!alias||norm(alias)===norm(baseAlias)||norm(alias)===norm(c.real))return;
 
       // Wanda Maximoff 616 is one catalog identity. "WANDA" is a project-era label,
       // not a second collectible identity alongside SCARLET WITCH.
