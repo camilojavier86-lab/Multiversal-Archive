@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.10.11 WANDAVISION CHILDREN</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.10.12 WANDA SINGLE CARD</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -7942,6 +7942,11 @@ function visualAliasIdentityEntries(){
     characterAppearanceIds(c.id).forEach(pid=>{
       const app=appearanceFor(c.id,pid);if(!app)return;
       const alias=String(app.alias||baseAlias).trim();if(!alias||norm(alias)===norm(baseAlias))return;
+
+      // Wanda Maximoff 616 is one catalog identity. "WANDA" is a project-era label,
+      // not a second collectible identity alongside SCARLET WITCH.
+      if(c.earth==="616"&&norm(c.real)==="WANDA MAXIMOFF"&&norm(alias)==="WANDA")return;
+
       const k=norm(alias),existing=byAlias.get(k);
       const candidate={key:"alias:"+c.id+":"+k,characterId:c.id,projectId:pid,alias,real:c.real,earth:c.earth,mediaKey:app.mediaKey||"",character:c};
       if(!existing||(!existing.mediaKey&&candidate.mediaKey))byAlias.set(k,candidate);
