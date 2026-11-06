@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.10.16 FIVE FINDINGS AUDIT</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.10.17 DARK PHOENIX AUDIT</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -6367,6 +6367,52 @@ function ensureFiveFindingsAudit1116(){
   rebuildLibraryCatalog();
 }
 
+
+function ensureDarkPhoenixAudit1117(){
+  if((DATA.darkPhoenixAudit1117||0)>=1117)return;
+  DATA.appearances=DATA.appearances||{};
+  DATA.images=DATA.images||{};
+  DATA.projectCast=DATA.projectCast||{};
+
+  const pid="darkphoenix",p=fastProject(pid);
+  if(!p){DATA.darkPhoenixAudit1117=1117;saveData();return;}
+
+  const rows=[
+    ["ALISON BLAIRE","DAZZLER","MUTANTE","cameos",[],"10005"],
+    ["SELENE GALLIO","SELENE","MUTANTE","villains",[],"10005"],
+    ["BEN HAMMILL","MATCH","MUTANTE","cameos",[],"10005"]
+  ];
+
+  DATA.projectCast[pid]=DATA.projectCast[pid]||{heroes:[],villains:[],anti:[],allies:[],cameos:[]};
+  ["heroes","villains","anti","allies","cameos"].forEach(r=>DATA.projectCast[pid][r]=DATA.projectCast[pid][r]||[]);
+
+  rows.forEach(row=>{
+    const [real,alias,nature,role,aff,earth]=row;
+    let c=(DATA.characters||[]).find(x=>x.earth===earth&&norm(x.real)===norm(real));
+    if(!c)c=ensureSeedCharacter(earth,row).c;
+    if(!c)return;
+
+    c.aliases=[...new Set([c.alias,alias,...(c.aliases||[])].filter(Boolean))];
+    c.aff=uniqueTranslatedList([...(c.aff||[]),...(aff||[])]);
+    c.projects=[...new Set([...(c.projects||[]),pid])];
+
+    const existingRole=["heroes","villains","anti","allies","cameos"].find(r=>(DATA.projectCast[pid][r]||[]).includes(c.id));
+    if(!existingRole&&!DATA.projectCast[pid][role].includes(c.id))DATA.projectCast[pid][role].push(c.id);
+
+    const key=c.id+"|"+pid,old=DATA.appearances[key]||DATA.images[key]||{};
+    const app={...old,characterId:c.id,projectId:pid,earth:p.earth,characterEarth:earth,
+      alias:alias,nature:nature,role:existingRole||role,status:old.status||c.status||"DESCONOCIDO"};
+    DATA.appearances[key]=app;
+    DATA.images[key]={...(DATA.images[key]||{}),...app};
+  });
+
+  addRosterRows197(pid,rows);
+  DATA.darkPhoenixAudit1117=1117;
+  runtimeIndexesDirty=true;
+  saveData();
+  rebuildLibraryCatalog();
+}
+
 function sharedTeamLabel(a,b){
   ensureRuntimeIndexes();
   const otherSet=runtimeAffiliationsById.get(b.id)||new Set();
@@ -7759,7 +7805,7 @@ try{
 let peopleLetter="ALL";
 let selectedGeneralCharacters=new Set();
 
-normalizeLokiVariantSource1106();normalizeGrootGenerations1105();normalizeDefendersSource199();ensureFirstAvengerRoster198();ensureGuardiansRoster197();normalizeCanonicalRoster196();normalizeRosterDuplicates197();applyArchiveYearCutoff();seedAllProjectRosters();repairCassieCassandra196();ensureCatalogAudit194();repairCanonicalStageIdentities195();normalizeLegacyTimelineStageSeeds1102();ensureStageAndAffiliationAudit195();repairDuplicateIdentities190();repairDeadpoolWolverine191();repairExactIdentityDuplicates193();repairMovedCharacterIdentities();repairIdentityAudit196();ensureGlobalRosterAudit197();ensureCoreRosterAudit198();ensureSafeContinuityAndAffiliation199();normalizeVisionQuestRoster1101();ensureProjectRosterRepair1101();ensureConfirmedBacklog1106();ensureGlobalAudit1108();ensureMariaRambeauRepair1109();ensureBeastRepair1110();ensureWandaVisionChildren1111();ensureMasterStageRepair1114();ensureAliasVsStageAndHorsemen1113();ensureDominantProjectIdentity1107();ensureGrootGenerationsRepair1105();ensureChristinePalmer838Repair1104();ensureAliasIdentityModel110();ensureFoxTimelineModel1102();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();ensureWhiteVisionAliasIdentity1115();ensureFiveFindingsAudit1116();initializeProjectRewardBaselines();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
+normalizeLokiVariantSource1106();normalizeGrootGenerations1105();normalizeDefendersSource199();ensureFirstAvengerRoster198();ensureGuardiansRoster197();normalizeCanonicalRoster196();normalizeRosterDuplicates197();applyArchiveYearCutoff();seedAllProjectRosters();repairCassieCassandra196();ensureCatalogAudit194();repairCanonicalStageIdentities195();normalizeLegacyTimelineStageSeeds1102();ensureStageAndAffiliationAudit195();repairDuplicateIdentities190();repairDeadpoolWolverine191();repairExactIdentityDuplicates193();repairMovedCharacterIdentities();repairIdentityAudit196();ensureGlobalRosterAudit197();ensureCoreRosterAudit198();ensureSafeContinuityAndAffiliation199();normalizeVisionQuestRoster1101();ensureProjectRosterRepair1101();ensureConfirmedBacklog1106();ensureGlobalAudit1108();ensureMariaRambeauRepair1109();ensureBeastRepair1110();ensureWandaVisionChildren1111();ensureMasterStageRepair1114();ensureAliasVsStageAndHorsemen1113();ensureDominantProjectIdentity1107();ensureGrootGenerationsRepair1105();ensureChristinePalmer838Repair1104();ensureAliasIdentityModel110();ensureFoxTimelineModel1102();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();ensureWhiteVisionAliasIdentity1115();ensureFiveFindingsAudit1116();ensureDarkPhoenixAudit1117();initializeProjectRewardBaselines();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
 if((DATA.identityRepairReport||[]).length&&!DATA.identityRepairNoticeV1){
   DATA.identityRepairNoticeV1=true;saveData();
   setTimeout(()=>toast(`REPARACIÓN DE IDENTIDADES · ${DATA.identityRepairReport.length} CASO${DATA.identityRepairReport.length===1?"":"S"} CORREGIDO${DATA.identityRepairReport.length===1?"":"S"}`),450);
