@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.10.17 DARK PHOENIX AUDIT</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.10.18 MEDIA RECOVERY</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -4731,6 +4731,10 @@ function fastCharacterByEarthName(earth,name){ensureRuntimeIndexes();return runt
 function saveData(){
   try{invalidateRuntimeIndexes()}catch(e){}
   try{peopleSearchCache?.clear()}catch(e){}
+  try{
+    const current=localStorage.getItem(STORAGE_KEY);
+    if(current&&current!=="null")localStorage.setItem(STORAGE_KEY+"_backup",current);
+  }catch(e){}
   localStorage.setItem(STORAGE_KEY,JSON.stringify(DATA));
 }
 
@@ -4971,6 +4975,111 @@ async function putMedia(key,file){
     DATA.mediaFallback[key]=await compressedDataURL(file);
   }
 }
+
+async function listStoredMediaKeys(){
+  try{
+    const db=await mediaDB();
+    return await new Promise((resolve,reject)=>{
+      const tx=db.transaction("media","readonly");
+      const req=tx.objectStore("media").getAllKeys();
+      req.onsuccess=()=>resolve((req.result||[]).map(String));
+      req.onerror=()=>reject(req.error);
+    });
+  }catch(e){return []}
+}
+
+function mediaKeyTimestamp1118(key){
+  const m=String(key||"").match(/:(\d{10,})$/);
+  return m?Number(m[1]):0;
+}
+function newestMediaKey1118(keys){
+  return [...keys].sort((a,b)=>mediaKeyTimestamp1118(b)-mediaKeyTimestamp1118(a))[0]||"";
+}
+
+async function recoverMediaReferencesFromIndexedDB1118(){
+  if(DATA.mediaRecovery1118===1118)return {recovered:0,keys:0};
+  const keys=await listStoredMediaKeys();
+  if(!keys.length)return {recovered:0,keys:0};
+
+  let recovered=0;
+  const byCharacter=new Map();
+  const pushChar=(id,key)=>{
+    if(!id||!key)return;
+    if(!byCharacter.has(id))byCharacter.set(id,[]);
+    byCharacter.get(id).push(key);
+  };
+
+  for(const p of DATA.productions||[]){
+    if(!p.coverKey){
+      const key=newestMediaKey1118(keys.filter(k=>k.startsWith("cover:"+p.id+":")));
+      if(key){p.coverKey=key;recovered++}
+    }
+    if(!p.horizontalKey){
+      const key=newestMediaKey1118(keys.filter(k=>k.startsWith("horizontal:"+p.id+":")));
+      if(key){p.horizontalKey=key;recovered++}
+    }
+  }
+
+  keys.forEach(key=>{
+    let m=key.match(/^character-master:([^:]+):/);
+    if(m){pushChar(m[1],key);return}
+
+    m=key.match(/^character-stage:([^:]+):([^:]+):/);
+    if(m){pushChar(m[1],key);return}
+
+    m=key.match(/^character-logo:([^:]+):/);
+    if(m){
+      const c=(DATA.characters||[]).find(x=>x.id===m[1]);
+      if(c&&!c.logoMediaKey){c.logoMediaKey=key;recovered++}
+      return;
+    }
+
+    m=key.match(/^appearance-alias:([^:]+):([^:]+):/);
+    if(m){
+      const charId=m[1],pid=m[2];
+      const c=(DATA.characters||[]).find(x=>x.id===charId);
+      const p=(DATA.productions||[]).find(x=>x.id===pid);
+      if(!c||!p)return;
+      DATA.appearances=DATA.appearances||{};
+      DATA.images=DATA.images||{};
+      const appKey=charId+"|"+pid;
+      const old=DATA.appearances[appKey]||DATA.images[appKey]||{};
+      if(!old.mediaKey){
+        const app={...old,characterId:charId,projectId:pid,earth:p.earth,characterEarth:c.earth,
+          alias:old.alias||c.alias||c.real,role:old.role||existingCastRole(pid,charId)||"allies",mediaKey:key};
+        DATA.appearances[appKey]=app;
+        DATA.images[appKey]={...(DATA.images[appKey]||{}),...app};
+        c.projects=[...new Set([...(c.projects||[]),pid])];
+        if(!castRolesFor(pid,charId).length){
+          DATA.projectCast[pid]=DATA.projectCast[pid]||{heroes:[],villains:[],anti:[],allies:[],cameos:[]};
+          ["heroes","villains","anti","allies","cameos"].forEach(r=>DATA.projectCast[pid][r]=DATA.projectCast[pid][r]||[]);
+          DATA.projectCast[pid].allies.push(charId);
+        }
+        recovered++;
+      }
+      pushChar(charId,key);
+    }
+  });
+
+  for(const c of DATA.characters||[]){
+    if(c.masterMediaKey)continue;
+    const key=newestMediaKey1118(byCharacter.get(c.id)||[]);
+    if(key){c.masterMediaKey=key;recovered++}
+  }
+
+  DATA.mediaRecovery1118=1118;
+  saveData();
+  if(recovered){
+    rebuildLibraryCatalog();
+    renderGlobalProgress();
+    renderEarths();
+    renderTimeline();
+    if(activeScreenId()==="library")renderLibraryResults();
+    if(activeScreenId()==="production"&&currentProduction)renderProduction();
+  }
+  return {recovered,keys:keys.length};
+}
+
 async function getMediaBlob(key){
   if(!key)return null;
   try{
@@ -7806,6 +7915,9 @@ let peopleLetter="ALL";
 let selectedGeneralCharacters=new Set();
 
 normalizeLokiVariantSource1106();normalizeGrootGenerations1105();normalizeDefendersSource199();ensureFirstAvengerRoster198();ensureGuardiansRoster197();normalizeCanonicalRoster196();normalizeRosterDuplicates197();applyArchiveYearCutoff();seedAllProjectRosters();repairCassieCassandra196();ensureCatalogAudit194();repairCanonicalStageIdentities195();normalizeLegacyTimelineStageSeeds1102();ensureStageAndAffiliationAudit195();repairDuplicateIdentities190();repairDeadpoolWolverine191();repairExactIdentityDuplicates193();repairMovedCharacterIdentities();repairIdentityAudit196();ensureGlobalRosterAudit197();ensureCoreRosterAudit198();ensureSafeContinuityAndAffiliation199();normalizeVisionQuestRoster1101();ensureProjectRosterRepair1101();ensureConfirmedBacklog1106();ensureGlobalAudit1108();ensureMariaRambeauRepair1109();ensureBeastRepair1110();ensureWandaVisionChildren1111();ensureMasterStageRepair1114();ensureAliasVsStageAndHorsemen1113();ensureDominantProjectIdentity1107();ensureGrootGenerationsRepair1105();ensureChristinePalmer838Repair1104();ensureAliasIdentityModel110();ensureFoxTimelineModel1102();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();ensureWhiteVisionAliasIdentity1115();ensureFiveFindingsAudit1116();ensureDarkPhoenixAudit1117();initializeProjectRewardBaselines();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
+setTimeout(()=>recoverMediaReferencesFromIndexedDB1118().then(r=>{
+  if(r.recovered>0)toast("RECUPERACIÓN DE MEDIOS · "+r.recovered+" REFERENCIAS RESTAURADAS");
+}),250);
 if((DATA.identityRepairReport||[]).length&&!DATA.identityRepairNoticeV1){
   DATA.identityRepairNoticeV1=true;saveData();
   setTimeout(()=>toast(`REPARACIÓN DE IDENTIDADES · ${DATA.identityRepairReport.length} CASO${DATA.identityRepairReport.length===1?"":"S"} CORREGIDO${DATA.identityRepairReport.length===1?"":"S"}`),450);
