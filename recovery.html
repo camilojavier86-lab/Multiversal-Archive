@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Multiversal Archive · Rescate</title>
+<style>
+:root{color-scheme:dark}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#0b0d12;color:#eef2f7;margin:0;padding:20px}
+.wrap{max-width:820px;margin:auto}
+.card{background:#151922;border:1px solid #2a3140;border-radius:16px;padding:18px;margin:14px 0}
+h1{font-size:24px;margin:0 0 8px}
+h2{font-size:18px}
+button{width:100%;padding:14px 16px;border:0;border-radius:12px;font-weight:700;font-size:16px;margin:8px 0;background:#e5e7eb;color:#111827}
+button.secondary{background:#273043;color:#eef2f7}
+pre{white-space:pre-wrap;word-break:break-word;background:#0d1117;padding:12px;border-radius:10px;max-height:420px;overflow:auto}
+.good{color:#7ee787}.warn{color:#f2cc60}.bad{color:#ff7b72}
+small{color:#9aa4b2}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Multiversal Archive · Rescate</h1>
+  <p>Esta página es solo de lectura. No modifica ni borra el álbum.</p>
+  <div class="card">
+    <button id="scan">ESCANEAR ALMACENAMIENTO</button>
+    <button id="export" class="secondary" disabled>DESCARGAR RESCATE CRUDO</button>
+  </div>
+  <div class="card">
+    <h2>Resultado</h2>
+    <pre id="out">Presiona ESCANEAR ALMACENAMIENTO.</pre>
+  </div>
+</div>
+<script>
+const DATA_KEY="multiversalArchiveDataV03";
+const BACKUP_KEY=DATA_KEY+"_backup";
+let rescue=null;
+
+function parseJson(v){try{return JSON.parse(v)}catch(e){return null}}
+function summaryData(raw){
+  if(!raw)return {exists:false,length:0};
+  const obj=parseJson(raw);
+  if(!obj)return {exists:true,length:raw.length,validJson:false};
+  return {
+    exists:true,length:raw.length,validJson:true,
+    universes:Array.isArray(obj.universes)?obj.universes.length:0,
+    productions:Array.isArray(obj.productions)?obj.productions.length:0,
+    characters:Array.isArray(obj.characters)?obj.characters.length:0,
+    appearances:obj.appearances?Object.keys(obj.appearances).length:0,
+    images:obj.images?Object.keys(obj.images).length:0,
+    mediaFallback:obj.mediaFallback?Object.keys(obj.mediaFallback).length:0,
+    versionFlags:Object.fromEntries(Object.entries(obj).filter(([k,v])=>/(Version|Repair|Audit|Recovery|111|110|19)/i.test(k)&&(["number","string","boolean"].includes(typeof v))).slice(-80))
+  };
+}
+async function readIndexedDB(){
+  return await new Promise(resolve=>{
+    try{
+      const req=indexedDB.open("MultiversalArchiveMediaV03",1);
+      req.onupgradeneeded=()=>{};
+      req.onerror=()=>resolve({ok:false,error:String(req.error||"ERROR")});
+      req.onsuccess=()=>{
+        const db=req.result;
+        if(!db.objectStoreNames.contains("media")){db.close();resolve({ok:true,count:0,keys:[]});return}
+        const tx=db.transaction("media","readonly"),store=tx.objectStore("media");
+        const kr=store.getAllKeys();
+        kr.onerror=()=>{db.close();resolve({ok:false,error:String(kr.error||"ERROR")})};
+        kr.onsuccess=()=>{
+          const keys=(kr.result||[]).map(String);
+          db.close();
+          resolve({ok:true,count:keys.length,keys});
+        };
+      };
+    }catch(e){resolve({ok:false,error:String(e)})}
+  });
+}
+function classify(keys){
+  const c={masters:0,stages:0,aliases:0,covers:0,horizontal:0,logos:0,other:0};
+  for(const k of keys){
+    if(k.startsWith("character-master:"))c.masters++;
+    else if(k.startsWith("character-stage:"))c.stages++;
+    else if(k.startsWith("appearance-alias:"))c.aliases++;
+    else if(k.startsWith("cover:"))c.covers++;
+    else if(k.startsWith("horizontal:"))c.horizontal++;
+    else if(k.startsWith("character-logo:"))c.logos++;
+    else c.other++;
+  }
+  return c;
+}
+async function scan(){
+  const mainRaw=localStorage.getItem(DATA_KEY);
+  const backupRaw=localStorage.getItem(BACKUP_KEY);
+  const idb=await readIndexedDB();
+  const allLocal={};
+  for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);allLocal[k]=localStorage.getItem(k)}
+  rescue={
+    generatedAt:new Date().toISOString(),
+    origin:location.origin,
+    main:{raw:mainRaw,summary:summaryData(mainRaw)},
+    backup:{raw:backupRaw,summary:summaryData(backupRaw)},
+    indexedDB:idb,
+    localStorage:allLocal
+  };
+  const cls=idb.ok?classify(idb.keys):null;
+  const lines=[];
+  lines.push("ORIGEN: "+location.origin);
+  lines.push("");
+  lines.push("LOCALSTORAGE PRINCIPAL:");
+  lines.push(JSON.stringify(rescue.main.summary,null,2));
+  lines.push("");
+  lines.push("COPIA AUTOMÁTICA:");
+  lines.push(JSON.stringify(rescue.backup.summary,null,2));
+  lines.push("");
+  lines.push("INDEXEDDB:");
+  if(idb.ok){
+    lines.push("Archivos encontrados: "+idb.count);
+    lines.push("Clasificación: "+JSON.stringify(cls,null,2));
+    lines.push("");
+    lines.push("Primeras 120 claves:");
+    lines.push(idb.keys.slice(0,120).join("\n")||"(ninguna)");
+  }else lines.push("ERROR: "+idb.error);
+  document.getElementById("out").textContent=lines.join("\n");
+  document.getElementById("export").disabled=false;
+}
+function exportRescue(){
+  if(!rescue)return;
+  const blob=new Blob([JSON.stringify(rescue,null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="multiversal-archive-rescate-"+Date.now()+".json";
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+document.getElementById("scan").onclick=scan;
+document.getElementById("export").onclick=exportRescue;
+</script>
+</body>
+</html>
