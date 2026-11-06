@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.10.15 WHITE VISION</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.10.16 FIVE FINDINGS AUDIT</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -6303,6 +6303,70 @@ function ensureWhiteVisionAliasIdentity1115(){
   rebuildLibraryCatalog();
 }
 
+
+function ensureFiveFindingsAudit1116(){
+  if((DATA.fiveFindingsAudit1116||0)>=1116)return;
+  DATA.appearances=DATA.appearances||{};
+  DATA.images=DATA.images||{};
+  DATA.projectCast=DATA.projectCast||{};
+  const rows={"gift1":[["TESSA","SAGE","MUTANTE","allies",[],"fox-gifted"],["SONYA SIMONSON","DREAMER","MUTANTE","allies",[],"fox-gifted"],["RODERICK CAMPBELL","AHAB","HUMANO","villains",[],"fox-gifted"],["SOPHIE FROST","SOPHIE FROST","MUTANTE","anti",["CUCLILLOS DE STEPFORD"],"fox-gifted"],["PHOEBE FROST","PHOEBE FROST","MUTANTE","anti",["CUCLILLOS DE STEPFORD"],"fox-gifted"],["ANDREA VON STRUCKER","FENRIS","MUTANTE","villains",[],"fox-gifted"],["ANDREAS VON STRUCKER","FENRIS","MUTANTE","villains",[],"fox-gifted"]],"gift2":[["TESSA","SAGE","MUTANTE","allies",[],"fox-gifted"],["SOPHIE FROST","SOPHIE FROST","MUTANTE","anti",["CUCLILLOS DE STEPFORD"],"fox-gifted"],["PHOEBE FROST","PHOEBE FROST","MUTANTE","anti",["CUCLILLOS DE STEPFORD"],"fox-gifted"],["REEVA PAYGE","REEVA PAYGE","MUTANTE","villains",[],"fox-gifted"],["ERG","ERG","MUTANTE","allies",["MORLOCKS"],"fox-gifted"],["ANDREA VON STRUCKER","FENRIS","MUTANTE","cameos",[],"fox-gifted"],["ANDREAS VON STRUCKER","FENRIS","MUTANTE","cameos",[],"fox-gifted"]],"im1":[["J.A.R.V.I.S.","J.A.R.V.I.S.","INTELIGENCIA ARTIFICIAL","allies",["INDUSTRIAS STARK"],"616"],["D.U.M.-E.","D.U.M.-E.","ROBOT","allies",["INDUSTRIAS STARK"],"616"],["U.","U.","ROBOT","allies",["INDUSTRIAS STARK"],"616"]],"im2":[["J.A.R.V.I.S.","J.A.R.V.I.S.","INTELIGENCIA ARTIFICIAL","allies",["INDUSTRIAS STARK"],"616"],["D.U.M.-E.","D.U.M.-E.","ROBOT","allies",["INDUSTRIAS STARK"],"616"],["U.","U.","ROBOT","allies",["INDUSTRIAS STARK"],"616"]],"av1":[["J.A.R.V.I.S.","J.A.R.V.I.S.","INTELIGENCIA ARTIFICIAL","allies",["INDUSTRIAS STARK"],"616"]],"im3":[["J.A.R.V.I.S.","J.A.R.V.I.S.","INTELIGENCIA ARTIFICIAL","allies",["INDUSTRIAS STARK"],"616"],["D.U.M.-E.","D.U.M.-E.","ROBOT","allies",["INDUSTRIAS STARK"],"616"],["U.","U.","ROBOT","allies",["INDUSTRIAS STARK"],"616"]],"aou":[["J.A.R.V.I.S.","J.A.R.V.I.S.","INTELIGENCIA ARTIFICIAL","allies",["INDUSTRIAS STARK"],"616"],["F.R.I.D.A.Y.","F.R.I.D.A.Y.","INTELIGENCIA ARTIFICIAL","allies",["INDUSTRIAS STARK"],"616"],["LAURA BARTON","AGENT 19","HUMANO","allies",["S.H.I.E.L.D."],"616"]],"cw":[["F.R.I.D.A.Y.","F.R.I.D.A.Y.","INTELIGENCIA ARTIFICIAL","allies",["INDUSTRIAS STARK"],"616"]],"homecoming":[["F.R.I.D.A.Y.","F.R.I.D.A.Y.","INTELIGENCIA ARTIFICIAL","cameos",["INDUSTRIAS STARK"],"616"],["D.U.M.-E.","D.U.M.-E.","ROBOT","cameos",["INDUSTRIAS STARK"],"616"],["U.","U.","ROBOT","cameos",["INDUSTRIAS STARK"],"616"]],"iw":[["F.R.I.D.A.Y.","F.R.I.D.A.Y.","INTELIGENCIA ARTIFICIAL","allies",["INDUSTRIAS STARK"],"616"]],"endgame":[["F.R.I.D.A.Y.","F.R.I.D.A.Y.","INTELIGENCIA ARTIFICIAL","cameos",["INDUSTRIAS STARK"],"616"],["EDWIN JARVIS","EDWIN JARVIS","HUMANO","cameos",[],"616"],["LAURA BARTON","AGENT 19","HUMANO","cameos",["S.H.I.E.L.D."],"616"]],"farfromhome":[["E.D.I.T.H.","E.D.I.T.H.","INTELIGENCIA ARTIFICIAL","allies",["INDUSTRIAS STARK"],"616"]],"nowayhome":[["D.U.M.-E.","D.U.M.-E.","ROBOT","cameos",["INDUSTRIAS STARK"],"616"],["U.","U.","ROBOT","cameos",["INDUSTRIAS STARK"],"616"]],"visionquest":[["F.R.I.D.A.Y.","F.R.I.D.A.Y.","INTELIGENCIA ARTIFICIAL","allies",["INDUSTRIAS STARK"],"616"],["E.D.I.T.H.","E.D.I.T.H.","INTELIGENCIA ARTIFICIAL","allies",["INDUSTRIAS STARK"],"616"],["J.A.R.V.I.S.","J.A.R.V.I.S.","INTELIGENCIA ARTIFICIAL","allies",["INDUSTRIAS STARK"],"616"],["D.U.M.-E.","D.U.M.-E.","ROBOT","allies",["INDUSTRIAS STARK"],"616"],["U.","U.","ROBOT","allies",["INDUSTRIAS STARK"],"616"]],"cd1":[["BRIGID O'REILLY","BRIGID O'REILLY","HUMANO","allies",[],"tv-young"],["MELISSA BOWEN","MELISSA BOWEN","HUMANO","allies",[],"tv-young"],["FRANCIS DELGADO","FATHER DELGADO","HUMANO","allies",[],"tv-young"]],"cd2":[["BRIGID O'REILLY","MAYHEM","HUMANO MEJORADO","anti",[],"tv-young"],["MELISSA BOWEN","MELISSA BOWEN","HUMANO","allies",[],"tv-young"],["FRANCIS DELGADO","FATHER DELGADO","HUMANO","allies",[],"tv-young"]],"run1":[["OLD LACE","OLD LACE","ANIMAL / DINOSAURIO","heroes",["RUNAWAYS"],"tv-young"],["GEOFFREY WILDER","GEOFFREY WILDER","HUMANO","villains",["PRIDE"],"tv-young"],["CATHERINE WILDER","CATHERINE WILDER","HUMANO","villains",["PRIDE"],"tv-young"],["TINA MINORU","TINA MINORU","HUMANO","villains",["PRIDE"],"tv-young"],["ROBERT MINORU","ROBERT MINORU","HUMANO","villains",["PRIDE"],"tv-young"],["VICTOR STEIN","VICTOR STEIN","HUMANO","villains",["PRIDE"],"tv-young"],["JANET STEIN","JANET STEIN","HUMANO","villains",["PRIDE"],"tv-young"],["DALE YORKES","DALE YORKES","HUMANO","villains",["PRIDE"],"tv-young"],["STACEY YORKES","STACEY YORKES","HUMANO","villains",["PRIDE"],"tv-young"],["FRANK DEAN","FRANK DEAN","HUMANO","villains",["PRIDE"],"tv-young"],["LESLIE DEAN","LESLIE DEAN","HUMANO","villains",["PRIDE"],"tv-young"]],"run2":[["OLD LACE","OLD LACE","ANIMAL / DINOSAURIO","heroes",["RUNAWAYS"],"tv-young"],["TOPHER","TOPHER","VAMPIRO","villains",[],"tv-young"],["XAVIN","XAVIN","SKRULL","allies",[],"tv-young"],["GEOFFREY WILDER","GEOFFREY WILDER","HUMANO","villains",["PRIDE"],"tv-young"],["CATHERINE WILDER","CATHERINE WILDER","HUMANO","villains",["PRIDE"],"tv-young"],["TINA MINORU","TINA MINORU","HUMANO","villains",["PRIDE"],"tv-young"],["ROBERT MINORU","ROBERT MINORU","HUMANO","villains",["PRIDE"],"tv-young"],["VICTOR STEIN","VICTOR STEIN","HUMANO","villains",["PRIDE"],"tv-young"],["JANET STEIN","JANET STEIN","HUMANO","villains",["PRIDE"],"tv-young"],["DALE YORKES","DALE YORKES","HUMANO","villains",["PRIDE"],"tv-young"],["STACEY YORKES","STACEY YORKES","HUMANO","villains",["PRIDE"],"tv-young"],["FRANK DEAN","FRANK DEAN","HUMANO","villains",["PRIDE"],"tv-young"],["LESLIE DEAN","LESLIE DEAN","HUMANO","villains",["PRIDE"],"tv-young"]],"run3":[["GERTRUDE YORKES","ARSENIC","HUMANO","heroes",["RUNAWAYS"],"tv-young"],["CHASE STEIN","CHASE STEIN","HUMANO","heroes",["RUNAWAYS"],"tv-young"],["MOLLY HERNANDEZ","MOLLY HAYES","HUMANO MEJORADO","heroes",["RUNAWAYS"],"tv-young"],["OLD LACE","OLD LACE","ANIMAL / DINOSAURIO","heroes",["RUNAWAYS"],"tv-young"],["XAVIN","XAVIN","SKRULL","allies",[],"tv-young"],["MORGAN LE FAY","MORGAN LE FAY","SER MÍSTICO","villains",[],"tv-young"],["GEOFFREY WILDER","GEOFFREY WILDER","HUMANO","villains",["PRIDE"],"tv-young"],["CATHERINE WILDER","CATHERINE WILDER","HUMANO","villains",["PRIDE"],"tv-young"],["TINA MINORU","TINA MINORU","HUMANO","villains",["PRIDE"],"tv-young"],["ROBERT MINORU","ROBERT MINORU","HUMANO","villains",["PRIDE"],"tv-young"],["VICTOR STEIN","VICTOR STEIN","HUMANO","villains",["PRIDE"],"tv-young"],["JANET STEIN","JANET STEIN","HUMANO","villains",["PRIDE"],"tv-young"],["DALE YORKES","DALE YORKES","HUMANO","villains",["PRIDE"],"tv-young"],["STACEY YORKES","STACEY YORKES","HUMANO","villains",["PRIDE"],"tv-young"],["LESLIE DEAN","LESLIE DEAN","HUMANO","villains",["PRIDE"],"tv-young"]],"hel1":[["HENRY","CARETAKER","HUMANO MEJORADO","allies",[],"tv-helstrom"],["GABRIELLA ROSETTI","GABRIELLA ROSETTI","HUMANO","allies",[],"tv-helstrom"],["MARDUK KURIOS","SATAN","DEMONIO","villains",[],"tv-helstrom"],["VICTORIA WINGATE HELSTROM","VICTORIA HELSTROM","HUMANO","allies",[],"tv-helstrom"]],"leg3":[["CHARLES XAVIER","PROFESSOR X","MUTANTE","allies",["X-MEN"],"fox-legion"],["GABRIELLE HALLER","GABRIELLE HALLER","HUMANO","allies",[],"fox-legion"]],"punisher_special":[["MA GNUCCI","MA GNUCCI","HUMANO","villains",[],"616"],["KAREN PAGE","KAREN PAGE","HUMANO","allies",[],"616"],["CURTIS HOYLE","CURTIS HOYLE","HUMANO","allies",[],"616"],["MARIA CASTLE","MARIA CASTLE","HUMANO","cameos",[],"616"],["LISA CASTLE","LISA CASTLE","HUMANO","cameos",[],"616"],["FRANK CASTLE JR","FRANK CASTLE JR","HUMANO","cameos",[],"616"]],"pun1":[["CURTIS HOYLE","CURTIS HOYLE","HUMANO","allies",[],"616"],["KAREN PAGE","KAREN PAGE","HUMANO","allies",[],"616"],["MARIA CASTLE","MARIA CASTLE","HUMANO","cameos",[],"616"],["LISA CASTLE","LISA CASTLE","HUMANO","cameos",[],"616"],["FRANK CASTLE JR","FRANK CASTLE JR","HUMANO","cameos",[],"616"]],"pun2":[["CURTIS HOYLE","CURTIS HOYLE","HUMANO","allies",[],"616"]],"hawkeye1":[["LAURA BARTON","AGENT 19","HUMANO","allies",["S.H.I.E.L.D."],"616"]]};
+
+  const ensureCast=(pid)=>{
+    DATA.projectCast[pid]=DATA.projectCast[pid]||{heroes:[],villains:[],anti:[],allies:[],cameos:[]};
+    ["heroes","villains","anti","allies","cameos"].forEach(r=>DATA.projectCast[pid][r]=DATA.projectCast[pid][r]||[]);
+    return DATA.projectCast[pid];
+  };
+
+  const upsert=(pid,row,stages=[])=>{
+    const p=fastProject(pid);if(!p)return null;
+    const [real,alias,nature,role="allies",aff=[],nativeEarth,location=""]=row;
+    const earth=nativeEarth||p.earth;
+    let c=(DATA.characters||[]).find(x=>x.earth===earth&&norm(x.real)===norm(real));
+    if(!c)c=ensureSeedCharacter(earth,row).c;
+    if(!c)return null;
+    c.aliases=[...new Set([c.alias,alias,...(c.aliases||[])].filter(Boolean))];
+    if(!c.alias)c.alias=alias||real;
+    if((!c.nature||c.nature==="POR DEFINIR")&&nature)c.nature=nature;
+    c.aff=uniqueTranslatedList([...(c.aff||[]),...(aff||[])]);
+    c.projects=[...new Set([...(c.projects||[]),pid])];
+
+    const cast=ensureCast(pid);
+    const existingRole=["heroes","villains","anti","allies","cameos"].find(r=>(cast[r]||[]).includes(c.id));
+    if(!existingRole&&!cast[role].includes(c.id))cast[role].push(c.id);
+
+    const key=c.id+"|"+pid,old=DATA.appearances[key]||DATA.images[key]||{};
+    const app={...old,characterId:c.id,projectId:pid,earth:p.earth,characterEarth:earth,
+      alias:alias||old.alias||c.alias,nature:nature||old.nature||c.nature,
+      role:existingRole||role,status:old.status||c.status||"DESCONOCIDO"};
+    if(location)app.location=location;
+    if(stages.length)app.stages=[...new Set(stages.map(normalizeStageLabel).filter(Boolean))];
+    DATA.appearances[key]=app;
+    DATA.images[key]={...(DATA.images[key]||{}),...app};
+    return c;
+  };
+
+  Object.entries(rows).forEach(([pid,list])=>{
+    addRosterRows197(pid,list);
+    list.forEach(row=>{
+      let stages=[];
+      const n=norm(row[0]);
+      if(["J.A.R.V.I.S.","F.R.I.D.A.Y.","E.D.I.T.H."].some(x=>norm(x)===n)){
+        stages=pid==="visionquest"?["FORMA HUMANA"]:["SISTEMA / IA"];
+      }else if(["D.U.M.-E.","U."].some(x=>norm(x)===n)){
+        stages=pid==="visionquest"?["FORMA HUMANA"]:["MÁQUINA / ROBOT"];
+      }else if(n===norm("EDWIN JARVIS")){
+        stages=["ETAPA JOVEN"];
+      }
+      upsert(pid,row,stages);
+    });
+  });
+
+  DATA.fiveFindingsAudit1116=1116;
+  runtimeIndexesDirty=true;
+  saveData();
+  rebuildLibraryCatalog();
+}
+
 function sharedTeamLabel(a,b){
   ensureRuntimeIndexes();
   const otherSet=runtimeAffiliationsById.get(b.id)||new Set();
@@ -7695,7 +7759,7 @@ try{
 let peopleLetter="ALL";
 let selectedGeneralCharacters=new Set();
 
-normalizeLokiVariantSource1106();normalizeGrootGenerations1105();normalizeDefendersSource199();ensureFirstAvengerRoster198();ensureGuardiansRoster197();normalizeCanonicalRoster196();normalizeRosterDuplicates197();applyArchiveYearCutoff();seedAllProjectRosters();repairCassieCassandra196();ensureCatalogAudit194();repairCanonicalStageIdentities195();normalizeLegacyTimelineStageSeeds1102();ensureStageAndAffiliationAudit195();repairDuplicateIdentities190();repairDeadpoolWolverine191();repairExactIdentityDuplicates193();repairMovedCharacterIdentities();repairIdentityAudit196();ensureGlobalRosterAudit197();ensureCoreRosterAudit198();ensureSafeContinuityAndAffiliation199();normalizeVisionQuestRoster1101();ensureProjectRosterRepair1101();ensureConfirmedBacklog1106();ensureGlobalAudit1108();ensureMariaRambeauRepair1109();ensureBeastRepair1110();ensureWandaVisionChildren1111();ensureMasterStageRepair1114();ensureAliasVsStageAndHorsemen1113();ensureDominantProjectIdentity1107();ensureGrootGenerationsRepair1105();ensureChristinePalmer838Repair1104();ensureAliasIdentityModel110();ensureFoxTimelineModel1102();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();ensureWhiteVisionAliasIdentity1115();initializeProjectRewardBaselines();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
+normalizeLokiVariantSource1106();normalizeGrootGenerations1105();normalizeDefendersSource199();ensureFirstAvengerRoster198();ensureGuardiansRoster197();normalizeCanonicalRoster196();normalizeRosterDuplicates197();applyArchiveYearCutoff();seedAllProjectRosters();repairCassieCassandra196();ensureCatalogAudit194();repairCanonicalStageIdentities195();normalizeLegacyTimelineStageSeeds1102();ensureStageAndAffiliationAudit195();repairDuplicateIdentities190();repairDeadpoolWolverine191();repairExactIdentityDuplicates193();repairMovedCharacterIdentities();repairIdentityAudit196();ensureGlobalRosterAudit197();ensureCoreRosterAudit198();ensureSafeContinuityAndAffiliation199();normalizeVisionQuestRoster1101();ensureProjectRosterRepair1101();ensureConfirmedBacklog1106();ensureGlobalAudit1108();ensureMariaRambeauRepair1109();ensureBeastRepair1110();ensureWandaVisionChildren1111();ensureMasterStageRepair1114();ensureAliasVsStageAndHorsemen1113();ensureDominantProjectIdentity1107();ensureGrootGenerationsRepair1105();ensureChristinePalmer838Repair1104();ensureAliasIdentityModel110();ensureFoxTimelineModel1102();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();ensureWhiteVisionAliasIdentity1115();ensureFiveFindingsAudit1116();initializeProjectRewardBaselines();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
 if((DATA.identityRepairReport||[]).length&&!DATA.identityRepairNoticeV1){
   DATA.identityRepairNoticeV1=true;saveData();
   setTimeout(()=>toast(`REPARACIÓN DE IDENTIDADES · ${DATA.identityRepairReport.length} CASO${DATA.identityRepairReport.length===1?"":"S"} CORREGIDO${DATA.identityRepairReport.length===1?"":"S"}`),450);
