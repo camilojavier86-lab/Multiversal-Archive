@@ -1,4 +1,4 @@
-const CACHE_NAME="multiversal-archive-shell-v1.10.17";
+const CACHE_NAME="multiversal-archive-shell-v1.10.18";
 const APP_SHELL=["./","./index.html","./manifest.webmanifest","./icon-192.png","./icon-512.png"];
 
 self.addEventListener("install",event=>{
