@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08090b">
-<title>MULTIVERSAL ARCHIVE · APP 1.10.18 MEDIA RECOVERY</title>
+<title>MULTIVERSAL ARCHIVE · APP 1.10.19 RECONSTRUCCIÓN SEGURA</title>
 <style>
 :root{
   --bg:#08090b;--panel:#111318;--panel2:#171a20;--line:#30353f;
@@ -1636,13 +1636,16 @@ const GROUP_CANONICAL_ALIASES={
 };
 const CUSTOM_GROUP_ALIASES={};
 function groupAliasKey(value){return norm(value).replace(/[^A-Z0-9]+/g," ").trim()}
+function splitAffiliationScope1119(name){
+  const raw=String(name||"").trim();
+  const m=raw.match(/^(.*?)\s*·\s*(TIERRA-[A-Z0-9-]+|[A-Z][A-Z0-9-]{2,})$/i);
+  return m?{base:m[1].trim(),scope:m[2].trim().toUpperCase()}:{base:raw,scope:""};
+}
 function translateGroup(name){
-  const raw=String(name||"").trim();if(!raw)return "";
+  const parsed=splitAffiliationScope1119(name),raw=parsed.base;if(!raw)return "";
   const aliasKey=groupAliasKey(raw);
-  if(CUSTOM_GROUP_ALIASES[aliasKey])return CUSTOM_GROUP_ALIASES[aliasKey];
-  const direct=GROUP_TRANSLATIONS[raw.toUpperCase()];
-  if(direct)return direct;
-  return GROUP_CANONICAL_ALIASES[aliasKey]||raw.toUpperCase();
+  let base=CUSTOM_GROUP_ALIASES[aliasKey]||GROUP_TRANSLATIONS[raw.toUpperCase()]||GROUP_CANONICAL_ALIASES[aliasKey]||raw.toUpperCase();
+  return parsed.scope?base+" · "+parsed.scope:base;
 }
 function norm(v){
   return (v||"").toString().normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().trim();
@@ -4304,8 +4307,8 @@ function ensureSeedCharacter(earth,row){
   if(!c){
     c={
       id:stableSeedId(earth,canonical),earth,real:canonical.toUpperCase(),alias:alias.toUpperCase(),
-      aliases:[alias.toUpperCase()],nature:nature||"POR DEFINIR",status:"DESCONOCIDO",
-      aff:[...(aff||[])],relations:[],projects:[],outfits:[]
+      aliases:[alias.toUpperCase()],nature:nature||"POR DEFINIR",status:"VIVO",
+      aff:scopeAffiliationsForEarth1119(aff||[],earth),relations:[],projects:[],outfits:[]
     };
     DATA.characters.push(c);
   }else{
@@ -4524,7 +4527,20 @@ let runtimeGlobalProgressCache=null;
 const peopleSearchCache=new Map();
 
 const STORAGE_KEY="multiversalArchiveDataV03";
-let DATA = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null") || structuredClone(DEFAULT_DATA);
+const INITIAL_STORAGE_RAW=localStorage.getItem(STORAGE_KEY);
+try{
+  const marker="multiversalArchiveSessionSnapshot1119";
+  if(INITIAL_STORAGE_RAW&&!sessionStorage.getItem(marker)){
+    const b1=localStorage.getItem(STORAGE_KEY+"_backup_1");
+    const b2=localStorage.getItem(STORAGE_KEY+"_backup_2");
+    if(b2)localStorage.setItem(STORAGE_KEY+"_backup_3",b2);
+    if(b1)localStorage.setItem(STORAGE_KEY+"_backup_2",b1);
+    localStorage.setItem(STORAGE_KEY+"_backup_1",INITIAL_STORAGE_RAW);
+    if(!localStorage.getItem(STORAGE_KEY+"_backup"))localStorage.setItem(STORAGE_KEY+"_backup",INITIAL_STORAGE_RAW);
+    sessionStorage.setItem(marker,"1");
+  }
+}catch(e){}
+let DATA = JSON.parse(INITIAL_STORAGE_RAW || "null") || structuredClone(DEFAULT_DATA);
 DATA.affiliationLogos=DATA.affiliationLogos||{};
 DATA.mediaFrames=DATA.mediaFrames||{};
 DATA.affiliationAliases=DATA.affiliationAliases||{};
@@ -4731,10 +4747,7 @@ function fastCharacterByEarthName(earth,name){ensureRuntimeIndexes();return runt
 function saveData(){
   try{invalidateRuntimeIndexes()}catch(e){}
   try{peopleSearchCache?.clear()}catch(e){}
-  try{
-    const current=localStorage.getItem(STORAGE_KEY);
-    if(current&&current!=="null")localStorage.setItem(STORAGE_KEY+"_backup",current);
-  }catch(e){}
+  try{if(typeof normalizeEarthScopedAffiliations1119==="function")normalizeEarthScopedAffiliations1119(false)}catch(e){}
   localStorage.setItem(STORAGE_KEY,JSON.stringify(DATA));
 }
 
@@ -6132,7 +6145,9 @@ function showProjectFaction(pid,label){
 
 function identityKeyForCharacter(c){
   // Variantes de Tierras distintas NUNCA se fusionan.
-  return `${c?.earth||""}|${norm(c?.real||"")}`;
+  // Una identidad de colección deliberadamente separada (WHITE VISION, etc.) tampoco se fusiona con su base.
+  const persona=norm(c?.identityAlias||"");
+  return `${c?.earth||""}|${norm(c?.real||"")}|${persona?"PERSONA:"+persona:"BASE"}`;
 }
 function uniqueTranslatedList(values){
   const map=new Map();
@@ -6521,6 +6536,155 @@ function ensureDarkPhoenixAudit1117(){
   saveData();
   rebuildLibraryCatalog();
 }
+
+
+/* ===== RECONSTRUCCIÓN SEGURA 1.10.19 · IDENTIDADES, AFILIACIONES, ESTADOS Y RESPALDO ===== */
+function affiliationBaseName1119(name){
+  const parsed=splitAffiliationScope1119(name);
+  return translateGroup(parsed.base);
+}
+function affiliationEarthLabel1119(earth){
+  const id=String(earth||"").trim();
+  if(/^\d+$/.test(id))return "TIERRA-"+id;
+  return id.toUpperCase();
+}
+function affiliationEarthSets1119(){
+  const map=new Map(),add=(name,earth)=>{
+    const base=affiliationBaseName1119(name),k=norm(base);if(!k||!earth)return;
+    if(!map.has(k))map.set(k,new Set());map.get(k).add(String(earth));
+  };
+  (DATA.characters||[]).forEach(c=>(c.aff||[]).forEach(a=>add(a,c.earth)));
+  Object.entries(PROJECT_ROSTER_SEEDS||{}).forEach(([pid,rows])=>{
+    const p=fastProject(pid);
+    (rows||[]).forEach(row=>(row?.[4]||[]).forEach(a=>add(a,row?.[5]||p?.earth||"")));
+  });
+  return map;
+}
+function scopeAffiliationForEarth1119(name,earth,sets=null){
+  const base=affiliationBaseName1119(name);if(!base)return "";
+  const all=sets||affiliationEarthSets1119(),earths=all.get(norm(base));
+  return earths&&earths.size>1?base+" · "+affiliationEarthLabel1119(earth):base;
+}
+function scopeAffiliationsForEarth1119(values,earth,sets=null){
+  const all=sets||affiliationEarthSets1119();
+  const map=new Map();
+  (values||[]).forEach(v=>{
+    const clean=scopeAffiliationForEarth1119(v,earth,all);
+    if(clean&&!map.has(norm(clean)))map.set(norm(clean),clean);
+  });
+  return [...map.values()];
+}
+function normalizeEarthScopedAffiliations1119(markVersion=true){
+  const sets=affiliationEarthSets1119();
+  (DATA.characters||[]).forEach(c=>{c.aff=scopeAffiliationsForEarth1119(c.aff||[],c.earth,sets)});
+  Object.entries(PROJECT_ROSTER_SEEDS||{}).forEach(([pid,rows])=>{
+    const p=fastProject(pid);
+    (rows||[]).forEach(row=>{row[4]=scopeAffiliationsForEarth1119(row?.[4]||[],row?.[5]||p?.earth||"",sets)});
+  });
+  Object.values(DATA.appearances||{}).forEach(app=>{
+    if(Array.isArray(app.aff))app.aff=scopeAffiliationsForEarth1119(app.aff,app.characterEarth||fastCharacter(app.characterId)?.earth||"",sets);
+  });
+  Object.values(DATA.images||{}).forEach(app=>{
+    if(Array.isArray(app.aff))app.aff=scopeAffiliationsForEarth1119(app.aff,app.characterEarth||fastCharacter(app.characterId)?.earth||"",sets);
+  });
+  DATA.affiliationNames=DATA.affiliationNames||{};
+  (DATA.characters||[]).forEach(c=>(c.aff||[]).forEach(a=>{DATA.affiliationNames[affiliationKey(a)]=a}));
+  if(markVersion)DATA.earthScopedAffiliations1119=1119;
+}
+function mergeRecoveryAliasRecord1119(earth,aliasOnlyReal,targetReal){
+  const source=(DATA.characters||[]).find(c=>c.earth===earth&&norm(c.real)===norm(aliasOnlyReal));
+  const target=(DATA.characters||[]).find(c=>c.earth===earth&&norm(c.real)===norm(targetReal));
+  if(!source||!target||source.id===target.id)return 0;
+  mergeCharacterData190(target,source);return 1;
+}
+function dedupeProjectPhysicalIdentities1119(){
+  let fixed=0;
+  const roles=["heroes","villains","anti","allies","cameos"];
+  Object.entries(DATA.projectCast||{}).forEach(([pid,cast])=>{
+    const seenIds=new Set();
+    roles.forEach(role=>{
+      const out=[];
+      for(const id of (cast[role]||[])){
+        if(seenIds.has(id)){fixed++;continue}
+        seenIds.add(id);out.push(id);
+      }
+      cast[role]=out;
+    });
+    const groups=new Map();
+    roles.forEach(role=>(cast[role]||[]).forEach(id=>{
+      const c=fastCharacter(id);if(!c)return;
+      const k=identityKeyForCharacter(c);
+      if(!groups.has(k))groups.set(k,[]);
+      groups.get(k).push({c,role});
+    }));
+    groups.forEach(items=>{
+      if(items.length<2)return;
+      let keep=items.sort((a,b)=>characterRichness190(b.c)-characterRichness190(a.c))[0].c;
+      for(const item of items){
+        if(item.c.id===keep.id)continue;
+        if(norm(item.c.identityAlias||"")||norm(keep.identityAlias||""))continue;
+        keep=mergeCharacterData190(keep,item.c);fixed++;
+      }
+    });
+  });
+  Object.values(DATA.projectCast||{}).forEach(cast=>{
+    const seen=new Set();
+    roles.forEach(role=>cast[role]=(cast[role]||[]).filter(id=>{if(seen.has(id))return false;seen.add(id);return true}));
+  });
+  return fixed;
+}
+const CONFIRMED_DEAD_1119=new Set([
+  "616|PEGGY CARTER","616|TONY STARK","616|NATASHA ROMANOFF","616|IVAN VANKO","616|HOWARD STARK",
+  "616|ABRAHAM ERSKINE","616|CHESTER PHILLIPS","616|ARNIM ZOLA","616|OBADIAH STANE","616|HO YINSEN",
+  "616|ANTON VANKO","616|ALDRICH KILLIAN","616|MAYA HANSEN","616|PIETRO MAXIMOFF","616|ULTRON",
+  "616|T'CHAKA","616|T'CHALLA","616|RAMONDA","616|ERIK STEVENS","616|ULYSSES KLAUE","616|ZURI",
+  "616|BROCK RUMLOW","616|ALEXANDER PIERCE","616|JASPER SITWELL","616|ANCIENT ONE","616|YONDU UDONTA",
+  "616|EGO","616|RONAN","616|KORATH","616|GROOT","616|FRIGGA","616|ODIN BORSON","616|HEIMDALL","616|SKURGE",
+  "616|LOKI LAUFEYSON","616|EBONY MAW","616|CORVUS GLAIVE","616|PROXIMA MIDNIGHT","616|CULL OBSIDIAN",
+  "616|THANOS","616|VISION","616|MARIA HILL","616|TALOS","616|GRAVIK","616|JANE FOSTER","616|GORR",
+  "616|AJAK","616|GILGAMESH","616|KRO","616|IKARIS","616|WENWU","616|KARLI MORGENTHAU","616|LEMAR HOSKINS",
+  "616|DREYKOV","616|MAY PARKER","616|DAR-BENN","616|DARRREN CROSS","616|DARREN CROSS","616|AGATHA HARKNESS",
+  "10005|RAVEN DARKHÖLME","10005|EN SABAH NUR","10005|VUK","10005|CALIBAN","10005|DONALD PIERCE",
+  "10005|ZANDER RICE","10005|X-24","688|CARLTON DRAKE","688|CLETUS KASADY","688|CARNAGE","688|FRANCES BARRISON",
+  "688|LUCIEN","688|EZEKIEL SIMS","688|THE FOREIGNER","688|ALEKSEI SYTSEVICH","688|NIKOLAI KRAVINOFF",
+  "15866|FRANKLIN STORM","701306|JACK MURDOCK","26320|DEACON FROST","26320|ABRAHAM WHISTLER",
+  "47281|BILLY RUSSOTI","47281|JAMES RUSSOTI"
+]);
+function applyConservativeStatusRecovery1119(){
+  (DATA.characters||[]).forEach(c=>{
+    const special=norm(c.identityAlias||"");
+    const key=String(c.earth||"")+"|"+String(c.real||"").toUpperCase();
+    if(special==="WHITE VISION"){c.status="VIVO";c.statusBasis="CUERPO / IDENTIDAD ACTIVA EN PANTALLA";return}
+    if(CONFIRMED_DEAD_1119.has(key)){c.status="MUERTO";c.statusBasis="MUERTE CONFIRMADA EN PANTALLA / CANON";return}
+    if(c.status==="DESAPARECIDO"){c.statusBasis=c.statusBasis||"DESAPARICIÓN EXPLÍCITA EN LA HISTORIA";return}
+    if(c.status==="MUERTO"){c.statusBasis=c.statusBasis||"MUERTE YA CONFIRMADA EN EL ÁLBUM";return}
+    c.status="VIVO";c.statusBasis="SIN MUERTE CONFIRMADA";
+  });
+  Object.values(DATA.appearances||{}).forEach(app=>{const c=fastCharacter(app.characterId);if(c)app.status=c.status});
+  Object.values(DATA.images||{}).forEach(app=>{const c=fastCharacter(app.characterId);if(c)app.status=c.status});
+  DATA.conservativeStatusRecovery1119=1119;
+}
+function ensureRecoveredArchive1119(){
+  if((DATA.recoveredArchive1119||0)>=1119)return;
+  // Reaplicar de forma idempotente las últimas auditorías que sí deben sobrevivir a una reconstrucción del almacenamiento.
+  DATA.whiteVisionAliasIdentity1115=0;ensureWhiteVisionAliasIdentity1115();
+  DATA.fiveFindingsAudit1116=0;ensureFiveFindingsAudit1116();
+  DATA.darkPhoenixAudit1117=0;ensureDarkPhoenixAudit1117();
+
+  // Recuperar consolidaciones conocidas que el catálogo base puede reintroducir.
+  mergeRecoveryAliasRecord1119("616","EVERETT ROSS","EVERETT K. ROSS");
+  mergeRecoveryAliasRecord1119("688","VENOM","EDDIE BROCK");
+  mergeRecoveryAliasRecord1119("688","RIOT","CARLTON DRAKE");
+  mergeRecoveryAliasRecord1119("688","CARNAGE","CLETUS KASADY");
+
+  const duplicateFixes=dedupeProjectPhysicalIdentities1119();
+  normalizeEarthScopedAffiliations1119(true);
+  applyConservativeStatusRecovery1119();
+  DATA.recoveredArchive1119=1119;
+  DATA.recoveredArchiveReport1119={duplicateFixes,characters:(DATA.characters||[]).length,projects:(DATA.productions||[]).length};
+  runtimeIndexesDirty=true;saveData();rebuildLibraryCatalog();
+}
+try{navigator.storage?.persist?.().then(granted=>{DATA.storagePersistent1119=!!granted;saveData()}).catch(()=>{})}catch(e){}
 
 function sharedTeamLabel(a,b){
   ensureRuntimeIndexes();
@@ -7059,7 +7223,7 @@ async function saveCharacterEditor(charId){
     skills:$("#editCharSkills").value.split(",").map(x=>x.trim().toUpperCase()).filter(Boolean),
     equipment:$("#editCharEquipment").value.split(",").map(x=>x.trim().toUpperCase()).filter(Boolean),
     firstAppearanceProjectId:$("#editCharFirstAppearance").value||"",firstAppearanceText:$("#editCharFirstAppearanceText").value.trim().toUpperCase(),
-    aff:uniqueTranslatedList($("#editCharAff").value.split(",").map(x=>x.trim()).filter(Boolean)),source:"USER"
+    aff:scopeAffiliationsForEarth1119($("#editCharAff").value.split(",").map(x=>x.trim()).filter(Boolean),earth),source:"USER"
   });
   if(newLogoKey)c.logoMediaKey=newLogoKey;else if($("#removeCharLogo")?.checked)delete c.logoMediaKey;
   Object.values(DATA.appearances||{}).forEach(app=>{if(app.characterId===charId)app.characterEarth=earth});
@@ -7581,7 +7745,7 @@ async function registerImage(){
   if(!c)c=existingByCanonical(selectedLibraryEntry.canonical,selectedEarth);
   if(c){charId=c.id;selectedLibraryEntry=libraryEntryForCharacter(c,selectedLibraryEntry)}
   const aliases=[...new Set([...(selectedLibraryEntry.aliases||[]),$("#imageAlias").value].filter(Boolean))];
-  const affiliations=$("#imageAffiliations").value.split(",").map(x=>x.trim()).filter(Boolean).map(translateGroup);
+  const affiliations=scopeAffiliationsForEarth1119($("#imageAffiliations").value.split(",").map(x=>x.trim()).filter(Boolean),selectedEarth);
   const rels=[];
 
   if(!c){
@@ -7914,7 +8078,7 @@ try{
 let peopleLetter="ALL";
 let selectedGeneralCharacters=new Set();
 
-normalizeLokiVariantSource1106();normalizeGrootGenerations1105();normalizeDefendersSource199();ensureFirstAvengerRoster198();ensureGuardiansRoster197();normalizeCanonicalRoster196();normalizeRosterDuplicates197();applyArchiveYearCutoff();seedAllProjectRosters();repairCassieCassandra196();ensureCatalogAudit194();repairCanonicalStageIdentities195();normalizeLegacyTimelineStageSeeds1102();ensureStageAndAffiliationAudit195();repairDuplicateIdentities190();repairDeadpoolWolverine191();repairExactIdentityDuplicates193();repairMovedCharacterIdentities();repairIdentityAudit196();ensureGlobalRosterAudit197();ensureCoreRosterAudit198();ensureSafeContinuityAndAffiliation199();normalizeVisionQuestRoster1101();ensureProjectRosterRepair1101();ensureConfirmedBacklog1106();ensureGlobalAudit1108();ensureMariaRambeauRepair1109();ensureBeastRepair1110();ensureWandaVisionChildren1111();ensureMasterStageRepair1114();ensureAliasVsStageAndHorsemen1113();ensureDominantProjectIdentity1107();ensureGrootGenerationsRepair1105();ensureChristinePalmer838Repair1104();ensureAliasIdentityModel110();ensureFoxTimelineModel1102();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();ensureWhiteVisionAliasIdentity1115();ensureFiveFindingsAudit1116();ensureDarkPhoenixAudit1117();initializeProjectRewardBaselines();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
+normalizeLokiVariantSource1106();normalizeGrootGenerations1105();normalizeDefendersSource199();ensureFirstAvengerRoster198();ensureGuardiansRoster197();normalizeCanonicalRoster196();normalizeRosterDuplicates197();applyArchiveYearCutoff();seedAllProjectRosters();repairCassieCassandra196();ensureCatalogAudit194();repairCanonicalStageIdentities195();normalizeLegacyTimelineStageSeeds1102();ensureStageAndAffiliationAudit195();repairDuplicateIdentities190();repairDeadpoolWolverine191();repairExactIdentityDuplicates193();repairMovedCharacterIdentities();repairIdentityAudit196();ensureGlobalRosterAudit197();ensureCoreRosterAudit198();ensureSafeContinuityAndAffiliation199();normalizeVisionQuestRoster1101();ensureProjectRosterRepair1101();ensureConfirmedBacklog1106();ensureGlobalAudit1108();ensureMariaRambeauRepair1109();ensureBeastRepair1110();ensureWandaVisionChildren1111();ensureMasterStageRepair1114();ensureAliasVsStageAndHorsemen1113();ensureDominantProjectIdentity1107();ensureGrootGenerationsRepair1105();ensureChristinePalmer838Repair1104();ensureAliasIdentityModel110();ensureFoxTimelineModel1102();applyCharacterDetailSeeds();ensureFirstAppearanceFromProjects();ensureIdentityGraph();ensureWhiteVisionAliasIdentity1115();ensureFiveFindingsAudit1116();ensureDarkPhoenixAudit1117();ensureRecoveredArchive1119();initializeProjectRewardBaselines();renderEarths();renderGlobalProgress();rebuildLibraryCatalog();refreshAffiliationCatalogControls();setTimeout(()=>finalizePendingVariantMediaClones170().then(()=>{runtimeIndexesDirty=true;renderGlobalProgress()}),900);
 setTimeout(()=>recoverMediaReferencesFromIndexedDB1118().then(r=>{
   if(r.recovered>0)toast("RECUPERACIÓN DE MEDIOS · "+r.recovered+" REFERENCIAS RESTAURADAS");
 }),250);
@@ -8154,7 +8318,7 @@ async function createNewCharacter(){
   const variantSourceId=newCharacterVariantSourceId;
   const real=$("#newCharReal").value.trim(),alias=$("#newCharAlias").value.trim()||real,earth=$("#newCharEarth").value,status=$("#newCharStatus").value,role=$("#newCharRole").value,pid=newCharacterProjectContext||$("#imageProduction").value;
   const quickContext=!!newCharacterProjectContext,photoFile=$("#newCharPhoto")?.files?.[0]||null;
-  const nature=$("#newCharNature").value||"POR DEFINIR",aff=uniqueTranslatedList($("#newCharAffiliations").value.split(",").map(x=>x.trim()).filter(Boolean));
+  const nature=$("#newCharNature").value||"POR DEFINIR",aff=scopeAffiliationsForEarth1119($("#newCharAffiliations").value.split(",").map(x=>x.trim()).filter(Boolean),earth);
   if(!real||!alias||!earth){toast("FALTA NOMBRE O TIERRA");return}
   const existing=DATA.characters.find(c=>c.earth===earth&&norm(c.real)===norm(real));
   if(existing){
@@ -8191,9 +8355,11 @@ function peopleTeams(){
     const clean=translateGroup(String(value||"").trim());if(clean&&!map.has(norm(clean)))map.set(norm(clean),clean);
   };
   (DATA.characters||[]).forEach(c=>(c.aff||[]).forEach(add));
-  Object.values(GROUP_TRANSLATIONS||{}).forEach(add);
-  Object.values(GROUP_CANONICAL_ALIASES||{}).forEach(add);
   Object.values(DATA.affiliationNames||{}).forEach(add);
+  const scopedBases=new Set([...map.values()].filter(x=>splitAffiliationScope1119(x).scope).map(x=>norm(affiliationBaseName1119(x))));
+  [...Object.values(GROUP_TRANSLATIONS||{}),...Object.values(GROUP_CANONICAL_ALIASES||{})].forEach(v=>{
+    const base=affiliationBaseName1119(v);if(!scopedBases.has(norm(base)))add(base);
+  });
   return [...map.values()].sort((a,b)=>a.localeCompare(b,"es"));
 }
 function affiliationKey(name){return norm(translateGroup(name))}
