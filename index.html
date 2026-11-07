@@ -4983,9 +4983,19 @@ async function putMedia(key,file){
       tx.objectStore("media").put(file,key);
       tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
     });
+    const stored=await new Promise((resolve,reject)=>{
+      const tx=db.transaction("media","readonly"),req=tx.objectStore("media").get(key);
+      req.onsuccess=()=>resolve(req.result||null);
+      req.onerror=()=>reject(req.error);
+    });
+    if(!stored)throw new Error("MEDIA_NO_CONFIRMADA");
+    if(DATA.mediaFallback?.[key])delete DATA.mediaFallback[key];
     return;
   }catch(e){
-    DATA.mediaFallback[key]=await compressedDataURL(file);
+    const fallback=await compressedDataURL(file);
+    if(!fallback)throw e;
+    DATA.mediaFallback=DATA.mediaFallback||{};
+    DATA.mediaFallback[key]=fallback;
   }
 }
 
@@ -7365,7 +7375,8 @@ async function exportAlbumBackup(){
     };
     tx.onerror=()=>reject(tx.error);
   });
-  const backup={version:"0.13",createdAt:new Date().toISOString(),data:DATA,media};
+  const backup={version:"1.10.19",createdAt:new Date().toISOString(),data:DATA,media};
+  DATA.lastFullBackupAt=backup.createdAt;saveData();
   const blob=new Blob([JSON.stringify(backup)],{type:"application/json"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);
   a.download=`MULTIVERSAL_ARCHIVE_RESPALDO_${new Date().toISOString().slice(0,10)}.json`;
